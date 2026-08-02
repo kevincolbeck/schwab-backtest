@@ -1,10 +1,7 @@
 """Backtest-specific configuration dataclass."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from strategy.scanner_history import ScannerHistory
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -28,16 +25,6 @@ class BacktestConfig:
     auto_us_universe: bool = True
     auto_universe_max_symbols: int = 0  # 0 = all
     use_computed_scanners: bool = False
-    use_scanner_history: bool = False
-    scanner_names: List[str] = field(default_factory=lambda: [
-        "qullamaggie 1 month",
-        "qullamaggie 3 month",
-        "qullamaggie 6 month",
-        "test scanner",
-    ])
-    scanner_history_dir: str = "scanner_history"
-    scanner_carry_forward_days: int = 1
-    scanner_history: Optional["ScannerHistory"] = None
     benchmark: str = "SPY"
 
     # Simulation approximations

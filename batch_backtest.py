@@ -76,10 +76,6 @@ def run_single_backtest(
         slippage_pct=SLIPPAGE_PCT,
         auto_us_universe=False,
         use_computed_scanners=False,
-        use_scanner_history=False,
-        scanner_names=[],
-        scanner_history_dir="",
-        scanner_carry_forward_days=0,
     )
 
     # Determine all symbols needed

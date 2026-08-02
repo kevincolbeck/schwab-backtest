@@ -1,10 +1,15 @@
-"""CLI backtest runner for the current working_strategy.json."""
+"""CLI backtest runner.
+
+Usage: python run_backtest_cli.py [spec_path] [start_date] [end_date]
+Defaults: strategy_specs/working_strategy.json, 2016-01-01, today.
+This file is the reference invocation pattern for the FastAPI service.
+"""
 
 import json
 import logging
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Set up logging
@@ -32,7 +37,7 @@ def main():
     start_time = time.time()
 
     # Load strategy spec
-    spec_path = "strategy_specs/working_strategy.json"
+    spec_path = sys.argv[1] if len(sys.argv) > 1 else "strategy_specs/working_strategy.json"
     raw_spec = json.loads(Path(spec_path).read_text(encoding="utf-8"))
     logger.info("Strategy: %s", raw_spec.get("name", "Unknown"))
 
@@ -58,8 +63,8 @@ def main():
 
     # Backtest config
     bt_config = BacktestConfig(
-        start_date="2016-01-01",
-        end_date="2026-02-22",
+        start_date=sys.argv[2] if len(sys.argv) > 2 else "2016-01-01",
+        end_date=sys.argv[3] if len(sys.argv) > 3 else datetime.now().strftime("%Y-%m-%d"),
         starting_capital=100_000.0,
         symbols=symbols,
         strategy_type="rule_based",
@@ -136,10 +141,11 @@ def main():
                 logger.info("  %-20s: %s", key, val)
 
     # Save results summary
-    out_path = Path("backtest_runs") / f"cli_run_{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}.json"
+    now_utc = datetime.now(timezone.utc)
+    out_path = Path("backtest_runs") / f"cli_run_{now_utc.strftime('%Y%m%dT%H%M%S')}.json"
     out_path.parent.mkdir(exist_ok=True)
     summary = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": now_utc.isoformat(),
         "strategy": raw_spec.get("name"),
         "start_date": bt_config.start_date,
         "end_date": bt_config.end_date,

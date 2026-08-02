@@ -50,7 +50,7 @@ class HistoricalDataProvider:
         if self.polygon_api_key:
             self._http = httpx.Client(
                 timeout=httpx.Timeout(timeout=40.0, connect=10.0),
-                headers={"User-Agent": "schwab-momentum-bot/backtest-data"},
+                headers={"User-Agent": "chat-backtest/data-cache"},
             )
         self._ensure_schema()
 
@@ -156,6 +156,13 @@ class HistoricalDataProvider:
         logger.info("Fetching daily %s: %s to %s", symbol, start_date, end_date)
         df = self._download_daily_symbol(symbol, start_date, end_date)
         if df.empty:
+            cached = self._load_from_cache(symbol, start_date, end_date)
+            if not cached.empty:
+                logger.warning(
+                    "Download failed for %s; serving %d cached bars (may be stale)",
+                    symbol, len(cached),
+                )
+                return cached
             logger.warning("No daily data returned for %s", symbol)
             return pd.DataFrame()
 
@@ -229,7 +236,15 @@ class HistoricalDataProvider:
                     except Exception as exc:
                         logger.error("Error storing %s to cache: %s", symbol, exc)
                 else:
-                    logger.warning("No daily data returned for %s", symbol)
+                    cached = self._load_from_cache(symbol, start_date, end_date)
+                    if not cached.empty:
+                        logger.warning(
+                            "Download failed for %s; serving %d cached bars (may be stale)",
+                            symbol, len(cached),
+                        )
+                        results[symbol] = cached
+                    else:
+                        logger.warning("No daily data returned for %s", symbol)
                 completed += 1
                 if progress_callback:
                     progress_callback(completed, total, symbol)

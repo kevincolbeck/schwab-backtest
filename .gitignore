@@ -1,17 +1,25 @@
 # ── Secrets — never commit ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
 config.yaml
-.token_key
-token.json
-token.json.enc
-*.enc
 *.key
-allocated_balance.json
+*.enc
 
-# ── Database & logs ───────────────────────────────────────────────────────────
+# ── Databases, logs, run artifacts ───────────────────────────────────────────
 *.db
+*.db-wal
+*.db-shm
 *.log
 backtest_runs/
+backtest_runs.jsonl
+profitable_backtests.jsonl
+batch_results.json
 auto_universe_cache.json
+allocated_balance.json
+strategy_specs/archived_runs/
+strategy_specs/profitable_runs/
+strategy_specs/batch_test*/
 
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
@@ -20,8 +28,12 @@ __pycache__/
 venv/
 .venv/
 *.egg-info/
+.pytest_cache/
 
-# ── PyInstaller build output ──────────────────────────────────────────────────
+# ── Node / Next.js (web has its own .gitignore too) ──────────────────────────
+node_modules/
+
+# ── Build output ──────────────────────────────────────────────────────────────
 dist/
 build/
 *.spec

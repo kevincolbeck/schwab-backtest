@@ -1,6 +1,6 @@
 """Tests for AI proposal parsing helpers."""
 
-from gui.chat_controller import parse_proposed_changes, parse_proposed_strategy_spec
+from service.chat import parse_proposed_changes, parse_proposed_strategy_spec
 
 
 def test_parse_combined_changes_and_strategy_spec():
