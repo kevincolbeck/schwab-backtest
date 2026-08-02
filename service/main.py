@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
 
 from service import chat as chat_brain
-from service import backtest_runner, runs_store
+from service import backtest_runner, forward, runs_store
 from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -58,6 +58,15 @@ class BacktestRequest(BaseModel):
         if self.end_date is not None and self.start_date >= self.end_date:
             raise ValueError("start_date must be before end_date")
         return self
+
+
+class DeployRequest(BaseModel):
+    run_id: str
+    name: Optional[str] = None
+    visibility: str = Field(default="public", pattern="^(public|private)$")
+    starting_capital: float = Field(default=100_000.0, gt=0, le=1_000_000_000)
+    # Dev/house only: backdate the deployment (production sets this to today).
+    deployed_at: Optional[str] = None
 
 
 class ChatMessage(BaseModel):
@@ -223,6 +232,94 @@ def chat(req: ChatRequest):
         "updated_spec": parsed["updated_spec"],
         "should_rerun": parsed["should_rerun"],
         "validation_errors": validation_errors,
+        "disclaimer": DISCLAIMER,
+    }
+
+
+@app.post("/deploy")
+def deploy(req: DeployRequest):
+    """Deploy a completed run's spec to forward testing (freezes the spec).
+
+    Note: production adds auth + plan gating here (deployment slots per plan);
+    until Supabase auth is wired, deployments are owner 'house'.
+    """
+    run = runs_store.get_run(req.run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    spec = clamp_spec(run["spec"])
+    errors = validate_spec(spec)
+    if errors:
+        raise HTTPException(status_code=422, detail={"validation_errors": errors})
+    deployment = forward.create_deployment(
+        spec=spec,
+        name=req.name or spec.get("name"),
+        visibility=req.visibility,
+        starting_capital=req.starting_capital,
+        deployed_at=req.deployed_at,
+        source_run_id=req.run_id,
+        backtest_stats=run.get("stats"),
+    )
+    return {"deployment": _public_deployment(deployment), "disclaimer": DISCLAIMER}
+
+
+def _public_deployment(dep: dict) -> dict:
+    return {
+        "slug": dep["slug"],
+        "name": dep["name"],
+        "owner": dep["owner"],
+        "visibility": dep["visibility"],
+        "status": dep["status"],
+        "spec_hash": dep["spec_hash"],
+        "starting_capital": dep["starting_capital"],
+        "deployed_at": dep["deployed_at"],
+    }
+
+
+@app.get("/forward/{deployment_id}")
+def forward_record(deployment_id: str):
+    dep = forward.get_deployment(deployment_id) or forward.get_deployment_by_slug(deployment_id)
+    if dep is None or dep["visibility"] != "public":
+        raise HTTPException(status_code=404, detail="deployment not found")
+    return {
+        "deployment": _public_deployment(dep),
+        "signals": forward.get_signals(dep["id"]),
+        "equity": forward.get_equity_series(dep["id"]),
+        "summary": forward.forward_summary(dep),
+        "disclaimer": DISCLAIMER,
+    }
+
+
+@app.get("/strategy/{slug}")
+def strategy_page(slug: str):
+    """Everything the public strategy page needs: frozen spec, forward record,
+    and the original backtest stats side-by-side (never merged — the
+    separation IS the honesty product)."""
+    dep = forward.get_deployment_by_slug(slug)
+    if dep is None or dep["visibility"] != "public":
+        raise HTTPException(status_code=404, detail="strategy not found")
+    return {
+        "deployment": _public_deployment(dep),
+        "spec": dep["spec_frozen"],
+        "backtest_stats": dep["backtest_stats"],
+        "source_run_id": dep["source_run_id"],
+        "signals": forward.get_signals(dep["id"]),
+        "equity": forward.get_equity_series(dep["id"]),
+        "summary": forward.forward_summary(dep),
+        "execution_model": (
+            "Paper trading on end-of-day data: signals are evaluated on the daily "
+            "close and filled per the strategy's entry price field with the same "
+            "slippage assumption as backtests. The deployed spec is frozen "
+            "(hash-verified); the ledger is append-only."
+        ),
+        "disclaimer": DISCLAIMER,
+    }
+
+
+@app.get("/leaderboard")
+def get_leaderboard(min_days: Optional[int] = None):
+    return {
+        "entries": forward.leaderboard(min_days=min_days),
+        "min_days": forward.MIN_LEADERBOARD_DAYS if min_days is None else min_days,
         "disclaimer": DISCLAIMER,
     }
 

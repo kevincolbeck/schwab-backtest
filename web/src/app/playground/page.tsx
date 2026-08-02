@@ -8,7 +8,7 @@ import DiffStrip from "@/components/DiffStrip";
 import EquityChart from "@/components/EquityChart";
 import StatTiles from "@/components/StatTiles";
 import TradeTable from "@/components/TradeTable";
-import { fetchRun, fetchTemplates, runBacktest, sendChat } from "@/lib/api";
+import { deployRun, fetchRun, fetchTemplates, runBacktest, sendChat } from "@/lib/api";
 import { DEFAULT_START_DATE, DISCLAIMER } from "@/lib/constants";
 import { diffSpecs } from "@/lib/diff";
 import { fmtMoney } from "@/lib/format";
@@ -39,6 +39,8 @@ function PlaygroundInner() {
   const [chatBusy, setChatBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [deployedSlug, setDeployedSlug] = useState<string | null>(null);
 
   // Latest run without stale-closure risk (chat rerun can race a manual run),
   // and a generation counter so template switches invalidate in-flight work.
@@ -127,6 +129,7 @@ function PlaygroundInner() {
         const previous = runRef.current;
         setPrevRun(previous);
         setRun(result);
+        setDeployedSlug(null);
         // Flag apples-to-oranges: if the date window changed between runs,
         // suppress numeric comparisons and say so instead.
         const prevRange = runRange(previous);
@@ -177,6 +180,7 @@ function PlaygroundInner() {
     setError(null);
     setRunning(false);
     setChatBusy(false);
+    setDeployedSlug(null);
   };
 
   const onChatSend = async (text: string) => {
@@ -231,6 +235,20 @@ function PlaygroundInner() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard unavailable */
+    }
+  };
+
+  const onDeploy = async () => {
+    if (!run?.run_id || deploying) return;
+    setDeploying(true);
+    setError(null);
+    try {
+      const out = await deployRun({ run_id: run.run_id, name: run.spec.name });
+      setDeployedSlug(out.deployment.slug);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Deploy failed");
+    } finally {
+      setDeploying(false);
     }
   };
 
@@ -353,6 +371,23 @@ function PlaygroundInner() {
                         >
                           {copied ? "Copied!" : "Copy link"}
                         </button>
+                        {deployedSlug ? (
+                          <Link
+                            href={`/strategy/${deployedSlug}`}
+                            className="rounded-md border border-accent/50 bg-accent-soft px-2 py-0.5 text-[11px] text-accent hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent"
+                          >
+                            On the ledger →
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={onDeploy}
+                            disabled={deploying || busy}
+                            title="Freeze this strategy and track it on the public forward-test ledger"
+                            className="rounded-md border border-hairline px-2 py-0.5 text-[11px] text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+                          >
+                            {deploying ? "Deploying…" : "Deploy to forward test"}
+                          </button>
+                        )}
                       </span>
                     )}
                   </div>

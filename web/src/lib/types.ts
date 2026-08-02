@@ -122,3 +122,66 @@ export interface SpecChange {
   from: string;
   to: string;
 }
+
+export interface Deployment {
+  slug: string;
+  name: string;
+  owner: string;
+  visibility: string;
+  status: string;
+  spec_hash: string;
+  starting_capital: number;
+  deployed_at: string;
+}
+
+export interface ForwardSignal {
+  signal_date: string;
+  action: "entry" | "exit" | "stop" | "time_exit";
+  symbol: string;
+  price: number;
+  shares: number;
+  reason?: string;
+}
+
+export interface ForwardEquityPoint {
+  date: string;
+  equity: number;
+  open_positions: Array<Record<string, unknown>>;
+}
+
+export interface ForwardSummary {
+  days_live: number;
+  forward_return_pct: number;
+  max_drawdown_pct: number;
+  last_equity: number;
+  signal_count: number;
+  open_positions: Array<{
+    symbol: string;
+    entry_date: string;
+    entry_price: number;
+    shares: number;
+  }>;
+  sparkline: number[];
+  first_date: string | null;
+  last_date: string | null;
+}
+
+export interface LeaderboardEntry extends ForwardSummary {
+  slug: string;
+  name: string;
+  owner: string;
+  deployed_at: string;
+  spec_hash_short: string;
+}
+
+export interface StrategyPagePayload {
+  deployment: Deployment;
+  spec: Spec;
+  backtest_stats: Stats | null;
+  source_run_id: string | null;
+  signals: ForwardSignal[];
+  equity: ForwardEquityPoint[];
+  summary: ForwardSummary;
+  execution_model: string;
+  disclaimer: string;
+}

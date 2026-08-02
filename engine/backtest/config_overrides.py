@@ -10,6 +10,10 @@ class BacktestConfig:
     # Date range
     start_date: str = "2016-01-01"
     end_date: str = "2026-02-20"
+    # No entries before this date (indicators still warm up from start_date).
+    # Used by forward testing: full history for indicators, trading starts flat
+    # at the deployment date. Empty = trade from start_date.
+    trade_start_date: str = ""
 
     # Starting capital
     starting_capital: float = 100_000.0

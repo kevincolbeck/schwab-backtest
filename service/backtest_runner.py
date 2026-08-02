@@ -65,6 +65,7 @@ def run_backtest(
     slippage_pct: float = 0.05,
     max_symbols: int = 0,
     data_source: str = "auto",
+    trade_start_date: str = "",
 ) -> tuple[dict, BacktestConfig]:
     """Run one backtest. Returns (raw results dict, bt_config). May contain 'error'."""
     symbols, is_all_us = resolve_symbols(spec, max_symbols=max_symbols)
@@ -72,6 +73,7 @@ def run_backtest(
     bt_config = BacktestConfig(
         start_date=start_date,
         end_date=end_date,
+        trade_start_date=trade_start_date,
         starting_capital=starting_capital,
         symbols=symbols,
         strategy_type="rule_based",

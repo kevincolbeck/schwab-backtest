@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Sparkline from "@/components/Sparkline";
 import TemplateCard from "@/components/TemplateCard";
+import { fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
-import type { Template } from "@/lib/types";
+import type { LeaderboardEntry, Template } from "@/lib/types";
 
 async function getTemplates(): Promise<Template[]> {
   try {
@@ -9,6 +11,17 @@ async function getTemplates(): Promise<Template[]> {
     if (!res.ok) return [];
     const body = (await res.json()) as { templates: Template[] };
     return body.templates ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function getLeaderboardTeaser(): Promise<LeaderboardEntry[]> {
+  try {
+    const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { entries: LeaderboardEntry[] };
+    return (body.entries ?? []).slice(0, 5);
   } catch {
     return [];
   }
@@ -59,7 +72,7 @@ const FAQ = [
 ];
 
 export default async function Home() {
-  const templates = await getTemplates();
+  const [templates, ledger] = await Promise.all([getTemplates(), getLeaderboardTeaser()]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6">
@@ -89,6 +102,12 @@ export default async function Home() {
           >
             Browse templates
           </a>
+          <Link
+            href="/leaderboard"
+            className="rounded-md border border-hairline px-5 py-2.5 text-sm text-ink hover:bg-panel"
+          >
+            Leaderboard
+          </Link>
         </div>
       </section>
 
@@ -98,7 +117,7 @@ export default async function Home() {
           <div key={s.n} className="rounded-xl border border-hairline bg-panel p-5">
             <div className="flex items-center justify-between">
               <div className="tnum text-xs text-accent">{s.n}</div>
-              {s.badge && (
+              {s.badge && ledger.length === 0 && (
                 <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
                   {s.badge}
                 </span>
@@ -109,6 +128,55 @@ export default async function Home() {
           </div>
         ))}
       </section>
+
+      {/* Ledger teaser — the receipts, live */}
+      {ledger.length > 0 && (
+        <section className="border-t border-hairline py-14">
+          <p className="text-xs uppercase tracking-widest text-accent">
+            The Ledger · The receipts
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold">
+            Strategies proving themselves in public, right now
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-muted">
+            Frozen at deployment, evaluated on fresh end-of-day data ever since.
+            Losers stay on the board — that&apos;s the point.
+          </p>
+          <div className="mt-6 overflow-hidden rounded-xl border border-hairline">
+            {ledger.map((e, i) => (
+              <Link
+                key={e.slug}
+                href={`/strategy/${e.slug}`}
+                className="flex items-center gap-4 border-b border-hairline bg-panel px-4 py-3 last:border-0 hover:bg-panel-2"
+              >
+                <span className="tnum w-5 text-xs text-muted">{i + 1}</span>
+                <span className="flex-1 text-sm font-medium">{e.name}</span>
+                <span className="hidden text-xs text-muted sm:block">
+                  {e.days_live} days live
+                </span>
+                <Sparkline values={e.sparkline} baseline={100000} width={90} height={22} />
+                <span
+                  className={`tnum w-20 text-right text-sm ${
+                    e.forward_return_pct > 0
+                      ? "text-gain"
+                      : e.forward_return_pct < 0
+                        ? "text-loss"
+                        : "text-muted"
+                  }`}
+                >
+                  {fmtSignedPct(e.forward_return_pct, 2)}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/leaderboard"
+            className="mt-4 inline-block text-sm text-accent hover:underline"
+          >
+            Full leaderboard →
+          </Link>
+        </section>
+      )}
 
       {/* Template gallery */}
       <section id="templates" className="border-t border-hairline py-14">

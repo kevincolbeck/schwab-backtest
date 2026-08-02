@@ -51,3 +51,10 @@ export function sendChat(body: {
 export function fetchRun(runId: string): Promise<RunResult> {
   return request(`/api/runs/${encodeURIComponent(runId)}`);
 }
+
+export function deployRun(body: {
+  run_id: string;
+  name?: string;
+}): Promise<{ deployment: { slug: string; name: string } }> {
+  return request("/api/deploy", { method: "POST", body: JSON.stringify(body) });
+}

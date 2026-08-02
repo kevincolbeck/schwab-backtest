@@ -20,6 +20,13 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
 5. Warm the cache after first deploy (Railway shell):
    `python engine/import_market_data.py --source polygon` for the template symbols,
    then `python scripts/build_template_stats.py` to refresh gallery stats.
+6. **Forward-test worker (cron):** add a Railway cron service on the same image,
+   schedule `0 23 * * 1-5` UTC (≈7 PM ET weekdays), command `python -m service.worker`,
+   plus a retry at `0 1 * * 2-6` (≈9 PM ET). The worker is idempotent and backfills
+   missed days automatically, so overlapping/repeat runs are safe.
+7. **House deployments (day one):** `python scripts/deploy_house_templates.py <today>` —
+   deploys the 8 templates as owner "house" so the leaderboard is alive before the
+   first user arrives.
 
 ## 2. Vercel — Next.js app
 

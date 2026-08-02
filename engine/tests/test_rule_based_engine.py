@@ -681,3 +681,40 @@ def test_calendar_columns_enable_seasonal_rules():
     for trade in rule_exits:
         assert trade["exit_date"].month in (5, 6, 7, 8, 9, 10)
         assert trade["entry_date"].month in (1, 2, 3, 4, 11, 12)
+
+
+def test_trade_start_date_warms_indicators_but_starts_flat():
+    # 400 bars of data; trading may only begin at bar ~300. Indicators (sma_20)
+    # are warm well before trade_start_date, but no entries may precede it.
+    data = {"AAPL": _make_price_data("AAPL", start="2023-01-02", periods=400)}
+    cache = BacktestDataCache(data)
+    trade_start = str(data["AAPL"]["datetime"].iloc[300].date())
+    bt = BacktestConfig(
+        start_date="2023-01-02",
+        end_date=str(data["AAPL"]["datetime"].iloc[-1].date()),
+        trade_start_date=trade_start,
+        strategy_type="rule_based",
+        symbols=["AAPL"],
+        benchmark="AAPL",
+    )
+    spec = RuleBasedStrategySpec.from_dict(
+        {
+            "name": "MR gated",
+            "symbols": ["AAPL"],
+            "indicators": [{"name": "sma_20", "type": "sma", "source": "close", "length": 20}],
+            "entry_rule": "close < sma_20 * 0.98",
+            "exit_rule": "close >= sma_20",
+            "position_size_pct": 25,
+            "max_positions": 1,
+        }
+    )
+    results = RuleBasedBacktestEngine(Config(), bt, cache, spec).run()
+
+    assert "error" not in results
+    assert results["total_trades"] > 0, "signal fires after trade_start_date"
+    for trade in results["trades"]:
+        assert str(pd.Timestamp(trade["entry_date"]).date()) >= trade_start
+    # equity is flat (all cash) before trading begins
+    for point in results["equity_curve"]:
+        if str(pd.Timestamp(point.date).date()) < trade_start:
+            assert point.equity == bt.starting_capital

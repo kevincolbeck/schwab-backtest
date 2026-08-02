@@ -374,6 +374,11 @@ class RuleBasedBacktestEngine:
 
         total_days = len(trading_dates)
         idx = 0
+        trade_start = (
+            pd.Timestamp(self.bt_config.trade_start_date)
+            if (self.bt_config.trade_start_date or "").strip()
+            else None
+        )
 
         for idx, current_date in enumerate(trading_dates):
             if self._cancelled:
@@ -386,7 +391,8 @@ class RuleBasedBacktestEngine:
                 self._current_day = current_date
             self._update_last_close_snapshot(current_date)
             self._manage_open_positions(current_date)
-            self._scan_entries(current_date)
+            if trade_start is None or pd.Timestamp(current_date) >= trade_start:
+                self._scan_entries(current_date)
             self._manage_open_positions(current_date)
 
             close_prices = {
