@@ -18,9 +18,17 @@ async function parseError(res: Response): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  try {
+    const { accessToken } = await import("./supabase/client");
+    const token = await accessToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  } catch {
+    /* auth not configured */
+  }
   const res = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: { ...headers, ...init?.headers },
   });
   if (!res.ok) throw new Error(await parseError(res));
   return (await res.json()) as T;
@@ -57,4 +65,11 @@ export function deployRun(body: {
   name?: string;
 }): Promise<{ deployment: { slug: string; name: string } }> {
   return request("/api/deploy", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function createShare(runId: string): Promise<{ share_slug: string }> {
+  return request("/api/share", {
+    method: "POST",
+    body: JSON.stringify({ run_id: runId }),
+  });
 }

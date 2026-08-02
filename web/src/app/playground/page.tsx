@@ -8,7 +8,8 @@ import DiffStrip from "@/components/DiffStrip";
 import EquityChart from "@/components/EquityChart";
 import StatTiles from "@/components/StatTiles";
 import TradeTable from "@/components/TradeTable";
-import { deployRun, fetchRun, fetchTemplates, runBacktest, sendChat } from "@/lib/api";
+import { createShare, deployRun, fetchRun, fetchTemplates, runBacktest, sendChat } from "@/lib/api";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { DEFAULT_START_DATE, DISCLAIMER } from "@/lib/constants";
 import { diffSpecs } from "@/lib/diff";
 import { fmtMoney } from "@/lib/format";
@@ -41,6 +42,16 @@ function PlaygroundInner() {
   const [copied, setCopied] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [deployedSlug, setDeployedSlug] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = supabaseBrowser();
+    if (!supabase) {
+      setSignedIn(null); // auth not configured
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+  }, []);
 
   // Latest run without stale-closure risk (chat rerun can race a manual run),
   // and a generation counter so template switches invalidate in-flight work.
@@ -230,11 +241,19 @@ function PlaygroundInner() {
   const copyRunLink = async () => {
     if (!run?.run_id) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/runs/${run.run_id}`);
+      const { share_slug } = await createShare(run.run_id);
+      await navigator.clipboard.writeText(`${window.location.origin}/s/${share_slug}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable */
+      /* share/clipboard unavailable — fall back to the run URL */
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/runs/${run.run_id}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -311,8 +330,18 @@ function PlaygroundInner() {
         {run?.elapsed_seconds !== undefined && !running && (
           <span className="tnum text-xs text-muted">{run.elapsed_seconds}s</span>
         )}
-        <span className="ml-auto hidden text-[11px] text-muted sm:block">
-          Research &amp; education only — not financial advice
+        <span className="ml-auto flex items-center gap-3">
+          <span className="hidden text-[11px] text-muted sm:block">
+            Research &amp; education only — not financial advice
+          </span>
+          {signedIn !== null && (
+            <Link
+              href={signedIn ? "/dashboard" : "/login"}
+              className="rounded-md border border-hairline px-3 py-1.5 text-xs text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              {signedIn ? "Dashboard" : "Log in"}
+            </Link>
+          )}
         </span>
       </header>
 

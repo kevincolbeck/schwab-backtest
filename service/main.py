@@ -19,10 +19,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
 
+from service import env  # noqa: F401  (loads .env before anything reads os.environ)
+from service import auth
 from service import chat as chat_brain
 from service import backtest_runner, forward, runs_store
 from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
@@ -81,27 +83,86 @@ class ChatRequest(BaseModel):
     bt_summary: str = ""
 
 
+def current_user(request: Request) -> Optional[dict]:
+    return auth.get_user(request.headers.get("authorization"))
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "time": datetime.utcnow().isoformat() + "Z"}
 
 
+@app.get("/me")
+def me(user: Optional[dict] = Depends(current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="not signed in")
+    limits = auth.limits_for(user)
+    active = [d for d in forward.list_deployments("active") if d["owner"] == user["id"]]
+    return {"id": user["id"], "email": user["email"], "plan": user["plan"],
+            "limits": limits, "active_deployments": len(active)}
+
+
+@app.get("/me/runs")
+def my_runs(user: Optional[dict] = Depends(current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="not signed in")
+    return {"runs": runs_store.list_runs_for_owner(user["id"])}
+
+
+@app.get("/me/deployments")
+def my_deployments(user: Optional[dict] = Depends(current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="not signed in")
+    out = []
+    for dep in forward.list_deployments("active"):
+        if dep["owner"] != user["id"]:
+            continue
+        out.append({**_public_deployment(dep), "summary": forward.forward_summary(dep)})
+    return {"deployments": out}
+
+
 @app.post("/backtest")
-def backtest(req: BacktestRequest):
+def backtest(
+    req: BacktestRequest,
+    request: Request,
+    user: Optional[dict] = Depends(current_user),
+):
     spec = clamp_spec(req.spec)
     errors = validate_spec(spec)
     if errors:
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
+
+    limits = auth.limits_for(user)
+    identity = user["id"] if user else f"ip:{_client_ip(request)}"
+    if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+        raise HTTPException(
+            status_code=429,
+            detail=f"daily backtest limit reached ({limits['runs_per_day']}/day)"
+            + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
+        )
 
     symbols = spec.get("symbols", [])
     is_all_us = any(
         isinstance(s, str) and s.strip().upper() in backtest_runner.ALL_US_TOKENS
         for s in symbols
     )
-    if not is_all_us and len(symbols) > MAX_SYMBOLS_PER_RUN:
+    if is_all_us and not limits["all_us"]:
+        raise HTTPException(
+            status_code=403,
+            detail="the full-US universe is a Max plan feature — pick specific symbols instead",
+        )
+    plan_symbol_cap = min(limits["max_symbols"], MAX_SYMBOLS_PER_RUN)
+    if not is_all_us and len(symbols) > plan_symbol_cap:
         raise HTTPException(
             status_code=422,
-            detail={"validation_errors": [f"too many symbols (max {MAX_SYMBOLS_PER_RUN})"]},
+            detail={"validation_errors": [f"too many symbols (max {plan_symbol_cap} on your plan)"]},
         )
 
     end_date = req.end_date or datetime.now().strftime("%Y-%m-%d")
@@ -121,7 +182,8 @@ def backtest(req: BacktestRequest):
         raise HTTPException(status_code=422, detail={"error": serialized["error"]})
 
     run_id = runs_store.save_run(
-        serialized, spec, bt_config, run_type="api", parent_run_id=req.parent_run_id
+        serialized, spec, bt_config, run_type="api",
+        parent_run_id=req.parent_run_id, owner=user["id"] if user else None,
     )
     logger.info("Backtest %s finished in %.1fs (%s trades)",
                 run_id, elapsed, (serialized["stats"] or {}).get("total_trades"))
@@ -237,12 +299,27 @@ def chat(req: ChatRequest):
 
 
 @app.post("/deploy")
-def deploy(req: DeployRequest):
-    """Deploy a completed run's spec to forward testing (freezes the spec).
+def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
+    """Deploy a completed run's spec to forward testing (freezes the spec)."""
+    if auth.auth_configured() and user is None:
+        raise HTTPException(status_code=401, detail="sign in to deploy to the forward ledger")
+    limits = auth.limits_for(user)
+    if limits["deployments"] == 0:
+        raise HTTPException(status_code=403, detail="your plan has no forward-test slots")
+    if req.visibility == "private" and not limits["private"]:
+        raise HTTPException(
+            status_code=403, detail="private deployments are a Pro feature — public is free"
+        )
+    owner = user["id"] if user else "house"
+    if user is not None:
+        active = [d for d in forward.list_deployments("active") if d["owner"] == owner]
+        if len(active) >= limits["deployments"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"deployment limit reached ({limits['deployments']} on your plan) — "
+                "archive one or upgrade",
+            )
 
-    Note: production adds auth + plan gating here (deployment slots per plan);
-    until Supabase auth is wired, deployments are owner 'house'.
-    """
     run = runs_store.get_run(req.run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
@@ -253,13 +330,40 @@ def deploy(req: DeployRequest):
     deployment = forward.create_deployment(
         spec=spec,
         name=req.name or spec.get("name"),
+        owner=owner,
         visibility=req.visibility,
         starting_capital=req.starting_capital,
-        deployed_at=req.deployed_at,
+        deployed_at=req.deployed_at if user is None else None,  # backdating is house-only
         source_run_id=req.run_id,
         backtest_stats=run.get("stats"),
     )
     return {"deployment": _public_deployment(deployment), "disclaimer": DISCLAIMER}
+
+
+class ShareRequest(BaseModel):
+    run_id: str
+
+
+@app.post("/share")
+def create_share(req: ShareRequest, user: Optional[dict] = Depends(current_user)):
+    """Mint a public share slug for a run. Free/anonymous shares carry a watermark."""
+    run = runs_store.get_run(req.run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    plan = (user or {}).get("plan", "anon")
+    slug = runs_store.create_share(req.run_id, watermarked=plan not in ("pro", "max"))
+    if slug is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    return {"share_slug": slug}
+
+
+@app.get("/share/{slug}")
+def get_share(slug: str):
+    shared = runs_store.get_share(slug)
+    if shared is None:
+        raise HTTPException(status_code=404, detail="share not found")
+    shared["disclaimer"] = DISCLAIMER
+    return shared
 
 
 def _public_deployment(dep: dict) -> dict:
