@@ -13,21 +13,18 @@ See [CLAUDE.md](CLAUDE.md) for the full product plan and build phases.
 ## Layout
 
 ```
-backtest/        Backtest engine: rule-based simulation, portfolio, statistics, data provider
-strategy/        Indicator library + computed momentum scanners (template building blocks)
-ai/              Spec guardrails (validation/bounds) + trade analysis helpers
-data/            US market universe provider
-service/         Chat brain + run snapshots (FastAPI service lands here)
-tests/           pytest suite
-web/             Next.js frontend
-strategy_specs/  Example strategy spec JSONs
+engine/          The Python backtest engine (backtest/, strategy/, ai/, data/, tests/)
+service/         FastAPI service wrapping the engine + chat brain + run snapshots
+web/             Next.js frontend (Vercel)
+templates/       Template strategy specs for the gallery
 ```
 
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
-pytest                                      # run the test suite
+pip install -r engine/requirements.txt
+pytest                                      # run all test suites (from repo root)
+cd engine
 python run_backtest_cli.py                  # backtest the default spec
 python run_backtest_cli.py strategy_specs/smoke_strategy.json 2016-01-01 2026-01-01
 ```

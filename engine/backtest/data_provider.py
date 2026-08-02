@@ -16,7 +16,7 @@ import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-CACHE_DB_PATH = "backtest_data.db"
+CACHE_DB_PATH = os.getenv("BACKTEST_CACHE_DB", "backtest_data.db")
 BATCH_DOWNLOAD_SIZE = 100
 INTRADAY_DEFAULT_INTERVAL = "5m"
 POLYGON_BASE_URL = "https://api.polygon.io"
