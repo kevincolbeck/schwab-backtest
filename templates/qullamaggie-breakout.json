@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "display_name": "Momentum Breakout (Qullamaggie-style)",
+    "category": "Momentum",
+    "difficulty": "intermediate",
+    "one_liner": "Buy stocks that already moved big, right as they break out to new highs on volume.",
+    "explainer_md": "Popularized by the trader known as Qullamaggie: find stocks that gained 30%+ in the last quarter, wait for them to break above their recent 50-day high on heavier-than-usual volume, and ride the trend with a stop underneath. The idea is that big moves tend to continue — winners keep winning until they don't, which is what the 8% stop and 10-day-average exit are for."
+  },
+  "spec": {
+    "name": "Momentum Breakout",
+    "description": "Big prior move + breakout over 50-day high with volume confirmation.",
+    "symbols": ["NVDA", "TSLA", "AMD", "AVGO", "NFLX", "META", "CRM", "NOW", "SHOP", "PLTR", "ANET", "PANW", "CRWD", "NET", "DDOG", "MU", "LRCX", "AMAT", "UBER"],
+    "indicators": [
+      {"name": "high_50", "type": "rolling_max", "source": "high", "length": 50},
+      {"name": "sma_10", "type": "sma", "source": "close", "length": 10},
+      {"name": "vol_sma_20", "type": "sma", "source": "volume", "length": 20},
+      {"name": "close_63", "type": "lag", "source": "close", "length": 63},
+      {"name": "mom_63", "type": "custom", "formula": "close / close_63"}
+    ],
+    "entry_rule_long": "(close > lag(high_50, 1)) & (mom_63 > 1.30) & (volume > vol_sma_20 * 1.5)",
+    "exit_rule": "close < sma_10",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "ranking_field": "mom_63",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 20,
+    "max_positions": 5,
+    "stop_loss_pct": 8,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

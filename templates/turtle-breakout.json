@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "display_name": "Turtle-style Breakout",
+    "category": "Trend Following",
+    "difficulty": "intermediate",
+    "one_liner": "The legendary Turtle rules on ETFs: buy 40-day highs, exit 20-day lows, risk-managed with an ATR stop.",
+    "explainer_md": "In the 1980s, Richard Dennis taught a group of beginners — the 'Turtles' — a simple system that made many of them rich: buy anything breaking above its recent high, exit when it breaks below its recent low, and size positions by volatility. This version trades a diversified ETF basket (stocks, small caps, sectors, gold, bonds) with a 40-day-high entry, 20-day-low exit, and a 2-ATR stop, just like the original 'System 2'."
+  },
+  "spec": {
+    "name": "Turtle-style Breakout",
+    "description": "40-day high entry, 20-day low exit, 2-ATR stop, diversified ETFs.",
+    "symbols": ["SPY", "QQQ", "IWM", "DIA", "SMH", "XLF", "XLE", "GLD", "TLT", "EEM"],
+    "indicators": [
+      {"name": "high_40", "type": "rolling_max", "source": "high", "length": 40},
+      {"name": "low_20", "type": "rolling_min", "source": "low", "length": 20},
+      {"name": "high_40_prev", "type": "lag", "source": "high_40", "length": 1},
+      {"name": "low_20_prev", "type": "lag", "source": "low_20", "length": 1},
+      {"name": "atr_20", "type": "atr", "source": "close", "length": 20},
+      {"name": "stop_2n", "type": "custom", "formula": "atr_20 * 2"}
+    ],
+    "entry_rule_long": "close > high_40_prev",
+    "exit_rule": "close < low_20_prev",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "stop_loss_field": "stop_2n",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 20,
+    "max_positions": 5,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

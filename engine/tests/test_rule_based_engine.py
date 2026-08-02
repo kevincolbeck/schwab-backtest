@@ -644,3 +644,40 @@ def test_referenced_price_symbols_includes_external_indicators():
     )
     refs = referenced_price_symbols(spec)
     assert "SPY" in refs
+
+
+def test_calendar_columns_enable_seasonal_rules():
+    # Two years of synthetic data; hold only November-April (Sell in May).
+    data = {
+        "SPY": _make_price_data("SPY", start="2023-01-02", periods=520),
+    }
+    cache = BacktestDataCache(data)
+    bt = BacktestConfig(
+        start_date="2023-01-02",
+        end_date="2024-12-31",
+        strategy_type="rule_based",
+        symbols=["SPY"],
+        benchmark="SPY",
+    )
+    spec = RuleBasedStrategySpec.from_dict(
+        {
+            "name": "Seasonal",
+            "symbols": ["SPY"],
+            "indicators": [],
+            "entry_rule": "(month >= 11) | (month <= 4)",
+            "exit_rule": "(month >= 5) & (month <= 10)",
+            "position_size_pct": 100,
+            "max_positions": 1,
+        }
+    )
+
+    engine = RuleBasedBacktestEngine(Config(), bt, cache, spec)
+    results = engine.run()
+
+    assert "error" not in results
+    assert results["total_trades"] >= 2  # entered/exited each season
+    rule_exits = [t for t in results["trades"] if t["exit_reason"] == "RULE_EXIT"]
+    assert rule_exits, "expected at least one seasonal rule exit"
+    for trade in rule_exits:
+        assert trade["exit_date"].month in (5, 6, 7, 8, 9, 10)
+        assert trade["entry_date"].month in (1, 2, 3, 4, 11, 12)

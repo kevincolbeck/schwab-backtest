@@ -513,6 +513,11 @@ class RuleBasedBacktestEngine:
 
             frame = df.sort_values("datetime").reset_index(drop=True)
 
+            # Calendar columns for seasonal rules (e.g. "month >= 11 | month <= 4")
+            frame["month"] = frame["datetime"].dt.month
+            frame["year"] = frame["datetime"].dt.year
+            frame["day_of_week"] = frame["datetime"].dt.dayofweek
+
             if intraday_mode:
                 # Session VWAP used for intraday trailing exits when enabled.
                 typical = (frame["high"] + frame["low"] + frame["close"]) / 3.0

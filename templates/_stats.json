@@ -1,0 +1,122 @@
+{
+  "52-week-high": {
+    "computed_at": "2026-08-02T17:25:15",
+    "elapsed_seconds": 9.79,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 12.202092608962989,
+      "max_drawdown": 24.353423686063287,
+      "profit_factor": 1.7328243896252167,
+      "sharpe": 0.7939696827843304,
+      "total_return_pct": 237.71644425292476,
+      "total_trades": 502,
+      "win_rate": 22.90836653386454
+    }
+  },
+  "buy-the-dip": {
+    "computed_at": "2026-08-02T17:25:17",
+    "elapsed_seconds": 1.56,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 2.2524013021914646,
+      "max_drawdown": 12.383372767915187,
+      "profit_factor": 1.570161534237135,
+      "sharpe": 0.35219037727888014,
+      "total_return_pct": 26.548559521477905,
+      "total_trades": 80,
+      "win_rate": 62.5
+    }
+  },
+  "golden-cross": {
+    "computed_at": "2026-08-02T17:25:22",
+    "elapsed_seconds": 5.07,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 21.756381252163504,
+      "max_drawdown": 30.96957760934033,
+      "profit_factor": 15.526310127974059,
+      "sharpe": 0.9845110951175436,
+      "total_return_pct": 701.1605947727127,
+      "total_trades": 20,
+      "win_rate": 75.0
+    }
+  },
+  "minervini-trend": {
+    "computed_at": "2026-08-02T17:25:33",
+    "elapsed_seconds": 11.35,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 18.288662177804447,
+      "max_drawdown": 25.780673899614033,
+      "profit_factor": 1.8028672274384934,
+      "sharpe": 0.9129398302065709,
+      "total_return_pct": 490.2964735871982,
+      "total_trades": 336,
+      "win_rate": 31.845238095238095
+    }
+  },
+  "qullamaggie-breakout": {
+    "computed_at": "2026-08-02T17:25:44",
+    "elapsed_seconds": 10.62,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 1.9013726334493386,
+      "max_drawdown": 24.75517209161979,
+      "profit_factor": 1.1502655454777395,
+      "sharpe": 0.2170912357535759,
+      "total_return_pct": 22.030909184818405,
+      "total_trades": 239,
+      "win_rate": 39.74895397489539
+    }
+  },
+  "rsi2-mean-reversion": {
+    "computed_at": "2026-08-02T17:25:51",
+    "elapsed_seconds": 7.55,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 5.250141285145804,
+      "max_drawdown": 11.215003419728315,
+      "profit_factor": 1.3498706725787528,
+      "sharpe": 0.7734909241225538,
+      "total_return_pct": 71.75623670658018,
+      "total_trades": 2025,
+      "win_rate": 56.19753086419753
+    }
+  },
+  "sell-in-may": {
+    "computed_at": "2026-08-02T17:25:52",
+    "elapsed_seconds": 1.03,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 6.400160585070247,
+      "max_drawdown": 33.671839845050464,
+      "profit_factor": 4.4649343963943435,
+      "sharpe": 0.5028200622094703,
+      "total_return_pct": 92.66490744316118,
+      "total_trades": 11,
+      "win_rate": 72.72727272727273
+    }
+  },
+  "turtle-breakout": {
+    "computed_at": "2026-08-02T17:26:01",
+    "elapsed_seconds": 8.54,
+    "end_date": "2026-08-02",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 6.742622162257272,
+      "max_drawdown": 17.21578852865048,
+      "profit_factor": 1.9032457113941161,
+      "sharpe": 0.6545628544177721,
+      "total_return_pct": 99.32194355879538,
+      "total_trades": 246,
+      "win_rate": 40.65040650406504
+    }
+  }
+}

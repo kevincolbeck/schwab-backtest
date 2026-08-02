@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "display_name": "RSI-2 Mean Reversion",
+    "category": "Mean Reversion",
+    "difficulty": "beginner",
+    "one_liner": "Buy quality stocks on sharp 2-day dips, sell the bounce. A Larry Connors classic.",
+    "explainer_md": "RSI-2 is a very fast 'oversold' meter: when it drops below 10, the stock has fallen hard for a couple of days. This strategy buys those dips — but only in stocks trading above their 200-day average, so you're buying pullbacks in healthy uptrends, not falling knives. It sells as soon as price closes back above its 5-day average. Lots of small, quick trades."
+  },
+  "spec": {
+    "name": "RSI-2 Mean Reversion",
+    "description": "Connors-style: rsi_2 < 10 in an uptrend, exit on close > sma_5.",
+    "symbols": ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "JPM", "V", "HD", "UNH"],
+    "indicators": [
+      {"name": "rsi_2", "type": "rsi", "source": "close", "length": 2},
+      {"name": "sma_5", "type": "sma", "source": "close", "length": 5},
+      {"name": "sma_200", "type": "sma", "source": "close", "length": 200}
+    ],
+    "entry_rule_long": "(rsi_2 < 10) & (close > sma_200)",
+    "exit_rule": "close > sma_5",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 10,
+    "max_positions": 5,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 10
+  }
+}
