@@ -134,7 +134,17 @@ class HistoricalDataProvider:
 
     def _get_conn(self) -> sqlite3.Connection:
         if self._conn is None:
-            self._conn = sqlite3.connect(self.cache_db_path)
+            # check_same_thread=False: FastAPI may touch a provider from a
+            # threadpool worker; WAL + busy_timeout let concurrent providers
+            # coexist (each request should still use its own provider).
+            self._conn = sqlite3.connect(
+                self.cache_db_path, check_same_thread=False, timeout=30
+            )
+            try:
+                self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA busy_timeout=30000")
+            except sqlite3.DatabaseError:
+                logger.warning("Could not set WAL mode on cache DB", exc_info=True)
         return self._conn
 
     def fetch_symbol(

@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "display_name": "Golden Cross",
+    "category": "Trend Following",
+    "difficulty": "beginner",
+    "one_liner": "Buy when the 50-day average crosses above the 200-day. The most famous trend signal there is.",
+    "explainer_md": "The 'golden cross' happens when a stock's average price over the last 50 days rises above its average over the last 200 days — a sign the trend may be turning up. The strategy simply holds while the 50-day stays on top, and sells when it drops back below (the 'death cross'). It's slow by design: it misses tops and bottoms, but historically kept you in big uptrends and out of long slides."
+  },
+  "spec": {
+    "name": "Golden Cross",
+    "description": "SMA50 crosses above SMA200, exit on cross-down.",
+    "symbols": ["SPY", "QQQ", "AAPL", "MSFT", "NVDA"],
+    "indicators": [
+      {"name": "sma_50", "type": "sma", "source": "close", "length": 50},
+      {"name": "sma_200", "type": "sma", "source": "close", "length": 200}
+    ],
+    "entry_rule_long": "(sma_50 > sma_200) & (lag(sma_50, 1) <= lag(sma_200, 1))",
+    "exit_rule": "sma_50 < sma_200",
+    "entry_price_field": "open",
+    "backtest_timeframe": "1d",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 20,
+    "max_positions": 5,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

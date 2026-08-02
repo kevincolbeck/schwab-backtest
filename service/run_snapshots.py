@@ -136,6 +136,7 @@ def record_backtest_run(
     }
 
     try:
+        base.mkdir(parents=True, exist_ok=True)
         manifest = base / "backtest_runs.jsonl"
         with manifest.open("a", encoding="utf-8") as fp:
             fp.write(json.dumps(jsonl_line) + "\n")
