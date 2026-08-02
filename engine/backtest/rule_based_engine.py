@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import math
@@ -1270,16 +1271,12 @@ def _sorted_indicators(indicators: List[dict]) -> List[dict]:
     return externals + standard + customs
 
 
-def _evaluate_custom_formula(formula: str, frame: pd.DataFrame) -> pd.Series:
-    """Evaluate a custom pandas-compatible formula in the context of frame columns.
-
-    Handles ThinkScript-style syntax:
+def _translate_formula(formula: str) -> str:
+    """Translate ThinkScript-style syntax into pandas expressions:
       - ``name[0:N]`` → ``name.rolling(N)``  (rolling window)
       - ``name[N]``   → ``name.shift(N)``    (bar lookback / lag)
     """
-    _validate_expression(formula)
-
-    expr = formula.strip()
+    expr = str(formula or "").strip()
 
     # Translate paired rolling operations: a[0:N] OP b[0:N] -> (a OP b).rolling(N)
     # This handles arithmetic between same-window rolling references (e.g., high[0:20] - low[0:20])
@@ -1302,15 +1299,22 @@ def _evaluate_custom_formula(formula: str, frame: pd.DataFrame) -> pd.Series:
         lambda m: f"{m.group(1)}.shift({m.group(2)})",
         expr,
     )
+    return expr
+
+
+def _evaluate_custom_formula(formula: str, frame: pd.DataFrame) -> pd.Series:
+    """Evaluate a custom pandas-compatible formula in the context of frame columns."""
+    _validate_expression_tokens_only(formula)
+    expr = _translate_formula(formula)
+    _validate_expression_ast(expr)
 
     local_env = {col: frame[col] for col in frame.columns}
     local_env.update(
         {
-            "np": np,
-            "pd": pd,
             "abs": _safe_abs,
             "min": _safe_min,
             "max": _safe_max,
+            "lag": lambda s, n=1: pd.Series(s).shift(int(n)),
         }
     )
 
@@ -1363,8 +1367,6 @@ def _build_rule_env_series(frame: pd.DataFrame) -> dict:
     env = {col: frame[col] for col in frame.columns}
     env.update(
         {
-            "np": np,
-            "pd": pd,
             "abs": _safe_abs,
             "min": _safe_min,
             "max": _safe_max,
@@ -1392,8 +1394,6 @@ def _build_rule_env_scalar(
             env[str(key)] = value
     env.update(
         {
-            "np": np,
-            "pd": pd,
             "abs": _safe_abs,
             "min": _safe_min,
             "max": _safe_max,
@@ -1436,7 +1436,84 @@ def _normalize_expression(expression: str) -> str:
     return expr
 
 
+# Fail-closed AST allowlist for eval-bound expressions. Rules and formulas are
+# untrusted input in the SaaS: the substring denylist alone does not stop
+# attribute-based payloads (e.g. pd.read_pickle(url) = RCE via unpickling).
+_ALLOWED_CALL_NAMES = frozenset({
+    "abs", "min", "max", "sma", "ema", "rsi", "zscore", "atr",
+    "lag", "pct_change", "crosses_above", "crosses_below",
+})
+# Method names produced by the ThinkScript slice translations only.
+_ALLOWED_METHOD_NAMES = frozenset({"rolling", "shift", "mean", "sum", "std", "max", "min"})
+_BANNED_ENV_NAMES = frozenset({"pd", "np"})
+_ALLOWED_NODE_TYPES = (
+    ast.Expression, ast.BoolOp, ast.BinOp, ast.UnaryOp, ast.Compare,
+    ast.Call, ast.Name, ast.Constant, ast.Load, ast.keyword,
+    ast.And, ast.Or, ast.Not, ast.Invert, ast.UAdd, ast.USub,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow,
+    ast.BitAnd, ast.BitOr, ast.BitXor,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+)
+
+
+def _validate_expression_ast(expression: str) -> None:
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(f"Invalid expression syntax: {exc.msg}") from exc
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            if node.attr not in _ALLOWED_METHOD_NAMES:
+                raise ValueError(f"Disallowed attribute in expression: .{node.attr}")
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                if func.id not in _ALLOWED_CALL_NAMES:
+                    raise ValueError(f"Disallowed function in expression: {func.id}()")
+            elif not isinstance(func, ast.Attribute):
+                raise ValueError("Disallowed call target in expression")
+        elif isinstance(node, ast.Name):
+            if node.id in _BANNED_ENV_NAMES:
+                raise ValueError(f"Disallowed name in expression: {node.id}")
+        elif isinstance(node, ast.Constant):
+            if not isinstance(node.value, (int, float, bool, str)):
+                raise ValueError("Disallowed constant in expression")
+        elif not isinstance(node, _ALLOWED_NODE_TYPES):
+            raise ValueError(f"Disallowed syntax in expression: {type(node).__name__}")
+
+
 def _validate_expression(expression: str):
+    expr_low = expression.lower()
+    for token in _DISALLOWED_EXPR_TOKENS:
+        if token in expr_low:
+            raise ValueError(f"Disallowed token in expression: {token}")
+    _validate_expression_ast(expression)
+
+
+def validate_rule_syntax(expression: str) -> Optional[str]:
+    """Service-layer check for a rule expression. Returns an error string or None."""
+    if not str(expression or "").strip():
+        return None
+    try:
+        _validate_expression(_normalize_expression(expression))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
+def validate_formula_syntax(formula: str) -> Optional[str]:
+    """Service-layer check for a custom-indicator formula. Returns error or None."""
+    if not str(formula or "").strip():
+        return None
+    try:
+        _validate_expression_tokens_only(formula)
+        _validate_expression_ast(_translate_formula(formula))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
+def _validate_expression_tokens_only(expression: str) -> None:
     expr_low = expression.lower()
     for token in _DISALLOWED_EXPR_TOKENS:
         if token in expr_low:

@@ -49,7 +49,8 @@ A strategy is a single JSON object:
 - "exit_rule": boolean expression; "position_side" is available and equals
   'LONG' or 'SHORT'.
 - "entry_price_field": "open" | "high" | "low" | "close"
-- "backtest_timeframe": "1d" | "5m" | "15m" | "30m" | "60m"
+- "backtest_timeframe": "1d" — ONLY daily bars in v1. This is a swing-trading
+  playground; if the user asks for intraday, explain that and keep "1d".
 - "position_size_mode": "notional_pct" | "risk_pct"
 - "position_size_pct": 1-100 (percent of equity per position, notional mode)
 - "risk_per_trade_pct": 0.05-10 (percent of equity risked, risk mode)
@@ -101,7 +102,10 @@ def build_system_prompt(
 4. When the user is vague ("make it better"), propose ONE concrete change with
    reasoning — not a rewrite.
 5. Be specific: say "tighten the stop from 8% to 5%" not "tighten the stop".
-6. This is an educational tool; explain jargon when it appears.
+6. Teach as you work: when you edit the spec, include one plain-English sentence
+   on what the change means in swing-trading terms (this is an educational tool;
+   explain jargon whenever it appears).
+7. Keep "backtest_timeframe" at "1d" — intraday isn't available in v1.
 
 ## Response Format — strict JSON, nothing else
 Respond with ONE JSON object and no other text:
@@ -116,31 +120,53 @@ Respond with ONE JSON object and no other text:
 
 
 def format_results_block(results: Optional[dict]) -> str:
-    """Format the last run's stats for the system prompt. Tolerant of missing keys."""
+    """Format the last run's stats for the system prompt.
+
+    Tolerant of missing keys AND null values: the serializer scrubs inf/NaN to
+    None (e.g. profit_factor on a run with zero losing trades), and
+    ``dict.get(key, 0)`` does NOT apply the default when the key exists as None.
+    """
     if not results or "error" in results:
         return ""
+
+    def g(key: str, default: float = 0.0) -> float:
+        value = results.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        return default
+
+    pf = results.get("profit_factor")
+    pf_text = "inf (no losing trades)" if pf is None and "profit_factor" in results else f"{g('profit_factor'):.2f}"
+
     text = f"""
 ## Most Recent Backtest Results
-- Total Return: {results.get('total_return_pct', 0):.1f}%
-- CAGR: {results.get('cagr', 0):.2f}%
-- Max Drawdown: {results.get('max_drawdown', 0):.1f}%
-- Sharpe: {results.get('sharpe', 0):.2f}
-- Sortino: {results.get('sortino', 0):.2f}
-- Calmar: {results.get('calmar', 0):.2f}
-- Total Trades: {results.get('total_trades', 0)}
-- Win Rate: {results.get('win_rate', 0):.1f}%
-- Avg Win (R): {results.get('avg_win_r', 0):+.2f}
-- Avg Loss (R): {results.get('avg_loss_r', 0):+.2f}
-- Profit Factor: {results.get('profit_factor', 0):.2f}
-- Expectancy (R): {results.get('expectancy_r', 0):+.3f}
-- Max Consec Losses: {results.get('max_consec_losses', 0)}
-- Avg Holding Days: {results.get('avg_holding_days', 0):.1f}
+- Total Return: {g('total_return_pct'):.1f}%
+- CAGR: {g('cagr'):.2f}%
+- Max Drawdown: {g('max_drawdown'):.1f}%
+- Sharpe: {g('sharpe'):.2f}
+- Sortino: {g('sortino'):.2f}
+- Calmar: {g('calmar'):.2f}
+- Total Trades: {int(g('total_trades'))}
+- Win Rate: {g('win_rate'):.1f}%
+- Avg Win (R): {g('avg_win_r'):+.2f}
+- Avg Loss (R): {g('avg_loss_r'):+.2f}
+- Profit Factor: {pf_text}
+- Expectancy (R): {g('expectancy_r'):+.3f}
+- Max Consec Losses: {int(g('max_consec_losses'))}
+- Avg Holding Days: {g('avg_holding_days'):.1f}
 """
     for reason, stats in (results.get("exit_stats") or {}).items():
+        if not isinstance(stats, dict):
+            continue
+
+        def s(key: str) -> float:
+            value = stats.get(key)
+            return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
+
         text += (
             f"\n### Exit: {reason}\n"
-            f"  Count: {stats.get('count', 0)}, Total R: {stats.get('total_r', 0):+.2f}, "
-            f"Total PnL: ${stats.get('total_pnl', 0):,.2f}\n"
+            f"  Count: {int(s('count'))}, Total R: {s('total_r'):+.2f}, "
+            f"Total PnL: ${s('total_pnl'):,.2f}\n"
         )
     return text
 

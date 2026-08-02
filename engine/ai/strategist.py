@@ -19,6 +19,8 @@ import logging
 import re
 from typing import Dict, List, Optional
 
+from backtest.rule_based_engine import validate_formula_syntax, validate_rule_syntax
+
 logger = logging.getLogger(__name__)
 
 # Numeric guardrails for spec fields (lo, hi). Values outside are clamped.
@@ -42,7 +44,9 @@ TUNABLE_PARAMS = [
 ]
 
 ALL_US_TOKENS = {"ALL_US", "*", "ALL", "ALL_US_SYMBOLS"}
-ALLOWED_TIMEFRAMES = {"1d", "5m", "15m", "30m", "60m"}
+# EOD-only in v1: swing trading doesn't need intraday, and it keeps data costs
+# trivial. The engine still supports intraday internally; the service refuses it.
+ALLOWED_TIMEFRAMES = {"1d"}
 ALLOWED_ENTRY_PRICE_FIELDS = {"open", "high", "low", "close"}
 ALLOWED_SIZE_MODES = {"notional_pct", "risk_pct"}
 ALLOWED_INDICATOR_TYPES = {
@@ -99,6 +103,10 @@ def validate_spec(spec: dict) -> List[str]:
             if token in lowered:
                 errors.append(f"{rule_field} contains disallowed token {token!r}")
                 break
+        else:
+            syntax_error = validate_rule_syntax(rule)
+            if syntax_error:
+                errors.append(f"{rule_field}: {syntax_error}")
 
     for param, (lo, hi) in PARAM_BOUNDS.items():
         value = spec.get(param)
@@ -111,7 +119,10 @@ def validate_spec(spec: dict) -> List[str]:
 
     tf = spec.get("backtest_timeframe")
     if tf is not None and tf not in ALLOWED_TIMEFRAMES:
-        errors.append(f"backtest_timeframe must be one of {sorted(ALLOWED_TIMEFRAMES)}")
+        errors.append(
+            "backtest_timeframe must be '1d' — intraday timeframes aren't available yet; "
+            "this playground tests end-of-day swing strategies"
+        )
 
     epf = spec.get("entry_price_field")
     if epf is not None and epf not in ALLOWED_ENTRY_PRICE_FIELDS:
@@ -136,8 +147,24 @@ def validate_spec(spec: dict) -> List[str]:
                         f"indicator type {ind_type!r} not supported "
                         f"(allowed: {sorted(ALLOWED_INDICATOR_TYPES)})"
                     )
-                if ind_type == "custom" and not ind.get("formula"):
-                    errors.append(f"custom indicator {ind.get('name')!r} needs a formula")
+                if ind_type == "custom":
+                    formula = ind.get("formula")
+                    if not formula:
+                        errors.append(f"custom indicator {ind.get('name')!r} needs a formula")
+                    elif not isinstance(formula, str):
+                        errors.append(f"custom indicator {ind.get('name')!r} formula must be a string")
+                    else:
+                        lowered = formula.lower()
+                        banned = next((t for t in DANGEROUS_RULE_TOKENS if t in lowered), None)
+                        if banned:
+                            errors.append(
+                                f"custom indicator {ind.get('name')!r} formula contains "
+                                f"disallowed token {banned!r}"
+                            )
+                        else:
+                            syntax_error = validate_formula_syntax(formula)
+                            if syntax_error:
+                                errors.append(f"custom indicator {ind.get('name')!r}: {syntax_error}")
                 if ind_type == "external" and not ind.get("symbol"):
                     errors.append(f"external indicator {ind.get('name')!r} needs a symbol")
 

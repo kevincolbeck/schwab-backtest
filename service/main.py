@@ -21,7 +21,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from service import chat as chat_brain
 from service import backtest_runner, runs_store
@@ -52,6 +52,12 @@ class BacktestRequest(BaseModel):
     starting_capital: float = Field(default=100_000.0, gt=0, le=1_000_000_000)
     slippage_pct: float = Field(default=0.05, ge=0, le=5)
     parent_run_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _dates_ordered(self):
+        if self.end_date is not None and self.start_date >= self.end_date:
+            raise ValueError("start_date must be before end_date")
+        return self
 
 
 class ChatMessage(BaseModel):
@@ -115,6 +121,13 @@ def backtest(req: BacktestRequest):
         "parent_run_id": req.parent_run_id,
         "elapsed_seconds": round(elapsed, 2),
         "spec": spec,
+        "params": {
+            "start_date": req.start_date,
+            "end_date": end_date,
+            "starting_capital": req.starting_capital,
+            "slippage_pct": req.slippage_pct,
+            "benchmark": bt_config.benchmark,
+        },
         "stats": serialized["stats"],
         "equity_curve": serialized["equity_curve"],
         "trades": serialized["trades"],
@@ -148,9 +161,16 @@ def chat(req: ChatRequest):
     if not messages:
         raise HTTPException(status_code=422, detail="messages must contain at least one turn")
 
-    system_prompt = chat_brain.build_system_prompt(
-        req.current_spec, req.last_run_stats, req.bt_summary or "No backtest configured yet."
-    )
+    try:
+        system_prompt = chat_brain.build_system_prompt(
+            req.current_spec, req.last_run_stats, req.bt_summary or "No backtest configured yet."
+        )
+    except Exception:
+        # A malformed stats payload must degrade the context, never 500 the chat.
+        logger.warning("system prompt build failed; continuing without stats", exc_info=True)
+        system_prompt = chat_brain.build_system_prompt(
+            req.current_spec, None, req.bt_summary or "No backtest configured yet."
+        )
     try:
         raw = chat_brain.call_claude(messages, system_prompt)
     except Exception:
