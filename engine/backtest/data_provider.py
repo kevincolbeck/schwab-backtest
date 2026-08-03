@@ -846,6 +846,10 @@ class HistoricalDataProvider:
                 return True
         return False
 
+    def read_cached_daily(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Cache-only read: never touches the network (API-serving path)."""
+        return self._load_from_cache(symbol, start_date, end_date)
+
     def _load_from_cache(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         conn = self._get_conn()
         df = pd.read_sql_query(

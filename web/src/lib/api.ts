@@ -73,3 +73,16 @@ export function createShare(runId: string): Promise<{ share_slug: string }> {
     body: JSON.stringify({ run_id: runId }),
   });
 }
+
+export function fetchBars(
+  runId: string,
+  symbol: string,
+): Promise<{ symbol: string; bars: Array<{ time: string; open: number; high: number; low: number; close: number }> }> {
+  return request(
+    `/api/runs/${encodeURIComponent(runId)}/bars?symbol=${encodeURIComponent(symbol)}`,
+  );
+}
+
+export function fetchExplanation(spec: Spec): Promise<{ english: string }> {
+  return request("/api/explain", { method: "POST", body: JSON.stringify({ spec }) });
+}

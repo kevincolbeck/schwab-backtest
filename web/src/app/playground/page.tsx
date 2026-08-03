@@ -3,20 +3,32 @@
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import CandleChart, { type Bar, type TradeMarker } from "@/components/CandleChart";
 import ChatPanel from "@/components/ChatPanel";
 import DiffStrip from "@/components/DiffStrip";
 import EquityChart from "@/components/EquityChart";
 import StatTiles from "@/components/StatTiles";
+import TradeInspector from "@/components/TradeInspector";
 import TradeTable from "@/components/TradeTable";
 import Button from "@/components/ui/Button";
 import Tabs from "@/components/ui/Tabs";
-import { createShare, deployRun, fetchRun, fetchTemplates, runBacktest, sendChat } from "@/lib/api";
+import {
+  createShare,
+  deployRun,
+  fetchBars,
+  fetchExplanation,
+  fetchRun,
+  fetchTemplates,
+  runBacktest,
+  sendChat,
+} from "@/lib/api";
 import { DEFAULT_START_DATE, DISCLAIMER } from "@/lib/constants";
 import { diffSpecs } from "@/lib/diff";
 import { englishRules } from "@/lib/englishRules";
-import { fmtMoney, fmtPct } from "@/lib/format";
+import { download, pythonExport, slugifyName } from "@/lib/exportPython";
+import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import type { ChatTurn, RunResult, Spec, SpecChange, Template } from "@/lib/types";
+import type { ChatTurn, RunResult, Spec, SpecChange, Template, Trade } from "@/lib/types";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -47,6 +59,40 @@ function PlaygroundInner() {
   const [deployedSlug, setDeployedSlug] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<string>("results");
+
+  // Trade forensics (Phase B): candle bars per symbol, keyed by the run they
+  // belong to; the inspector and Chart tab share this cache.
+  const [barsCache, setBarsCache] = useState<Record<string, Bar[]>>({});
+  const [loadingSymbols, setLoadingSymbols] = useState<Record<string, true>>({});
+  const [inspectTrade, setInspectTrade] = useState<Trade | null>(null);
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+  const [aiEnglish, setAiEnglish] = useState<{ forSpec: Spec; text: string } | null>(null);
+  const [aiEnglishLoading, setAiEnglishLoading] = useState(false);
+
+  const loadBars = useCallback(
+    async (runId: string, symbol: string) => {
+      if (barsCache[symbol] || loadingSymbols[symbol]) return;
+      setLoadingSymbols((s) => ({ ...s, [symbol]: true }));
+      try {
+        const out = await fetchBars(runId, symbol);
+        // Bars belong to a specific run — drop responses that arrive after a
+        // rerun or template switch replaced the run they were fetched for.
+        if (runRef.current?.run_id !== runId) return;
+        setBarsCache((cache) => ({ ...cache, [symbol]: out.bars }));
+      } catch {
+        if (runRef.current?.run_id === runId) {
+          setBarsCache((cache) => ({ ...cache, [symbol]: [] }));
+        }
+      } finally {
+        setLoadingSymbols((s) => {
+          const next = { ...s };
+          delete next[symbol];
+          return next;
+        });
+      }
+    },
+    [barsCache, loadingSymbols],
+  );
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -158,6 +204,9 @@ function PlaygroundInner() {
         setRun(result);
         setDeployedSlug(null);
         setActiveTab("results");
+        setBarsCache({}); // bars belong to a specific run
+        setInspectTrade(null);
+        setChartSymbol(null);
         // Flag apples-to-oranges: if the date window changed between runs,
         // suppress numeric comparisons and say so instead.
         const prevRange = runRange(previous);
@@ -211,6 +260,11 @@ function PlaygroundInner() {
     setChatBusy(false);
     setDeployedSlug(null);
     setActiveTab("results");
+    setBarsCache({});
+    setInspectTrade(null);
+    setChartSymbol(null);
+    setAiEnglish(null);
+    setAiEnglishLoading(false);
   };
 
   const onChatSend = async (text: string) => {
@@ -291,6 +345,61 @@ function PlaygroundInner() {
 
   const headerRange = runRange(run);
   const rules = spec ? englishRules(spec) : null;
+
+  const tradedSymbols = useMemo(() => {
+    if (!run) return [];
+    return Array.from(new Set(run.trades.map((t) => t.symbol)));
+  }, [run]);
+  const activeChartSymbol =
+    chartSymbol && tradedSymbols.includes(chartSymbol)
+      ? chartSymbol
+      : tradedSymbols[0] ?? null;
+
+  const chartMarkers: TradeMarker[] = useMemo(() => {
+    if (!run || !activeChartSymbol) return [];
+    return run.trades
+      .filter((t) => t.symbol === activeChartSymbol)
+      .flatMap((t) => [
+        { time: fmtDate(t.entry_date), kind: "entry" as const, label: "" },
+        { time: fmtDate(t.exit_date), kind: "exit" as const, label: "" },
+      ]);
+  }, [run, activeChartSymbol]);
+
+  // Lazy-load bars when the Chart tab needs them.
+  useEffect(() => {
+    if (activeTab === "chart" && run?.run_id && activeChartSymbol && !barsCache[activeChartSymbol]) {
+      loadBars(run.run_id, activeChartSymbol);
+    }
+  }, [activeTab, run, activeChartSymbol, barsCache, loadBars]);
+
+  // Lazy-fetch the AI-polished English once per spec when Rules opens.
+  useEffect(() => {
+    if (activeTab !== "rules" || !spec) return;
+    if (aiEnglishLoading || (aiEnglish && aiEnglish.forSpec === spec)) return;
+    let cancelled = false;
+    setAiEnglishLoading(true);
+    fetchExplanation(spec)
+      .then((out) => {
+        if (!cancelled) setAiEnglish({ forSpec: spec, text: out.english });
+      })
+      .catch(() => {
+        /* deterministic rules remain the fallback */
+      })
+      .finally(() => {
+        // Unconditional: a superseded fetch must never wedge loading=true
+        // (the cancelled guard applies only to the data write above).
+        setAiEnglishLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, spec]);
+
+  const onInspect = (trade: Trade) => {
+    setInspectTrade(trade);
+    if (run?.run_id) loadBars(run.run_id, trade.symbol);
+  };
 
   const downloadSpec = () => {
     if (!spec) return;
@@ -450,6 +559,7 @@ function PlaygroundInner() {
               tabs={[
                 { id: "results", label: "Results" },
                 { id: "trades", label: "Trades", badge: run?.trades.length ?? undefined },
+                { id: "chart", label: "Chart" },
                 { id: "rules", label: "Rules" },
               ]}
               active={activeTab}
@@ -535,11 +645,64 @@ function PlaygroundInner() {
                   aria-labelledby="lab-tabs-trades"
                   className="space-y-2"
                 >
-                  <TradeTable trades={run.trades} />
+                  <TradeTable trades={run.trades} onInspect={onInspect} />
                   <p className="text-[11px] text-faint">
-                    Per-trade candlestick inspection is coming next — every entry and
-                    exit on the actual chart.
+                    Click any trade to see its exact entry and exit candles on the chart.
                   </p>
+                </div>
+              )}
+
+              {activeTab === "chart" && (
+                <div
+                  role="tabpanel"
+                  id="lab-tabs-panel-chart"
+                  aria-labelledby="lab-tabs-chart"
+                  className="space-y-3"
+                >
+                  {tradedSymbols.length ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Chart symbol">
+                        {tradedSymbols.map((sym) => (
+                          <button
+                            key={sym}
+                            onClick={() => setChartSymbol(sym)}
+                            aria-pressed={sym === activeChartSymbol}
+                            className={`focus-ring tnum rounded-full border px-3 py-1 text-xs transition-colors ${
+                              sym === activeChartSymbol
+                                ? "border-accent/60 bg-accent-soft text-ink"
+                                : "border-hairline text-muted hover:text-ink"
+                            }`}
+                          >
+                            {sym === activeChartSymbol && <span aria-hidden="true">● </span>}
+                            {sym}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="card p-3">
+                        {activeChartSymbol && barsCache[activeChartSymbol]?.length ? (
+                          <CandleChart
+                            bars={barsCache[activeChartSymbol]}
+                            markers={chartMarkers}
+                            height={420}
+                          />
+                        ) : (
+                          <div className="flex h-64 items-center justify-center text-sm text-muted" role="status">
+                            {activeChartSymbol && loadingSymbols[activeChartSymbol]
+                              ? "Loading candles…"
+                              : "No price data for this symbol."}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-faint">
+                        ▲ entries · ▼ exits for {activeChartSymbol}. Click a row in the
+                        Trades tab to zoom into a single trade.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="card flex min-h-[200px] items-center justify-center border-dashed">
+                      <p className="text-sm text-muted">No trades to chart in this run.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -551,12 +714,39 @@ function PlaygroundInner() {
                   className="space-y-3"
                 >
                   <div className="card p-5">
-                    <div className="mb-3 flex items-center justify-between">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <h2 className="text-sm font-semibold">Rules in plain English</h2>
-                      <Button size="sm" variant="outline" onClick={downloadSpec}>
-                        ↓ Download spec
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            spec &&
+                            download(
+                              `${slugifyName(spec.name)}.py`,
+                              pythonExport(spec),
+                              "text/x-python",
+                            )
+                          }
+                          title="A runnable Python file with your rules and the spec embedded"
+                        >
+                          ↓ Python
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={downloadSpec}>
+                          ↓ Spec JSON
+                        </Button>
+                      </div>
                     </div>
+                    {aiEnglishLoading && (
+                      <p role="status" className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
+                        Writing the plain-English version…
+                      </p>
+                    )}
+                    {aiEnglish && aiEnglish.forSpec === spec && (
+                      <div className="mb-4 whitespace-pre-wrap rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+                        {aiEnglish.text}
+                      </div>
+                    )}
                     <dl className="space-y-4 text-sm leading-relaxed">
                       <div>
                         <dt className="text-[11px] uppercase tracking-wide text-faint">Universe</dt>
@@ -635,6 +825,15 @@ function PlaygroundInner() {
           disabled={!spec || running}
         />
       </div>
+
+      {inspectTrade && (
+        <TradeInspector
+          trade={inspectTrade}
+          bars={barsCache[inspectTrade.symbol] ?? null}
+          loading={Boolean(loadingSymbols[inspectTrade.symbol]) && !barsCache[inspectTrade.symbol]}
+          onClose={() => setInspectTrade(null)}
+        />
+      )}
     </div>
   );
 }

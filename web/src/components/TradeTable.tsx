@@ -6,7 +6,14 @@ import { fmtDate, fmtMoney, fmtNum } from "@/lib/format";
 
 const PAGE = 50;
 
-export default function TradeTable({ trades }: { trades: Trade[] }) {
+export default function TradeTable({
+  trades,
+  onInspect,
+}: {
+  trades: Trade[];
+  /** When provided, rows become clickable and open the trade inspector. */
+  onInspect?: (trade: Trade) => void;
+}) {
   const [shown, setShown] = useState(PAGE);
   if (!trades.length) {
     return <p className="text-sm text-muted">No trades in this run.</p>;
@@ -30,7 +37,30 @@ export default function TradeTable({ trades }: { trades: Trade[] }) {
         </thead>
         <tbody>
           {visible.map((t, i) => (
-            <tr key={`${t.symbol}-${t.entry_date}-${i}`} className="border-b border-hairline last:border-0">
+            <tr
+              key={`${t.symbol}-${t.entry_date}-${i}`}
+              className={`border-b border-hairline last:border-0 ${
+                onInspect ? "cursor-pointer transition-colors hover:bg-accent-soft" : ""
+              }`}
+              onClick={onInspect ? () => onInspect(t) : undefined}
+              onKeyDown={
+                onInspect
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onInspect(t);
+                      }
+                    }
+                  : undefined
+              }
+              tabIndex={onInspect ? 0 : undefined}
+              role={onInspect ? "button" : undefined}
+              aria-label={
+                onInspect
+                  ? `Inspect ${t.symbol} trade from ${fmtDate(t.entry_date)} on the chart`
+                  : undefined
+              }
+            >
               <td className="px-3 py-1.5 font-medium">{t.symbol}</td>
               <td className="px-3 py-1.5 text-muted">{t.side}</td>
               <td className="px-3 py-1.5 tnum">{fmtDate(t.entry_date)}</td>
