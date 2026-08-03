@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
+import AuthModalProvider from "@/components/AuthModal";
+import CommandPalette from "@/components/CommandPalette";
+import SiteNav from "@/components/SiteNav";
 import { DISCLAIMER } from "@/lib/constants";
 
 const geistSans = Geist({
@@ -14,10 +18,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat to Backtest — test any trading strategy in plain English",
+  title: "Chat·Backtest — build it, test it, prove it in public",
   description:
-    "Pick a template strategy, see 10 years of historical results in seconds, then change it in plain English and re-run. A research and education tool — no signals, no live trading.",
+    "The AI trading-strategy lab: build any strategy in plain English, backtest a decade in seconds, and prove it on a public, immutable forward-test ledger. Research and education — no signals, no live trading.",
 };
+
+const THEME_INIT = `(function(){try{if(localStorage.getItem('ctb-theme')==='light'){document.documentElement.dataset.theme='light'}}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -28,12 +34,33 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-ink">
-        <div className="flex-1 flex flex-col">{children}</div>
-        <footer className="border-t border-hairline px-6 py-4 text-xs text-muted">
-          {DISCLAIMER}
-        </footer>
+      <body className="flex min-h-full flex-col bg-background text-ink">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        <AuthModalProvider>
+          <SiteNav />
+          <div className="flex flex-1 flex-col">{children}</div>
+          <CommandPalette />
+          <footer className="border-t border-hairline">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4 text-xs text-muted">
+                <Link href="/leaderboard" className="hover:text-ink">
+                  Leaderboard
+                </Link>
+                <Link href="/pricing" className="hover:text-ink">
+                  Pricing
+                </Link>
+                <Link href="/playground" className="hover:text-ink">
+                  The Lab
+                </Link>
+              </div>
+              <p className="max-w-xl text-[11px] leading-relaxed text-faint">
+                {DISCLAIMER}
+              </p>
+            </div>
+          </footer>
+        </AuthModalProvider>
       </body>
     </html>
   );

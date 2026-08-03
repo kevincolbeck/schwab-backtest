@@ -1,4 +1,6 @@
 import Link from "next/link";
+import LivePreview from "@/components/landing/LivePreview";
+import Reveal from "@/components/Reveal";
 import Sparkline from "@/components/Sparkline";
 import TemplateCard from "@/components/TemplateCard";
 import { fmtSignedPct } from "@/lib/format";
@@ -16,7 +18,7 @@ async function getTemplates(): Promise<Template[]> {
   }
 }
 
-async function getLeaderboardTeaser(): Promise<LeaderboardEntry[]> {
+async function getLedgerTeaser(): Promise<LeaderboardEntry[]> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
     if (!res.ok) return [];
@@ -27,244 +29,270 @@ async function getLeaderboardTeaser(): Promise<LeaderboardEntry[]> {
   }
 }
 
-const STEPS = [
+const PILLARS = [
   {
-    n: "1",
-    title: "Build it",
-    body: "Pick a classic swing-trading strategy — Golden Cross, Minervini, Turtle rules — or describe your own in plain English.",
-    badge: null,
+    eyebrow: "The Lab",
+    title: "Build anything",
+    body: "Describe a strategy in plain English — any symbols, famous templates, or from scratch. The AI writes the rules, runs a decade of data in seconds, and teaches as it edits.",
   },
   {
-    n: "2",
-    title: "Test it",
-    body: "A decade of daily data in seconds. Ask “what if the stop was 5%?” — the AI edits the rules and re-runs while you watch, before vs after.",
-    badge: null,
+    eyebrow: "The Proof",
+    title: "Freeze it, forward-test it",
+    body: "One click deploys your strategy to the ledger. The spec freezes — hash-verified — and every trading day it's evaluated on fresh data. Timestamped. Append-only. Unfakeable.",
   },
   {
-    n: "3",
-    title: "Prove it in public",
-    body: "Deploy to the forward-test ledger: the spec freezes, and every trading day it's evaluated on fresh data — timestamped, immutable, out-of-sample. No one can fake a track record here.",
-    badge: "coming soon",
+    eyebrow: "The Board",
+    title: "Receipts, in public",
+    body: "The leaderboard ranks live forward performance, not backtested hindsight. Losers stay on the board. That's the point — a track record no one can rewrite.",
   },
 ];
 
 const FAQ = [
   {
     q: "Will this make me money?",
-    a: "No. This is a research and education tool. It shows you how ideas would have performed historically — and history does not predict the future. Nothing here is financial advice or a recommendation to trade.",
+    a: "No. This is a research and education tool. It shows how ideas would have performed historically — and history does not predict the future. Nothing here is financial advice or a recommendation to trade.",
   },
   {
     q: "Where does the data come from?",
-    a: "Daily US equity prices, split-adjusted, going back roughly a decade. Backtests include a slippage assumption on every fill. The full-universe option uses currently listed stocks, so those results can be optimistic (survivorship bias) — we say so right on the result.",
+    a: "Daily US equity prices, split-adjusted, going back roughly a decade, with a slippage assumption on every simulated fill. Full-universe tests note their survivorship bias right on the result.",
   },
   {
-    q: "Do I need an account?",
-    a: "Not to try it. Pick a template, run it, ask the chat questions — no login, no credits, no meter.",
+    q: "What makes the forward ledger trustworthy?",
+    a: "Deployed strategies are frozen — the spec's cryptographic hash is public, and the signals ledger is append-only at the database level. We could not rewrite a track record if we wanted to.",
   },
   {
     q: "Can it predict what a stock will do?",
-    a: "No, and it won't pretend to. Ask it to predict prices and it will politely refuse and offer a historical test instead. That's a feature.",
+    a: "No, and it won't pretend to. Ask it to predict prices and it politely refuses and offers a historical test instead. That's a feature.",
   },
   {
     q: "How is this different from indicator platforms?",
-    a: "Indicator platforms sell you black-box signals and pre-computed lookup tables. Here, every strategy is a readable rule you can inspect, and every “what if” actually re-runs the simulation — a fresh decade-long result in seconds, not a lookup of Wednesday's tables.",
+    a: "Indicator platforms sell black-box signals and pre-computed lookup tables. Here every strategy is a readable rule you can inspect, every “what if” actually re-runs the simulation, and every claim carries receipts.",
   },
 ];
 
 export default async function Home() {
-  const [templates, ledger] = await Promise.all([getTemplates(), getLeaderboardTeaser()]);
+  const [templates, ledger] = await Promise.all([getTemplates(), getLedgerTeaser()]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6">
+    <main className="w-full">
       {/* Hero */}
-      <section className="py-20 text-center">
-        <p className="mx-auto mb-4 w-fit rounded-full border border-hairline bg-panel px-3 py-1 text-xs text-muted">
-          A backtesting lab, not a signal service
-        </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">
-          Build it. Test it. Prove it in public.
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base text-muted">
-          Describe a swing-trading strategy in plain English, backtest it on a decade
-          of real data in seconds — then deploy it to a public forward-test ledger
-          where results accrue out-of-sample, one honest day at a time.
-        </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Link
-            href="/playground"
-            className="rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-background hover:opacity-90"
-          >
-            Open the playground
-          </Link>
-          <a
-            href="#templates"
-            className="rounded-md border border-hairline px-5 py-2.5 text-sm text-ink hover:bg-panel"
-          >
-            Browse templates
-          </a>
-          <Link
-            href="/leaderboard"
-            className="rounded-md border border-hairline px-5 py-2.5 text-sm text-ink hover:bg-panel"
-          >
-            Leaderboard
-          </Link>
+      <section className="relative overflow-hidden">
+        <div className="hero-grid pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-14 lg:grid-cols-2 lg:pb-24 lg:pt-20">
+          <Reveal>
+            <p className="mb-4 w-fit rounded-full border border-hairline bg-panel px-3 py-1 text-xs text-muted">
+              A strategy lab, not a signal service
+            </p>
+            <h1 className="max-w-xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
+              Build it. Test it.{" "}
+              <span className="bg-gradient-to-r from-accent to-prev bg-clip-text text-transparent">
+                Prove it in public.
+              </span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
+              Describe a trading strategy in plain English. Backtest a decade of real
+              data in seconds. Then deploy it to a public forward-test ledger where
+              results accrue out-of-sample — one honest day at a time.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/playground"
+                className="btn-glow focus-ring rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
+              >
+                Open the lab
+              </Link>
+              <Link
+                href="/leaderboard"
+                className="focus-ring rounded-xl border border-hairline-strong px-5 py-2.5 text-sm hover:bg-panel"
+              >
+                See the receipts
+              </Link>
+            </div>
+            <p className="mt-4 text-[11px] text-faint">
+              Free to start · no card · results in seconds
+            </p>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <LivePreview />
+          </Reveal>
         </div>
       </section>
 
-      {/* 3 steps */}
-      <section className="grid gap-4 border-t border-hairline py-14 sm:grid-cols-3">
-        {STEPS.map((s) => (
-          <div key={s.n} className="rounded-xl border border-hairline bg-panel p-5">
-            <div className="flex items-center justify-between">
-              <div className="tnum text-xs text-accent">{s.n}</div>
-              {s.badge && ledger.length === 0 && (
-                <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
-                  {s.badge}
-                </span>
-              )}
-            </div>
-            <h3 className="mt-1 text-sm font-medium">{s.title}</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted">{s.body}</p>
-          </div>
-        ))}
+      {/* Three pillars */}
+      <section className="border-t border-hairline">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-6 py-16 md:grid-cols-3">
+          {PILLARS.map((p, i) => (
+            <Reveal key={p.eyebrow} delay={i * 0.06}>
+              <div className="card h-full p-6">
+                <p className="text-[11px] uppercase tracking-widest text-accent">
+                  {p.eyebrow}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold">{p.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{p.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </section>
 
-      {/* Ledger teaser — the receipts, live */}
+      {/* Ledger teaser */}
       {ledger.length > 0 && (
-        <section className="border-t border-hairline py-14">
-          <p className="text-xs uppercase tracking-widest text-accent">
-            The Ledger · The receipts
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">
-            Strategies proving themselves in public, right now
-          </h2>
-          <p className="mt-2 max-w-xl text-sm text-muted">
-            Frozen at deployment, evaluated on fresh end-of-day data ever since.
-            Losers stay on the board — that&apos;s the point.
-          </p>
-          <div className="mt-6 overflow-hidden rounded-xl border border-hairline">
-            {ledger.map((e, i) => (
+        <section className="border-t border-hairline">
+          <div className="mx-auto w-full max-w-6xl px-6 py-16">
+            <Reveal>
+              <p className="text-[11px] uppercase tracking-widest text-accent">
+                The Board · Live now
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                Strategies proving themselves in public
+              </h2>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="card mt-6 overflow-hidden">
+                {ledger.map((e, i) => (
+                  <Link
+                    key={e.slug}
+                    href={`/strategy/${e.slug}`}
+                    className="flex items-center gap-4 border-b border-hairline px-4 py-3 transition-colors last:border-0 hover:bg-panel-2"
+                  >
+                    <span className="tnum w-5 text-xs text-faint">{i + 1}</span>
+                    <span className="flex-1 text-sm font-medium">{e.name}</span>
+                    <span className="hidden text-xs text-muted sm:block">
+                      {e.days_live} days live
+                    </span>
+                    <Sparkline values={e.sparkline} baseline={100000} width={90} height={22} />
+                    <span
+                      className={`tnum w-20 text-right text-sm ${
+                        e.forward_return_pct > 0
+                          ? "text-gain"
+                          : e.forward_return_pct < 0
+                            ? "text-loss"
+                            : "text-muted"
+                      }`}
+                    >
+                      {fmtSignedPct(e.forward_return_pct, 2)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
               <Link
-                key={e.slug}
-                href={`/strategy/${e.slug}`}
-                className="flex items-center gap-4 border-b border-hairline bg-panel px-4 py-3 last:border-0 hover:bg-panel-2"
+                href="/leaderboard"
+                className="mt-4 inline-block text-sm text-accent hover:underline"
               >
-                <span className="tnum w-5 text-xs text-muted">{i + 1}</span>
-                <span className="flex-1 text-sm font-medium">{e.name}</span>
-                <span className="hidden text-xs text-muted sm:block">
-                  {e.days_live} days live
-                </span>
-                <Sparkline values={e.sparkline} baseline={100000} width={90} height={22} />
-                <span
-                  className={`tnum w-20 text-right text-sm ${
-                    e.forward_return_pct > 0
-                      ? "text-gain"
-                      : e.forward_return_pct < 0
-                        ? "text-loss"
-                        : "text-muted"
-                  }`}
-                >
-                  {fmtSignedPct(e.forward_return_pct, 2)}
-                </span>
+                Full leaderboard →
               </Link>
-            ))}
+            </Reveal>
           </div>
-          <Link
-            href="/leaderboard"
-            className="mt-4 inline-block text-sm text-accent hover:underline"
-          >
-            Full leaderboard →
-          </Link>
         </section>
       )}
 
-      {/* Template gallery */}
-      <section id="templates" className="border-t border-hairline py-14">
-        <p className="text-xs uppercase tracking-widest text-accent">
-          Templates · The starting point
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold">
-          Famous strategies, actually tested
-        </h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">
-          Real numbers from real historical data — computed before you clicked, not
-          cherry-picked after.
-        </p>
-        {templates.length ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {templates.map((t) => (
-              <TemplateCard key={t.id} template={t} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-6 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
-            The backtest service isn&apos;t reachable right now — start it and refresh to
-            see the gallery with live numbers.
-          </p>
-        )}
+      {/* Templates */}
+      <section id="templates" className="border-t border-hairline">
+        <div className="mx-auto w-full max-w-6xl px-6 py-16">
+          <Reveal>
+            <p className="text-[11px] uppercase tracking-widest text-accent">
+              Templates · The starting point
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+              Famous strategies, actually tested
+            </h2>
+            <p className="mt-2 max-w-xl text-sm text-muted">
+              Real numbers from real historical data — computed before you clicked,
+              never cherry-picked after.
+            </p>
+          </Reveal>
+          {templates.length ? (
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {templates.map((t, i) => (
+                <Reveal key={t.id} delay={Math.min(i * 0.04, 0.2)}>
+                  <TemplateCard template={t} />
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            <p className="card mt-7 p-4 text-sm text-muted">
+              The backtest service isn&apos;t reachable right now — refresh in a moment.
+            </p>
+          )}
+        </div>
       </section>
 
-      {/* Honesty block — a feature, not a footer */}
-      <section className="border-t border-hairline py-14">
-        <p className="text-xs uppercase tracking-widest text-accent">
-          Honesty · Printed on every result
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold">What a backtest can&apos;t tell you</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-hairline bg-panel p-5">
-            <h3 className="text-sm font-medium">Past ≠ future</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              A strategy that worked for ten years can stop working tomorrow. Every result
-              here is a historical simulation, never a forecast.
+      {/* Honesty block */}
+      <section className="border-t border-hairline">
+        <div className="mx-auto w-full max-w-6xl px-6 py-16">
+          <Reveal>
+            <p className="text-[11px] uppercase tracking-widest text-accent">
+              Honesty · Printed on every result
             </p>
-          </div>
-          <div className="rounded-xl border border-hairline bg-panel p-5">
-            <h3 className="text-sm font-medium">Survivorship bias is real</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Full-universe tests use currently listed stocks — companies that went to zero
-              aren&apos;t in the data, which flatters the results. We label it when it applies.
-            </p>
-          </div>
-          <div className="rounded-xl border border-hairline bg-panel p-5">
-            <h3 className="text-sm font-medium">Costs are assumptions</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Every fill includes a slippage assumption, and it&apos;s shown with the run. Real
-              trading costs vary — treat results as approximations, not receipts.
-            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+              What a backtest can&apos;t tell you
+            </h2>
+          </Reveal>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                t: "Past ≠ future",
+                b: "A strategy that worked for ten years can stop working tomorrow. Every result here is a historical simulation, never a forecast.",
+              },
+              {
+                t: "Survivorship bias is real",
+                b: "Full-universe tests use currently listed stocks — companies that went to zero aren't in the data, which flatters results. We label it when it applies.",
+              },
+              {
+                t: "Costs are assumptions",
+                b: "Every simulated fill includes a slippage assumption, shown with the run. Real trading costs vary — results are approximations, not receipts.",
+              },
+            ].map((x, i) => (
+              <Reveal key={x.t} delay={i * 0.06}>
+                <div className="card h-full p-5">
+                  <h3 className="text-sm font-medium">{x.t}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">{x.b}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="border-t border-hairline py-14">
-        <h2 className="text-2xl font-semibold">Questions, answered straight</h2>
-        <div className="mt-6 space-y-3">
-          {FAQ.map((f) => (
-            <details
-              key={f.q}
-              className="group rounded-lg border border-hairline bg-panel px-4 py-3"
-            >
-              <summary className="cursor-pointer text-sm font-medium marker:text-muted">
-                {f.q}
-              </summary>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{f.a}</p>
-            </details>
-          ))}
+      <section className="border-t border-hairline">
+        <div className="mx-auto w-full max-w-3xl px-6 py-16">
+          <Reveal>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Questions, answered straight
+            </h2>
+          </Reveal>
+          <div className="mt-6 space-y-3">
+            {FAQ.map((f, i) => (
+              <Reveal key={f.q} delay={Math.min(i * 0.04, 0.16)}>
+                <details className="card group px-5 py-4">
+                  <summary className="focus-ring cursor-pointer rounded-md text-sm font-medium marker:text-faint">
+                    {f.q}
+                  </summary>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{f.a}</p>
+                </details>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-hairline py-16 text-center">
-        <h2 className="text-2xl font-semibold">
-          Curious what &ldquo;buy the dip&rdquo; actually returned?
-        </h2>
-        <p className="mt-2 text-sm text-muted">Find out in about four seconds.</p>
-        <Link
-          href="/playground?template=buy-the-dip"
-          className="mt-6 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-background hover:opacity-90"
-        >
-          Test it now — free, no login
-        </Link>
+      <section className="border-t border-hairline">
+        <div className="mx-auto w-full max-w-6xl px-6 py-20 text-center">
+          <Reveal>
+            <h2 className="text-3xl font-semibold tracking-tight">
+              Curious what &ldquo;buy the dip&rdquo; actually returned?
+            </h2>
+            <p className="mt-2 text-sm text-muted">Find out in about four seconds.</p>
+            <Link
+              href="/playground?template=buy-the-dip"
+              className="btn-glow focus-ring mt-7 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
+            >
+              Test it now
+            </Link>
+          </Reveal>
+        </div>
       </section>
     </main>
   );
