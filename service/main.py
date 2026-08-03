@@ -87,6 +87,28 @@ def current_user(request: Request) -> Optional[dict]:
     return auth.get_user(request.headers.get("authorization"))
 
 
+_template_hash_cache: Optional[set] = None
+
+
+def _template_hashes() -> set:
+    """Spec hashes of the shipped templates. Template runs are exempt from
+    custom-run limits — 'templates run logged-out' is a core product promise."""
+    global _template_hash_cache
+    if _template_hash_cache is None:
+        hashes = set()
+        if TEMPLATES_DIR.exists():
+            for path in TEMPLATES_DIR.glob("*.json"):
+                if path.name.startswith("_"):
+                    continue
+                try:
+                    doc = json.loads(path.read_text(encoding="utf-8"))
+                    hashes.add(forward.spec_hash_of(doc.get("spec", doc)))
+                except Exception:
+                    logger.warning("unhashable template %s", path.name, exc_info=True)
+        _template_hash_cache = hashes
+    return _template_hash_cache
+
+
 def _client_ip(request: Request) -> str:
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
@@ -140,13 +162,16 @@ def backtest(
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
 
     limits = auth.limits_for(user)
-    identity = user["id"] if user else f"ip:{_client_ip(request)}"
-    if not auth.check_and_count_run(identity, limits["runs_per_day"]):
-        raise HTTPException(
-            status_code=429,
-            detail=f"daily backtest limit reached ({limits['runs_per_day']}/day)"
-            + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
-        )
+    is_template_run = forward.spec_hash_of(spec) in _template_hashes()
+
+    if not is_template_run:
+        identity = user["id"] if user else f"ip:{_client_ip(request)}"
+        if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+            raise HTTPException(
+                status_code=429,
+                detail=f"daily custom-backtest limit reached ({limits['runs_per_day']}/day)"
+                + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
+            )
 
     symbols = spec.get("symbols", [])
     is_all_us = any(
@@ -159,7 +184,7 @@ def backtest(
             detail="the full-US universe is a Max plan feature — pick specific symbols instead",
         )
     plan_symbol_cap = min(limits["max_symbols"], MAX_SYMBOLS_PER_RUN)
-    if not is_all_us and len(symbols) > plan_symbol_cap:
+    if not is_template_run and not is_all_us and len(symbols) > plan_symbol_cap:
         raise HTTPException(
             status_code=422,
             detail={"validation_errors": [f"too many symbols (max {plan_symbol_cap} on your plan)"]},
