@@ -88,25 +88,51 @@ def current_user(request: Request) -> Optional[dict]:
 
 
 _template_hash_cache: Optional[set] = None
+_template_symbols_cache: Optional[list] = None
+
+
+def _load_template_meta() -> None:
+    global _template_hash_cache, _template_symbols_cache
+    hashes: set = set()
+    symbol_sets: list = []
+    if TEMPLATES_DIR.exists():
+        for path in TEMPLATES_DIR.glob("*.json"):
+            if path.name.startswith("_"):
+                continue
+            try:
+                doc = json.loads(path.read_text(encoding="utf-8"))
+                spec = doc.get("spec", doc)
+                hashes.add(forward.spec_hash_of(spec))
+                symbol_sets.append({
+                    str(s).strip().upper() for s in spec.get("symbols", [])
+                })
+            except Exception:
+                logger.warning("unreadable template %s", path.name, exc_info=True)
+    _template_hash_cache = hashes
+    _template_symbols_cache = symbol_sets
 
 
 def _template_hashes() -> set:
     """Spec hashes of the shipped templates. Template runs are exempt from
     custom-run limits — 'templates run logged-out' is a core product promise."""
-    global _template_hash_cache
     if _template_hash_cache is None:
-        hashes = set()
-        if TEMPLATES_DIR.exists():
-            for path in TEMPLATES_DIR.glob("*.json"):
-                if path.name.startswith("_"):
-                    continue
-                try:
-                    doc = json.loads(path.read_text(encoding="utf-8"))
-                    hashes.add(forward.spec_hash_of(doc.get("spec", doc)))
-                except Exception:
-                    logger.warning("unhashable template %s", path.name, exc_info=True)
-        _template_hash_cache = hashes
-    return _template_hash_cache
+        _load_template_meta()
+    return _template_hash_cache or set()
+
+
+def _within_template_universe(symbols: list) -> bool:
+    """True when the symbols are a subset of some template's universe.
+
+    Chat edits of a template (stop tweaks, rule changes) must stay runnable
+    logged-out — the DoD's core loop — while expanding to a bigger custom
+    universe still requires an account/plan.
+    """
+    if _template_symbols_cache is None:
+        _load_template_meta()
+    wanted = {str(s).strip().upper() for s in symbols if isinstance(s, str)}
+    if not wanted:
+        return False
+    return any(wanted <= tset for tset in (_template_symbols_cache or []))
 
 
 def _client_ip(request: Request) -> str:
@@ -188,7 +214,12 @@ def backtest(
             detail="the full-US universe is a Max plan feature — pick specific symbols instead",
         )
     plan_symbol_cap = min(limits["max_symbols"], MAX_SYMBOLS_PER_RUN)
-    if not is_template_run and not is_all_us and len(symbols) > plan_symbol_cap:
+    if (
+        not is_template_run
+        and not is_all_us
+        and len(symbols) > plan_symbol_cap
+        and not _within_template_universe(symbols)
+    ):
         raise HTTPException(
             status_code=422,
             detail={"validation_errors": [f"too many symbols (max {plan_symbol_cap} on your plan)"]},

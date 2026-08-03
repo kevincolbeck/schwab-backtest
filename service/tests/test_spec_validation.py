@@ -130,3 +130,16 @@ def test_all_templates_hash_stable_through_clamp():
         assert spec_hash_of(clamp_spec(spec)) == spec_hash_of(spec), path.name
         checked += 1
     assert checked == 8
+
+
+def test_template_universe_subset_logic():
+    # Chat edits of a template must stay runnable logged-out (DoD core loop):
+    # a subset of a template universe passes; foreign symbols do not.
+    from service.main import _within_template_universe
+
+    minervini_symbols = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA",
+                         "AMD", "AVGO", "NFLX", "ADBE", "CRM", "COST", "LLY", "V"]
+    assert _within_template_universe(minervini_symbols) is True
+    assert _within_template_universe(minervini_symbols[:5]) is True
+    assert _within_template_universe(["ZZZZ", "YYYY"]) is False
+    assert _within_template_universe([]) is False
