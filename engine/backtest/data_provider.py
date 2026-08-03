@@ -234,7 +234,21 @@ class HistoricalDataProvider:
             if progress_callback:
                 progress_callback(len(cached_symbols), total, f"{len(batch_loaded)} cached")
 
+        # Crypto symbols can't ride the yfinance batch — fetch each via Polygon.
+        crypto_symbols = [s for s in uncached_symbols if self._is_crypto(s)]
+        uncached_symbols = [s for s in uncached_symbols if not self._is_crypto(s)]
         completed = len(cached_symbols)
+        for symbol in crypto_symbols:
+            try:
+                df = self.fetch_symbol(symbol, start_date, end_date, force_refresh=force_refresh)
+                if not df.empty:
+                    results[symbol] = df
+            except Exception as exc:
+                logger.error("Error fetching crypto %s: %s", symbol, exc)
+            completed += 1
+            if progress_callback:
+                progress_callback(completed, total, symbol)
+
         for batch in _chunked(uncached_symbols, BATCH_DOWNLOAD_SIZE):
             downloaded = self._download_batch(batch, start_date, end_date, interval="1d")
             for symbol in batch:
@@ -487,8 +501,13 @@ class HistoricalDataProvider:
             "failed_tasks": failures,
         }
 
+    @staticmethod
+    def _is_crypto(symbol: str) -> bool:
+        """Polygon crypto tickers (X:BTCUSD) — yfinance can't serve these."""
+        return symbol.upper().startswith("X:")
+
     def _download_daily_symbol(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-        if self._should_use_polygon("1d", start_date, end_date):
+        if self._is_crypto(symbol) or self._should_use_polygon("1d", start_date, end_date):
             return self._download_polygon_aggregates(symbol, start_date, end_date, "1d")
         batch_data = self._download_batch([symbol], start_date, end_date, interval="1d")
         return batch_data.get(symbol, pd.DataFrame())
@@ -496,7 +515,7 @@ class HistoricalDataProvider:
     def _download_timeframe_symbol(
         self, symbol: str, start_date: str, end_date: str, timeframe: str
     ) -> pd.DataFrame:
-        if self._should_use_polygon(timeframe, start_date, end_date):
+        if self._is_crypto(symbol) or self._should_use_polygon(timeframe, start_date, end_date):
             return self._download_polygon_aggregates(symbol, start_date, end_date, timeframe)
         batch_data = self._download_batch([symbol], start_date, end_date, interval=timeframe)
         return batch_data.get(symbol, pd.DataFrame())

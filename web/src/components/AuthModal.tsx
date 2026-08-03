@@ -17,9 +17,8 @@ const AuthModalContext = createContext<{ openAuth: (reason?: string) => void }>(
 
 export const useAuthModal = () => useContext(AuthModalContext);
 
-// OAuth buttons appear once providers are configured in Supabase (Phase E):
-// set NEXT_PUBLIC_OAUTH_PROVIDERS="google,discord,twitter"
-const OAUTH_PROVIDERS = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? "")
+// Configured in the Supabase dashboard; X/Twitter joins in Phase G.
+const OAUTH_PROVIDERS = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? "google,discord")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean) as Array<"google" | "discord" | "twitter">;

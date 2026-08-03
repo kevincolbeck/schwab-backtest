@@ -17,6 +17,7 @@ import {
   deployRun,
   fetchBars,
   fetchExplanation,
+  fetchMe,
   fetchRun,
   fetchTemplates,
   runBacktest,
@@ -27,6 +28,7 @@ import { diffSpecs } from "@/lib/diff";
 import { englishRules } from "@/lib/englishRules";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
+import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { ChatTurn, RunResult, Spec, SpecChange, Template, Trade } from "@/lib/types";
 
@@ -38,6 +40,33 @@ function runRange(run: RunResult | null): { start: string; end: string } | null 
   const p = run?.params as { start_date?: string; end_date?: string } | undefined;
   if (!p?.start_date || !p?.end_date) return null;
   return { start: String(p.start_date), end: String(p.end_date) };
+}
+
+function LabGate() {
+  const { openAuth } = useAuthModal();
+  useEffect(() => {
+    openAuth("The lab is members-only. Create a free account — you get starter credits, no card required.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="flex flex-1 items-center justify-center p-8">
+      <div className="card max-w-md p-8 text-center">
+        <p className="text-[11px] uppercase tracking-widest text-accent">The Lab</p>
+        <h1 className="mt-2 text-xl font-semibold">Sign in to start building</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Free accounts come with starter credits — enough to run strategies, chat
+          with the AI, and see how the lab works. No card required.
+        </p>
+        <Button className="mt-6" onClick={() => openAuth()}>
+          Sign in / create account
+        </Button>
+        <p className="mt-4 text-[11px] text-faint">
+          Just browsing? The <Link href="/leaderboard" className="text-accent hover:underline">leaderboard</Link> and
+          shared results are open to everyone.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function PlaygroundInner() {
@@ -94,13 +123,23 @@ function PlaygroundInner() {
     [barsCache, loadingSymbols],
   );
 
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+
   useEffect(() => {
     const supabase = supabaseBrowser();
     if (!supabase) {
       setSignedIn(null);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+    supabase.auth.getSession().then(({ data }) => {
+      const authed = Boolean(data.session);
+      setSignedIn(authed);
+      if (authed) {
+        fetchMe()
+          .then((me) => setCreditBalance(me.credits))
+          .catch(() => {});
+      }
+    });
   }, []);
 
   // Latest run without stale-closure risk (chat rerun can race a manual run),
@@ -207,6 +246,9 @@ function PlaygroundInner() {
         setBarsCache({}); // bars belong to a specific run
         setInspectTrade(null);
         setChartSymbol(null);
+        if (typeof result.credits_remaining === "number") {
+          setCreditBalance(result.credits_remaining);
+        }
         // Flag apples-to-oranges: if the date window changed between runs,
         // suppress numeric comparisons and say so instead.
         const prevRange = runRange(previous);
@@ -282,6 +324,9 @@ function PlaygroundInner() {
         bt_summary: btSummary,
       });
       if (genRef.current !== gen) return; // template switched while thinking
+      if (typeof res.credits_remaining === "number") {
+        setCreditBalance(res.credits_remaining);
+      }
       let reply = res.reply;
       if (res.validation_errors.length) {
         reply += `\n\n(The proposed change didn't pass validation: ${res.validation_errors.join("; ")})`;
@@ -401,6 +446,12 @@ function PlaygroundInner() {
     if (run?.run_id) loadBars(run.run_id, trade.symbol);
   };
 
+  // Members-only lab (V2): gate renders only once we KNOW the visitor is
+  // signed out. Placed after every hook — no conditional-hook hazards.
+  if (signedIn === false) {
+    return <LabGate />;
+  }
+
   const downloadSpec = () => {
     if (!spec) return;
     const blob = new Blob([JSON.stringify(spec, null, 2)], { type: "application/json" });
@@ -465,12 +516,35 @@ function PlaygroundInner() {
                 className="focus-ring rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
               />
             </div>
-            <span
-              title="Daily bars today — intraday timeframes unlock soon"
-              className="tnum hidden rounded-[10px] border border-hairline bg-panel px-2.5 py-1.5 text-xs text-muted sm:block"
+            <select
+              value={spec?.backtest_timeframe ?? "1d"}
+              onChange={(e) =>
+                spec && setSpec({ ...spec, backtest_timeframe: e.target.value })
+              }
+              disabled={!spec || busy}
+              aria-label="Bar timeframe"
+              title="Bar size. Intraday timeframes are limited to ~60 days of history."
+              className="focus-ring tnum hidden rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent sm:block"
             >
-              1D
-            </span>
+              <option value="1d">1D</option>
+              <option value="60m">60m</option>
+              <option value="30m">30m</option>
+              <option value="15m">15m</option>
+              <option value="5m">5m</option>
+              <option value="1m">1m</option>
+            </select>
+            {signedIn && creditBalance !== null && (
+              <Link
+                href="/pricing"
+                title="Your credit balance — runs and chat messages spend credits"
+                className="focus-ring tnum hidden items-center gap-1 rounded-[10px] border border-hairline bg-panel px-2.5 py-1.5 text-xs sm:flex"
+              >
+                <span className="text-accent" aria-hidden="true">◈</span>
+                <span className={creditBalance < 25 ? "text-loss" : "text-ink"}>
+                  {creditBalance}
+                </span>
+              </Link>
+            )}
             <Button
               onClick={() => spec && executeRun(spec, [])}
               disabled={!spec || busy || Boolean(dateError)}

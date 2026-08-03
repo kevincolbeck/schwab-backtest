@@ -49,8 +49,11 @@ A strategy is a single JSON object:
 - "exit_rule": boolean expression; "position_side" is available and equals
   'LONG' or 'SHORT'.
 - "entry_price_field": "open" | "high" | "low" | "close"
-- "backtest_timeframe": "1d" — ONLY daily bars in v1. This is a swing-trading
-  playground; if the user asks for intraday, explain that and keep "1d".
+- "backtest_timeframe": "1d" | "60m" | "30m" | "15m" | "5m" | "1m". Intraday
+  timeframes are limited to ~60 days of history — when the user asks for
+  intraday, tell them to use a recent, short date range.
+- Crypto works too: Polygon-style tickers like "X:BTCUSD", "X:ETHUSD"
+  (daily bars; 24/7 markets).
 - "position_size_mode": "notional_pct" | "risk_pct"
 - "position_size_pct": 1-100 (percent of equity per position, notional mode)
 - "risk_per_trade_pct": 0.05-10 (percent of equity risked, risk mode)
@@ -103,9 +106,10 @@ def build_system_prompt(
    reasoning — not a rewrite.
 5. Be specific: say "tighten the stop from 8% to 5%" not "tighten the stop".
 6. Teach as you work: when you edit the spec, include one plain-English sentence
-   on what the change means in swing-trading terms (this is an educational tool;
+   on what the change means in trading terms (this is an educational tool;
    explain jargon whenever it appears).
-7. Keep "backtest_timeframe" at "1d" — intraday isn't available in v1.
+7. When switching to an intraday timeframe, also shrink the date range to at
+   most 60 days and say why.
 
 ## Response Format — strict JSON, nothing else
 Respond with ONE JSON object and no other text:

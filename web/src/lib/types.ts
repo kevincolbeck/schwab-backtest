@@ -80,6 +80,7 @@ export interface RunResult {
   stats: Stats;
   equity_curve: EquityPoint[];
   trades: Trade[];
+  credits_remaining?: number | null;
   disclaimer?: string;
 }
 
@@ -115,6 +116,7 @@ export interface ChatResponse {
   updated_spec: Spec | null;
   should_rerun: boolean;
   validation_errors: string[];
+  credits_remaining?: number | null;
 }
 
 export interface SpecChange {

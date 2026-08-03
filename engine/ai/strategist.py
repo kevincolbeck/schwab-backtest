@@ -44,9 +44,10 @@ TUNABLE_PARAMS = [
 ]
 
 ALL_US_TOKENS = {"ALL_US", "*", "ALL", "ALL_US_SYMBOLS"}
-# EOD-only in v1: swing trading doesn't need intraday, and it keeps data costs
-# trivial. The engine still supports intraday internally; the service refuses it.
-ALLOWED_TIMEFRAMES = {"1d"}
+# V2 (Kevin directive): anything-trading-strategy product — intraday unlocked.
+# The service layer caps intraday HISTORY (60 days) and prices runs by
+# granularity via the credit system; this list is what the spec may request.
+ALLOWED_TIMEFRAMES = {"1d", "5m", "15m", "30m", "60m", "1m"}
 ALLOWED_ENTRY_PRICE_FIELDS = {"open", "high", "low", "close"}
 ALLOWED_SIZE_MODES = {"notional_pct", "risk_pct"}
 ALLOWED_INDICATOR_TYPES = {
@@ -59,7 +60,8 @@ ALLOWED_INDICATOR_TYPES = {
 # builtins and its own token denylist; this is the first line of defense).
 DANGEROUS_RULE_TOKENS = ("import", "exec", "eval", "open", "os.", "subprocess", "__")
 
-_TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
+# Stocks/ETFs (AAPL, BRK.B) plus Polygon crypto tickers (X:BTCUSD).
+_TICKER_RE = re.compile(r"^(X:[A-Z]{2,15}|[A-Z][A-Z0-9.\-]{0,9})$")
 _AUTO_INDICATOR_RE = re.compile(r"((?:rsi|sma|ema|zscore|atr|stddev)_\d+)")
 
 

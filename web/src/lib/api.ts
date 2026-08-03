@@ -8,6 +8,9 @@ async function parseError(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as FastAPIError;
     if (typeof body.detail === "string") return body.detail;
+    if (body.detail && typeof body.detail === "object" && "message" in body.detail) {
+      return String((body.detail as { message?: string }).message ?? "Request failed");
+    }
     if (body.detail?.validation_errors?.length)
       return `Spec validation failed: ${body.detail.validation_errors.join("; ")}`;
     if (body.detail?.error) return body.detail.error;
@@ -85,4 +88,12 @@ export function fetchBars(
 
 export function fetchExplanation(spec: Spec): Promise<{ english: string }> {
   return request("/api/explain", { method: "POST", body: JSON.stringify({ spec }) });
+}
+
+export function fetchMe(): Promise<{
+  plan: string;
+  credits: number | null;
+  limits: Record<string, unknown>;
+}> {
+  return request("/api/me");
 }

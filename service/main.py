@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
 
 from service import env  # noqa: F401  (loads .env before anything reads os.environ)
-from service import auth
+from service import auth, credits
 from service import chat as chat_brain
 from service import backtest_runner, forward, runs_store
 from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
@@ -154,7 +154,9 @@ def me(user: Optional[dict] = Depends(current_user)):
     limits = auth.limits_for(user)
     active = [d for d in forward.list_deployments("active") if d["owner"] == user["id"]]
     return {"id": user["id"], "email": user["email"], "plan": user["plan"],
-            "limits": limits, "active_deployments": len(active)}
+            "limits": limits, "active_deployments": len(active),
+            "credits": credits.ensure_signup_grant(user["id"]),
+            "costs": credits.COSTS}
 
 
 @app.get("/me/runs")
@@ -182,10 +184,37 @@ def backtest(
     request: Request,
     user: Optional[dict] = Depends(current_user),
 ):
+    # The lab is members-only (V2): running strategies requires an account.
+    if auth.auth_configured() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="sign in to run backtests — free starter credits included",
+        )
+
     spec = clamp_spec(req.spec)
     errors = validate_spec(spec)
     if errors:
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
+
+    # Intraday history is capped while data plans are small (Phase C, honest cap).
+    timeframe = str(spec.get("backtest_timeframe") or "1d")
+    if timeframe != "1d":
+        end_for_cap = req.end_date or datetime.now().strftime("%Y-%m-%d")
+        try:
+            span_days = (
+                datetime.strptime(end_for_cap, "%Y-%m-%d")
+                - datetime.strptime(req.start_date, "%Y-%m-%d")
+            ).days
+        except ValueError:
+            span_days = 10_000
+        if span_days > 60:
+            raise HTTPException(
+                status_code=422,
+                detail={"validation_errors": [
+                    f"intraday timeframes are capped at 60 days of history for now "
+                    f"(you asked for {span_days} days) — tighten the date range"
+                ]},
+            )
 
     limits = auth.limits_for(user)
     # Match on the RAW request spec — clamping may not be byte-identical.
@@ -194,7 +223,18 @@ def backtest(
         or forward.spec_hash_of(spec) in _template_hashes()
     )
 
-    if not is_template_run:
+    run_cost = 0
+    if user is not None and credits.enabled_for(user):
+        # Credits meter every run, templates included — compute costs money.
+        run_cost = credits.backtest_cost(timeframe)
+        allowed, bal = credits.spend(user["id"], run_cost, "backtest")
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
+                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            )
+    elif not is_template_run:
         identity = user["id"] if user else f"ip:{_client_ip(request)}"
         if not auth.check_and_count_run(identity, limits["runs_per_day"]):
             raise HTTPException(
@@ -239,6 +279,8 @@ def backtest(
 
     serialized = backtest_runner.serialize_results(results)
     if serialized.get("error"):
+        if run_cost and user is not None:
+            credits.refund(user["id"], run_cost, "backtest_failed")
         raise HTTPException(status_code=422, detail={"error": serialized["error"]})
 
     run_id = runs_store.save_run(
@@ -262,6 +304,7 @@ def backtest(
         "stats": serialized["stats"],
         "equity_curve": serialized["equity_curve"],
         "trades": serialized["trades"],
+        "credits_remaining": credits.balance(user["id"]) if (user and run_cost) else None,
         "disclaimer": DISCLAIMER,
     }
 
@@ -353,6 +396,9 @@ def explain_spec(
     user: Optional[dict] = Depends(current_user),
 ):
     """AI-polished plain-English rules for a spec, cached by behavior hash."""
+    if auth.auth_configured() and user is None:
+        raise HTTPException(status_code=401, detail="sign in for AI explanations")
+
     spec = clamp_spec(req.spec)
     errors = validate_spec(spec)
     if errors:
@@ -444,12 +490,30 @@ def diff_runs(run_id: str, other_id: str):
 
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="chat is not configured (ANTHROPIC_API_KEY)")
+    if auth.auth_configured() and user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="sign in to chat with the AI strategist — free starter credits included",
+        )
+
+    chat_cost = 0
+    if user is not None and credits.enabled_for(user):
+        chat_cost = credits.COSTS["chat"]
+        allowed, bal = credits.spend(user["id"], chat_cost, "chat")
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "out_of_credits", "balance": bal, "needed": chat_cost,
+                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            )
 
     messages = [m.model_dump() for m in req.messages if m.role in ("user", "assistant")]
     if not messages:
+        if chat_cost and user is not None:
+            credits.refund(user["id"], chat_cost, "chat_invalid")
         raise HTTPException(status_code=422, detail="messages must contain at least one turn")
 
     try:
@@ -466,6 +530,8 @@ def chat(req: ChatRequest):
         raw = chat_brain.call_claude(messages, system_prompt)
     except Exception:
         logger.error("chat model call failed", exc_info=True)
+        if chat_cost and user is not None:
+            credits.refund(user["id"], chat_cost, "chat_failed")
         raise HTTPException(status_code=502, detail="chat model call failed")
 
     parsed = chat_brain.parse_chat_response(raw)
@@ -514,6 +580,7 @@ def chat(req: ChatRequest):
         "updated_spec": parsed["updated_spec"],
         "should_rerun": parsed["should_rerun"],
         "validation_errors": validation_errors,
+        "credits_remaining": credits.balance(user["id"]) if (user and chat_cost) else None,
         "disclaimer": DISCLAIMER,
     }
 

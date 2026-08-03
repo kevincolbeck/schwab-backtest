@@ -7,6 +7,35 @@ export const PRICE_IDS: Record<string, string | undefined> = {
   max: process.env.STRIPE_PRICE_MAX,
 };
 
+export const PACK_PRICE_IDS: Record<string, { price: string | undefined; credits: number }> = {
+  small: { price: process.env.STRIPE_PRICE_PACK_SMALL, credits: 500 },
+  large: { price: process.env.STRIPE_PRICE_PACK_LARGE, credits: 1500 },
+};
+
+export const MONTHLY_CREDITS: Record<string, number> = { pro: 2500, max: 10000 };
+
+/** Grant credits via the Supabase RPC (service-role only; ref = idempotency). */
+export async function grantCredits(
+  userId: string,
+  amount: number,
+  reason: string,
+  ref: string,
+): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !serviceKey) return false;
+  const res = await fetch(`${url}/rest/v1/rpc/grant_credits`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_user: userId, p_amount: amount, p_reason: reason, p_ref: ref }),
+  });
+  return res.ok;
+}
+
 export function stripeConfigured(): boolean {
   return Boolean(STRIPE_KEY && PRICE_IDS.pro && PRICE_IDS.max);
 }
