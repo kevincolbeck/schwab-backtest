@@ -41,21 +41,27 @@ export async function POST(request: Request) {
   const event = JSON.parse(payload) as StripeEvent;
   const obj = event.data.object;
 
+  // Any Supabase write failure → 500 so Stripe redelivers. Safe to retry: the
+  // ledger's (user_id, reason, ref) unique index makes re-grants idempotent.
+  const retry = () => Response.json({ detail: "supabase write failed" }, { status: 500 });
+
   if (event.type === "checkout.session.completed") {
     const userId = obj.client_reference_id ?? obj.metadata?.user_id;
     const plan = obj.metadata?.plan;
     const packCredits = Number(obj.metadata?.pack_credits ?? 0);
     if (userId && packCredits > 0) {
       // Top-up pack purchase (mode=payment). Ref = session id → idempotent.
-      await grantCredits(userId, packCredits, "pack_purchase", obj.id ?? "unknown");
+      const ok = await grantCredits(userId, packCredits, "pack_purchase", obj.id ?? "unknown");
+      if (!ok) return retry();
     }
     if (userId && (plan === "pro" || plan === "max")) {
-      await updateProfile(
+      const ok = await updateProfile(
         { id: userId },
         { plan, stripe_customer_id: obj.customer ?? null },
       );
-      // First month's credit allowance lands immediately on upgrade.
-      await grantCredits(userId, MONTHLY_CREDITS[plan], "monthly_grant", obj.id ?? "unknown");
+      if (!ok) return retry();
+      // Monthly allowance is NOT granted here: invoice.payment_succeeded fires
+      // for the first payment too, and granting in both would double it.
     }
   } else if (event.type === "invoice.payment_succeeded") {
     // Monthly renewals refresh the allowance. Ref = invoice id → idempotent.
@@ -76,7 +82,8 @@ export async function POST(request: Request) {
       }
     }
     if (userId && (plan === "pro" || plan === "max")) {
-      await grantCredits(userId, MONTHLY_CREDITS[plan], "monthly_grant", obj.id ?? "unknown");
+      const ok = await grantCredits(userId, MONTHLY_CREDITS[plan], "monthly_grant", obj.id ?? "unknown");
+      if (!ok) return retry();
     }
   } else if (
     event.type === "customer.subscription.updated" ||
@@ -87,15 +94,17 @@ export async function POST(request: Request) {
     const active = event.type !== "customer.subscription.deleted" &&
       (obj.status === "active" || obj.status === "trialing");
     if (userId) {
-      await updateProfile(
+      const ok = await updateProfile(
         { id: userId },
         { plan: active && (plan === "pro" || plan === "max") ? plan : "free" },
       );
+      if (!ok) return retry();
     } else if (obj.customer) {
-      await updateProfile(
+      const ok = await updateProfile(
         { stripe_customer_id: obj.customer },
         { plan: active && (plan === "pro" || plan === "max") ? plan : "free" },
       );
+      if (!ok) return retry();
     }
   }
 

@@ -54,9 +54,12 @@ begin
 end;
 $$;
 
-revoke execute on function public.credit_balance(uuid) from anon, authenticated;
-revoke execute on function public.grant_credits(uuid, integer, text, text) from anon, authenticated;
-revoke execute on function public.spend_credits(uuid, integer, text, text) from anon, authenticated;
+-- Revoke from public too: Postgres grants EXECUTE to PUBLIC on new functions by
+-- default, so revoking only anon/authenticated leaves the RPCs callable via the
+-- anon key. (Existing installs: run APPLY_ME_PART4.sql to apply the same fix.)
+revoke execute on function public.credit_balance(uuid) from public, anon, authenticated;
+revoke execute on function public.grant_credits(uuid, integer, text, text) from public, anon, authenticated;
+revoke execute on function public.spend_credits(uuid, integer, text, text) from public, anon, authenticated;
 
 -- Signup grant: new users start with 250 credits (a session or two of play).
 create or replace function public.handle_new_user()

@@ -83,3 +83,4 @@ cd web && npm run dev                 # BACKTEST_API_URL defaults to 127.0.0.1:8
 - [ ] `POLYGON_API_KEY` set in Railway (yfinance is dev-only)
 - [ ] CORS locked to the Vercel domain
 - [ ] Template stats rebuilt on production data
+- [ ] Supabase SQL editor: paste `supabase/APPLY_ME_PART4.sql` (RPC lockdown — revokes PUBLIC execute on the credit RPCs)

@@ -70,11 +70,18 @@ def _rpc(name: str, payload: dict) -> Optional[int]:
             logger.warning("credits RPC %s missing — credits disabled for 5min", name)
             return None
         if resp.status_code != 200:
-            logger.warning("credits RPC %s failed: %s %s", name, resp.status_code, resp.text[:120])
+            with _state_lock:
+                _disabled_until = time.time() + 60
+            logger.warning("credits RPC %s failed: %s %s — credits disabled for 60s",
+                           name, resp.status_code, resp.text[:120])
             return None
         return int(resp.json())
     except Exception:
-        logger.warning("credits RPC %s unreachable", name, exc_info=True)
+        # Any transport failure backs off too — otherwise a flaky (or
+        # rate-limited) Supabase leaves spend() failing open on every call.
+        with _state_lock:
+            _disabled_until = time.time() + 60
+        logger.warning("credits RPC %s unreachable — credits disabled for 60s", name, exc_info=True)
         return None
 
 

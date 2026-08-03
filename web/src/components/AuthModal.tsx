@@ -60,11 +60,19 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
 
   const oauth = async (provider: "google" | "discord" | "twitter") => {
     const supabase = supabaseBrowser();
-    if (!supabase) return;
-    await supabase.auth.signInWithOAuth({
+    if (!supabase || busy) return;
+    setBusy(true);
+    setError(null);
+    // On success the browser navigates away; only failures come back here.
+    const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+    if (err) {
+      setBusy(false);
+      setSent(false); // the error line lives in the email branch — make sure it shows
+      setError(err.message);
+    }
   };
 
   return (
@@ -75,7 +83,7 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
         {OAUTH_PROVIDERS.length > 0 && (
           <div className="mb-4 space-y-2">
             {OAUTH_PROVIDERS.map((p) => (
-              <Button key={p} variant="outline" className="w-full" onClick={() => oauth(p)}>
+              <Button key={p} variant="outline" className="w-full" disabled={busy} onClick={() => oauth(p)}>
                 {PROVIDER_LABEL[p]}
               </Button>
             ))}

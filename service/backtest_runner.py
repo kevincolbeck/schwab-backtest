@@ -29,6 +29,7 @@ from backtest.data_provider import HistoricalDataProvider  # noqa: E402
 from backtest.rule_based_engine import (  # noqa: E402
     RuleBasedBacktestEngine,
     load_strategy_spec,
+    referenced_price_symbols,
 )
 from core.config import Config  # noqa: E402
 from data.us_universe import USMarketUniverseProvider  # noqa: E402
@@ -92,18 +93,41 @@ def run_backtest(
         slippage_pct=slippage_pct,
     )
 
+    # Load the spec up front: it validates before any data is fetched and tells
+    # us whether the engine will run in intraday mode.
+    spec_obj = load_strategy_spec(bt_config)
+    timeframe = spec_obj.backtest_timeframe or "1d"
+
     with _fetch_lock:
         provider = HistoricalDataProvider(data_source=data_source or DEFAULT_DATA_SOURCE)
         try:
-            data = provider.fetch_universe(symbols, start_date, end_date)
+            if timeframe == "1d":
+                data = provider.fetch_universe(symbols, start_date, end_date)
+                intraday_data = {}
+            else:
+                # Intraday mode: the engine reads ONLY intraday bars — trade,
+                # reference, and benchmark frames alike (mirrors the wiring in
+                # engine/run_intraday_backtest.py) — so fetch per-symbol
+                # intraday data instead of the daily universe.
+                data = {}
+                intraday_data = {}
+                fetch_symbols = sorted(set(symbols) | set(referenced_price_symbols(spec_obj)))
+                for sym in fetch_symbols:
+                    try:
+                        df = provider.fetch_intraday_symbol(
+                            sym, start_date=start_date, end_date=end_date, interval=timeframe
+                        )
+                        if not df.empty:
+                            intraday_data[sym] = df
+                    except Exception as exc:
+                        logger.error("Intraday fetch failed for %s [%s]: %s", sym, timeframe, exc)
         finally:
             provider.close()
 
-    if not data:
+    if not data and not intraday_data:
         return {"error": "No historical data available for the requested symbols"}, bt_config
 
-    data_cache = BacktestDataCache(data)
-    spec_obj = load_strategy_spec(bt_config)
+    data_cache = BacktestDataCache(data, intraday_data=intraday_data)
     engine = RuleBasedBacktestEngine(Config(), bt_config, data_cache, spec_obj)
     results = engine.run()
     return results, bt_config

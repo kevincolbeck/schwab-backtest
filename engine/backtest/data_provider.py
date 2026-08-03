@@ -130,7 +130,44 @@ class HistoricalDataProvider:
             "CREATE INDEX IF NOT EXISTS idx_timeframe_bars_lookup "
             "ON timeframe_bars(symbol, timeframe, datetime)"
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cache_meta (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """
+        )
         conn.commit()
+        self._run_one_time_migrations(conn)
+
+    def _run_one_time_migrations(self, conn: sqlite3.Connection):
+        """Marker-guarded cache fixups; each key runs at most once per DB file."""
+        # Crypto day/week/month bars cached before the UTC-day fix in
+        # _normalize_polygon_results were labeled one day early (midnight-UTC
+        # buckets converted to Eastern). Drop them and their fetch-log rows so
+        # the next request refetches correctly labeled bars.
+        marker = "purge_crypto_daily_v1"
+        row = conn.execute(
+            "SELECT value FROM cache_meta WHERE key = ?", (marker,)
+        ).fetchone()
+        if row is not None:
+            return
+        deleted = conn.execute("DELETE FROM daily_bars WHERE symbol LIKE 'X:%'").rowcount
+        conn.execute("DELETE FROM fetch_log WHERE symbol LIKE 'X:%'")
+        conn.execute(
+            "DELETE FROM timeframe_bars WHERE symbol LIKE 'X:%' AND timeframe IN ('1wk', '1mo')"
+        )
+        conn.execute(
+            "DELETE FROM fetch_log_timeframe WHERE symbol LIKE 'X:%' AND timeframe IN ('1wk', '1mo')"
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO cache_meta (key, value) VALUES (?, ?)",
+            (marker, datetime.now().isoformat()),
+        )
+        conn.commit()
+        if deleted:
+            logger.info("Purged %d stale crypto daily bars from cache (%s)", deleted, marker)
 
     def _get_conn(self) -> sqlite3.Connection:
         if self._conn is None:
@@ -292,7 +329,9 @@ class HistoricalDataProvider:
         if end_date is None:
             end_date = datetime.now().strftime("%Y-%m-%d")
 
-        if not self._should_use_polygon(interval, start_date, end_date):
+        # The retention guard below is yfinance-specific; crypto always routes
+        # to Polygon, so it must bypass the check regardless of range.
+        if not self._is_crypto(symbol) and not self._should_use_polygon(interval, start_date, end_date):
             start_ts = pd.Timestamp(start_date).normalize()
             end_ts = pd.Timestamp(end_date).normalize()
             days_requested = int((end_ts - start_ts).days) + 1
@@ -623,7 +662,7 @@ class HistoricalDataProvider:
         end_date: str,
         interval: str,
     ) -> pd.DataFrame:
-        if self._should_use_polygon(interval, start_date, end_date):
+        if self._is_crypto(symbol) or self._should_use_polygon(interval, start_date, end_date):
             return self._download_polygon_aggregates(symbol, start_date, end_date, interval)
 
         chunks = _build_date_chunks(start_date, end_date, _intraday_chunk_days(interval))
@@ -729,7 +768,7 @@ class HistoricalDataProvider:
 
             results = payload.get("results") or []
             if results:
-                parsed = self._normalize_polygon_results(results)
+                parsed = self._normalize_polygon_results(results, symbol=symbol, timespan=timespan)
                 if not parsed.empty:
                     frames.append(parsed)
 
@@ -779,7 +818,9 @@ class HistoricalDataProvider:
         logger.warning("Polygon request exhausted retries for %s", url)
         return None
 
-    def _normalize_polygon_results(self, results: Sequence[dict]) -> pd.DataFrame:
+    def _normalize_polygon_results(
+        self, results: Sequence[dict], symbol: str = "", timespan: str = ""
+    ) -> pd.DataFrame:
         if not results:
             return pd.DataFrame()
         df = pd.DataFrame(results)
@@ -796,7 +837,17 @@ class HistoricalDataProvider:
                 "v": "volume",
             }
         )
-        out["datetime"] = pd.to_datetime(out["datetime"], unit="ms", utc=True).dt.tz_convert(EASTERN_TZ).dt.tz_localize(None)
+        ts = pd.to_datetime(out["datetime"], unit="ms", utc=True)
+        # Stock day/week/month aggs are bucketed at midnight Eastern, so the ET
+        # conversion preserves the calendar label. Crypto aggs are bucketed at
+        # midnight UTC; converting those to ET would shift every daily bar to
+        # 19:00/20:00 the PREVIOUS day (look-ahead vs daily reference and
+        # seasonal columns), so keep UTC day boundaries for crypto. Intraday
+        # bars stay in Eastern for both asset classes.
+        if self._is_crypto(symbol) and timespan in {"day", "week", "month"}:
+            out["datetime"] = ts.dt.tz_localize(None)
+        else:
+            out["datetime"] = ts.dt.tz_convert(EASTERN_TZ).dt.tz_localize(None)
         for required_col in ["open", "high", "low", "close", "volume"]:
             if required_col not in out.columns:
                 out[required_col] = 0.0

@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+// Friendly copy for the ?error= codes the auth callback bounces back with.
+const AUTH_ERRORS: Record<string, string> = {
+  "oauth-failed":
+    "Sign-in with that provider didn't complete — it may have been cancelled or the provider had a hiccup. Try again, or use an email link below.",
+  "link-expired":
+    "That sign-in link is invalid or has expired. Enter your email and we'll send a fresh one.",
+};
+
+function LoginInner() {
+  const searchParams = useSearchParams();
+  const authError = AUTH_ERRORS[searchParams.get("error") ?? ""] ?? null;
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,6 +42,11 @@ export default function LoginPage() {
         No password — we email you a magic link. Accounts unlock saved runs and
         deploying strategies to the forward-test ledger.
       </p>
+      {authError && !sent && (
+        <p role="alert" className="mt-4 rounded-lg border border-hairline bg-loss-soft p-3 text-sm text-loss">
+          {authError}
+        </p>
+      )}
       {!supabase ? (
         <p className="mt-6 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
           Auth isn&apos;t configured in this environment.
@@ -69,5 +85,14 @@ export default function LoginPage() {
         ← Back to the playground
       </Link>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams requires a Suspense boundary (same pattern as /playground).
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-muted">Loading…</div>}>
+      <LoginInner />
+    </Suspense>
   );
 }

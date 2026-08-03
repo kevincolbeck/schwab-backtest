@@ -13,6 +13,7 @@ import TradeTable from "@/components/TradeTable";
 import Button from "@/components/ui/Button";
 import Tabs from "@/components/ui/Tabs";
 import {
+  ApiError,
   createShare,
   deployRun,
   fetchBars,
@@ -153,6 +154,8 @@ function PlaygroundInner() {
   const busy = running || chatBusy;
   const dateError =
     startDate >= endDate ? "Start date must be before the end date." : null;
+  // Set when switching to an intraday timeframe auto-clamped the start date.
+  const [intradayHint, setIntradayHint] = useState(false);
 
   // Load templates + apply ?template= / ?run= once.
   useEffect(() => {
@@ -249,26 +252,35 @@ function PlaygroundInner() {
         if (typeof result.credits_remaining === "number") {
           setCreditBalance(result.credits_remaining);
         }
-        // Flag apples-to-oranges: if the date window changed between runs,
-        // suppress numeric comparisons and say so instead.
+        // Flag apples-to-oranges: if the date window or bar timeframe changed
+        // between runs, suppress numeric comparisons and say so instead.
+        const pseudoChanges: SpecChange[] = [];
         const prevRange = runRange(previous);
         const newRange = runRange(result);
         if (previous && prevRange && newRange &&
             (prevRange.start !== newRange.start || prevRange.end !== newRange.end)) {
-          setChanges([
-            ...specChanges,
-            {
-              field: "date range",
-              from: `${prevRange.start} → ${prevRange.end}`,
-              to: `${newRange.start} → ${newRange.end}`,
-            },
-          ]);
-        } else {
-          setChanges(specChanges);
+          pseudoChanges.push({
+            field: "date range",
+            from: `${prevRange.start} → ${prevRange.end}`,
+            to: `${newRange.start} → ${newRange.end}`,
+          });
         }
+        const prevTf = previous?.spec.backtest_timeframe ?? "1d";
+        const newTf = result.spec.backtest_timeframe ?? "1d";
+        if (previous && prevTf !== newTf &&
+            // chat-driven timeframe edits already get a pill from diffSpecs
+            !specChanges.some((c) => c.field === "backtest timeframe")) {
+          pseudoChanges.push({ field: "timeframe", from: prevTf, to: newTf });
+        }
+        setChanges([...specChanges, ...pseudoChanges]);
         return result;
       } catch (e) {
         if (genRef.current === gen) {
+          // Out-of-credits responses carry the authoritative balance — sync
+          // the meter so it doesn't keep showing stale credits.
+          if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
+            setCreditBalance(e.detail.balance);
+          }
           setError(e instanceof Error ? e.message : "Backtest failed");
         }
         return null;
@@ -279,10 +291,16 @@ function PlaygroundInner() {
     [startDate, endDate],
   );
 
-  const rangeChanged = useMemo(() => {
+  // Runs over different date windows or bar timeframes aren't comparable —
+  // used to suppress before/after deltas and the ghost equity curve.
+  const notComparable = useMemo(() => {
     const a = runRange(prevRun);
     const b = runRange(run);
-    return Boolean(a && b && (a.start !== b.start || a.end !== b.end));
+    if (a && b && (a.start !== b.start || a.end !== b.end)) return true;
+    return Boolean(
+      prevRun && run &&
+        (prevRun.spec.backtest_timeframe ?? "1d") !== (run.spec.backtest_timeframe ?? "1d"),
+    );
   }, [prevRun, run]);
 
   const onSelectTemplate = (id: string) => {
@@ -307,6 +325,25 @@ function PlaygroundInner() {
     setChartSymbol(null);
     setAiEnglish(null);
     setAiEnglishLoading(false);
+    setIntradayHint(false);
+  };
+
+  // Intraday history is capped at ~60 days — the default multi-year window
+  // would 422 immediately, so clamp the start date when leaving 1d. Switching
+  // back to 1d does NOT restore the old range (keep it simple/predictable).
+  const onTimeframeChange = (tf: string) => {
+    if (!spec) return;
+    setSpec({ ...spec, backtest_timeframe: tf });
+    if (tf === "1d") {
+      setIntradayHint(false);
+      return;
+    }
+    const endMs = new Date(`${endDate}T00:00:00Z`).getTime();
+    const startMs = new Date(`${startDate}T00:00:00Z`).getTime();
+    if ((endMs - startMs) / 86_400_000 > 60) {
+      setStartDate(new Date(endMs - 59 * 86_400_000).toISOString().slice(0, 10));
+      setIntradayHint(true);
+    }
   };
 
   const onChatSend = async (text: string) => {
@@ -343,6 +380,11 @@ function PlaygroundInner() {
       }
     } catch (e) {
       if (genRef.current === gen) {
+        // Out-of-credits responses carry the authoritative balance — sync
+        // the meter so it doesn't keep showing stale credits.
+        if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
+          setCreditBalance(e.detail.balance);
+        }
         setMessages((current) => [
           ...current,
           {
@@ -501,7 +543,10 @@ function PlaygroundInner() {
                 type="date"
                 value={startDate}
                 max={endDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setIntradayHint(false); // user took over the range
+                }}
                 aria-label="Backtest start date"
                 className="focus-ring rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
               />
@@ -518,9 +563,7 @@ function PlaygroundInner() {
             </div>
             <select
               value={spec?.backtest_timeframe ?? "1d"}
-              onChange={(e) =>
-                spec && setSpec({ ...spec, backtest_timeframe: e.target.value })
-              }
+              onChange={(e) => onTimeframeChange(e.target.value)}
               disabled={!spec || busy}
               aria-label="Bar timeframe"
               title="Bar size. Intraday timeframes are limited to ~60 days of history."
@@ -567,6 +610,11 @@ function PlaygroundInner() {
         {dateError && (
           <p role="alert" className="border-t border-hairline px-4 py-1.5 text-xs text-loss">
             {dateError}
+          </p>
+        )}
+        {intradayHint && !dateError && (
+          <p role="status" className="border-t border-hairline px-4 py-1.5 text-xs text-muted">
+            Intraday history is capped at ~60 days — start date adjusted.
           </p>
         )}
       </header>
@@ -686,12 +734,12 @@ function PlaygroundInner() {
                 >
                   <StatTiles
                     stats={run.stats}
-                    prevStats={rangeChanged ? null : prevRun?.stats ?? null}
+                    prevStats={notComparable ? null : prevRun?.stats ?? null}
                   />
-                  {rangeChanged && (
+                  {notComparable && (
                     <p className="text-[11px] text-faint">
-                      Date range changed between runs — before/after comparison hidden
-                      (different windows aren&apos;t comparable).
+                      Date range or timeframe changed between runs — before/after
+                      comparison hidden (the runs aren&apos;t comparable).
                     </p>
                   )}
                   <div className="card p-3">
@@ -705,7 +753,7 @@ function PlaygroundInner() {
                     </div>
                     <EquityChart
                       curve={run.equity_curve}
-                      prevCurve={rangeChanged ? null : prevRun?.equity_curve ?? null}
+                      prevCurve={notComparable ? null : prevRun?.equity_curve ?? null}
                     />
                   </div>
                   <p className="text-[11px] text-faint">{run.disclaimer ?? DISCLAIMER}</p>

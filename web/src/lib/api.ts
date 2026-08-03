@@ -1,23 +1,53 @@
 import type { ChatResponse, ChatTurn, RunResult, Spec, Template } from "./types";
 
-interface FastAPIError {
-  detail?: string | { validation_errors?: string[]; error?: string };
+interface ErrorDetail {
+  message?: string;
+  error?: string;
+  balance?: number;
+  validation_errors?: string[];
+  [key: string]: unknown;
 }
 
-async function parseError(res: Response): Promise<string> {
+interface FastAPIError {
+  detail?: string | ErrorDetail;
+}
+
+/** Structured API failure — keeps the HTTP status and the FastAPI `detail`
+ *  payload so callers can react to specifics (e.g. 402 out_of_credits carries
+ *  the true `balance` for the credit meter). `message` is unchanged from the
+ *  old string-only behavior. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public detail: ErrorDetail | null = null,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function parseError(res: Response): Promise<ApiError> {
+  let detail: ErrorDetail | null = null;
+  let message = `Request failed (${res.status})`;
   try {
     const body = (await res.json()) as FastAPIError;
-    if (typeof body.detail === "string") return body.detail;
-    if (body.detail && typeof body.detail === "object" && "message" in body.detail) {
-      return String((body.detail as { message?: string }).message ?? "Request failed");
+    if (typeof body.detail === "string") {
+      message = body.detail;
+    } else if (body.detail && typeof body.detail === "object") {
+      detail = body.detail;
+      if ("message" in detail) {
+        message = String(detail.message ?? "Request failed");
+      } else if (detail.validation_errors?.length) {
+        message = `Spec validation failed: ${detail.validation_errors.join("; ")}`;
+      } else if (detail.error) {
+        message = detail.error;
+      }
     }
-    if (body.detail?.validation_errors?.length)
-      return `Spec validation failed: ${body.detail.validation_errors.join("; ")}`;
-    if (body.detail?.error) return body.detail.error;
   } catch {
     /* non-JSON error body */
   }
-  return `Request failed (${res.status})`;
+  return new ApiError(message, res.status, detail);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,7 +63,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { ...headers, ...init?.headers },
   });
-  if (!res.ok) throw new Error(await parseError(res));
+  if (!res.ok) throw await parseError(res);
   return (await res.json()) as T;
 }
 

@@ -223,26 +223,7 @@ def backtest(
         or forward.spec_hash_of(spec) in _template_hashes()
     )
 
-    run_cost = 0
-    if user is not None and credits.enabled_for(user):
-        # Credits meter every run, templates included — compute costs money.
-        run_cost = credits.backtest_cost(timeframe)
-        allowed, bal = credits.spend(user["id"], run_cost, "backtest")
-        if not allowed:
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
-                        "message": "You're out of credits — upgrade or grab a top-up pack."},
-            )
-    elif not is_template_run:
-        identity = user["id"] if user else f"ip:{_client_ip(request)}"
-        if not auth.check_and_count_run(identity, limits["runs_per_day"]):
-            raise HTTPException(
-                status_code=429,
-                detail=f"daily custom-backtest limit reached ({limits['runs_per_day']}/day)"
-                + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
-            )
-
+    # Plan gates run BEFORE any spend — a rejected run must never cost credits.
     symbols = spec.get("symbols", [])
     is_all_us = any(
         isinstance(s, str) and s.strip().upper() in backtest_runner.ALL_US_TOKENS
@@ -265,28 +246,61 @@ def backtest(
             detail={"validation_errors": [f"too many symbols (max {plan_symbol_cap} on your plan)"]},
         )
 
+    run_cost = 0
+    charged = False
+    if user is not None and credits.enabled_for(user):
+        # Credits meter every run, templates included — compute costs money.
+        run_cost = credits.backtest_cost(timeframe)
+        allowed, bal = credits.spend(user["id"], run_cost, "backtest")
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
+                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            )
+        charged = bal is not None  # (True, None) = fail-open, nothing was debited
+    if not charged and not is_template_run:
+        # Credits dormant or unreachable — the per-day limits still meter runs.
+        identity = user["id"] if user else f"ip:{_client_ip(request)}"
+        if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+            raise HTTPException(
+                status_code=429,
+                detail=f"daily custom-backtest limit reached ({limits['runs_per_day']}/day)"
+                + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
+            )
+
     end_date = req.end_date or datetime.now().strftime("%Y-%m-%d")
     started = datetime.utcnow()
-    results, bt_config = backtest_runner.run_backtest(
-        spec=spec,
-        start_date=req.start_date,
-        end_date=end_date,
-        starting_capital=req.starting_capital,
-        slippage_pct=req.slippage_pct,
-        max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0,
-    )
-    elapsed = (datetime.utcnow() - started).total_seconds()
+    # Everything after the charge refunds on failure — an unhandled 500 must
+    # never eat credits (engine runtime errors, disk errors in save_run, ...).
+    try:
+        results, bt_config = backtest_runner.run_backtest(
+            spec=spec,
+            start_date=req.start_date,
+            end_date=end_date,
+            starting_capital=req.starting_capital,
+            slippage_pct=req.slippage_pct,
+            max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0,
+        )
+        elapsed = (datetime.utcnow() - started).total_seconds()
 
-    serialized = backtest_runner.serialize_results(results)
-    if serialized.get("error"):
-        if run_cost and user is not None:
-            credits.refund(user["id"], run_cost, "backtest_failed")
-        raise HTTPException(status_code=422, detail={"error": serialized["error"]})
+        serialized = backtest_runner.serialize_results(results)
+        if serialized.get("error"):
+            raise HTTPException(status_code=422, detail={"error": serialized["error"]})
 
-    run_id = runs_store.save_run(
-        serialized, spec, bt_config, run_type="api",
-        parent_run_id=req.parent_run_id, owner=user["id"] if user else None,
-    )
+        run_id = runs_store.save_run(
+            serialized, spec, bt_config, run_type="api",
+            parent_run_id=req.parent_run_id, owner=user["id"] if user else None,
+        )
+    except HTTPException:
+        if charged:
+            credits.refund(user["id"], run_cost, "backtest_error")
+        raise
+    except Exception:
+        logger.error("backtest run failed", exc_info=True)
+        if charged:
+            credits.refund(user["id"], run_cost, "backtest_error")
+        raise HTTPException(status_code=500, detail="backtest failed — credits refunded")
     logger.info("Backtest %s finished in %.1fs (%s trades)",
                 run_id, elapsed, (serialized["stats"] or {}).get("total_trades"))
     return {
@@ -304,7 +318,7 @@ def backtest(
         "stats": serialized["stats"],
         "equity_curve": serialized["equity_curve"],
         "trades": serialized["trades"],
-        "credits_remaining": credits.balance(user["id"]) if (user and run_cost) else None,
+        "credits_remaining": credits.balance(user["id"]) if (user and charged) else None,
         "disclaimer": DISCLAIMER,
     }
 
@@ -489,6 +503,9 @@ def diff_runs(run_id: str, other_id: str):
     return diff
 
 
+CHAT_PER_DAY = int(os.getenv("CHAT_PER_DAY", "50"))
+
+
 @app.post("/chat")
 def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
     if not os.getenv("ANTHROPIC_API_KEY"):
@@ -500,6 +517,7 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
         )
 
     chat_cost = 0
+    charged = False
     if user is not None and credits.enabled_for(user):
         chat_cost = credits.COSTS["chat"]
         allowed, bal = credits.spend(user["id"], chat_cost, "chat")
@@ -509,10 +527,17 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
                 detail={"error": "out_of_credits", "balance": bal, "needed": chat_cost,
                         "message": "You're out of credits — upgrade or grab a top-up pack."},
             )
+        charged = bal is not None  # (True, None) = fail-open, nothing was debited
+    if user is not None and not charged:
+        # Credits dormant or unreachable — a per-day cap still meters model spend.
+        if not auth.check_and_count_run(f"chat:{user['id']}", CHAT_PER_DAY):
+            raise HTTPException(
+                status_code=429, detail=f"daily chat limit reached ({CHAT_PER_DAY}/day)"
+            )
 
     messages = [m.model_dump() for m in req.messages if m.role in ("user", "assistant")]
     if not messages:
-        if chat_cost and user is not None:
+        if charged:
             credits.refund(user["id"], chat_cost, "chat_invalid")
         raise HTTPException(status_code=422, detail="messages must contain at least one turn")
 
@@ -530,7 +555,7 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
         raw = chat_brain.call_claude(messages, system_prompt)
     except Exception:
         logger.error("chat model call failed", exc_info=True)
-        if chat_cost and user is not None:
+        if charged:
             credits.refund(user["id"], chat_cost, "chat_failed")
         raise HTTPException(status_code=502, detail="chat model call failed")
 
@@ -580,7 +605,7 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
         "updated_spec": parsed["updated_spec"],
         "should_rerun": parsed["should_rerun"],
         "validation_errors": validation_errors,
-        "credits_remaining": credits.balance(user["id"]) if (user and chat_cost) else None,
+        "credits_remaining": credits.balance(user["id"]) if (user and charged) else None,
         "disclaimer": DISCLAIMER,
     }
 
