@@ -63,7 +63,9 @@ export async function verifyStripeSignature(
   return diff === 0;
 }
 
-/** Update a profile row via the Supabase service role (server-only). */
+/** Update a profile row via the Supabase service role (server-only).
+ *  When matching by id, upserts — a missing profile row must never
+ *  swallow a paid upgrade. */
 export async function updateProfile(
   match: Record<string, string>,
   patch: Record<string, unknown>,
@@ -71,17 +73,25 @@ export async function updateProfile(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !serviceKey) return false;
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+    "Content-Type": "application/json",
+  };
+  if (match.id) {
+    const res = await fetch(`${url}/rest/v1/profiles?on_conflict=id`, {
+      method: "POST",
+      headers: { ...headers, Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ id: match.id, ...patch }),
+    });
+    return res.ok;
+  }
   const params = new URLSearchParams(
     Object.entries(match).map(([k, v]) => [k, `eq.${v}`]),
   );
   const res = await fetch(`${url}/rest/v1/profiles?${params}`, {
     method: "PATCH",
-    headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
+    headers: { ...headers, Prefer: "return=minimal" },
     body: JSON.stringify(patch),
   });
   return res.ok;

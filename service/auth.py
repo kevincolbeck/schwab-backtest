@@ -62,17 +62,26 @@ def get_user(authorization: Optional[str]) -> Optional[dict]:
                 return None
             data = resp.json()
             user = {"id": data["id"], "email": data.get("email", ""), "plan": "free"}
+            service_headers = {
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            }
             prof = client.get(
                 f"{SUPABASE_URL}/rest/v1/profiles",
                 params={"id": f"eq.{user['id']}", "select": "plan"},
-                headers={
-                    "apikey": SUPABASE_SERVICE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                },
+                headers=service_headers,
             )
             rows = prof.json() if prof.status_code == 200 else []
             if rows and rows[0].get("plan") in PLAN_LIMITS:
                 user["plan"] = rows[0]["plan"]
+            elif prof.status_code == 200 and not rows:
+                # Self-heal: create the profile row if the signup trigger
+                # didn't (or predates the migration). Plan defaults to free.
+                client.post(
+                    f"{SUPABASE_URL}/rest/v1/profiles",
+                    json={"id": user["id"]},
+                    headers={**service_headers, "Prefer": "resolution=ignore-duplicates"},
+                )
     except Exception:
         logger.warning("supabase auth lookup failed", exc_info=True)
         return None

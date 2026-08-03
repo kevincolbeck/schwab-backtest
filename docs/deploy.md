@@ -1,6 +1,14 @@
 # Deploying Chat-to-Backtest
 
 Three pieces: the Python service (Railway), the web app (Vercel), the database (Supabase).
+`railway.json` at the repo root pre-configures the Railway build (Dockerfile + healthcheck).
+
+## 0. Supabase one-time setup (dashboard)
+
+1. SQL editor → run `supabase/APPLY_ME_IN_SQL_EDITOR.sql`, then `supabase/APPLY_ME_PART2.sql`
+   (part 2 is idempotent — safe to run even if part 1 fully applied).
+2. Authentication → URL Configuration: set **Site URL** to the Vercel domain and add
+   `https://<vercel-domain>/auth/callback` to **Redirect URLs** (magic links break without this).
 
 ## 1. Railway — FastAPI service
 
