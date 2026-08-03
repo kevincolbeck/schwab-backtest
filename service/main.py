@@ -736,16 +736,22 @@ def strategy_page(slug: str):
 
 @app.get("/leaderboard")
 def get_leaderboard(min_days: Optional[int] = None):
-    entries = forward.leaderboard(min_days=min_days)
+    threshold = forward.MIN_LEADERBOARD_DAYS if min_days is None else min_days
+    everything = forward.leaderboard(min_days=0)
+    entries = [e for e in everything if e["days_live"] >= threshold]
+    # Strategies still inside the qualifying window stay visible ("warming up")
+    # instead of leaving the board empty; they are not ranked.
+    qualifying = [e for e in everything if e["days_live"] < threshold]
     # One batch through the identity cache — warm-cache requests do zero HTTP.
-    owners = identity.resolve_many([e["owner"] for e in entries])
-    for entry in entries:
+    owners = identity.resolve_many([e["owner"] for e in everything])
+    for entry in everything:
         owner_identity = owners.get(entry["owner"]) or {}
         entry["owner_display"] = owner_identity.get("display_name")
         entry["owner_avatar"] = owner_identity.get("avatar_url")
     return {
         "entries": entries,
-        "min_days": forward.MIN_LEADERBOARD_DAYS if min_days is None else min_days,
+        "qualifying": qualifying,
+        "min_days": threshold,
         "disclaimer": DISCLAIMER,
     }
 

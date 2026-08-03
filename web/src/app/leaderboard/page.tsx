@@ -19,14 +19,28 @@ export const metadata = {
     "Public strategies ranked by live out-of-sample paper performance. Timestamped, append-only, no backfilled track records.",
 };
 
-async function getLeaderboard(): Promise<LeaderboardRow[]> {
+type LeaderboardPayload = {
+  entries: LeaderboardRow[];
+  qualifying: LeaderboardRow[];
+  minDays: number;
+};
+
+async function getLeaderboard(): Promise<LeaderboardPayload> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
-    if (!res.ok) return [];
-    const body = (await res.json()) as { entries: LeaderboardRow[] };
-    return body.entries ?? [];
+    if (!res.ok) return { entries: [], qualifying: [], minDays: 20 };
+    const body = (await res.json()) as {
+      entries: LeaderboardRow[];
+      qualifying?: LeaderboardRow[];
+      min_days?: number;
+    };
+    return {
+      entries: body.entries ?? [],
+      qualifying: body.qualifying ?? [],
+      minDays: body.min_days ?? 20,
+    };
   } catch {
-    return [];
+    return { entries: [], qualifying: [], minDays: 20 };
   }
 }
 
@@ -46,7 +60,7 @@ function daysBadge(days: number): string | null {
 }
 
 export default async function LeaderboardPage() {
-  const entries = await getLeaderboard();
+  const { entries, qualifying, minDays } = await getLeaderboard();
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-12">
@@ -62,8 +76,8 @@ export default async function LeaderboardPage() {
 
       {entries.length === 0 ? (
         <p className="mt-8 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
-          No deployments have reached the minimum 20 trading days yet. Deploy a strategy
-          from the playground and it will appear here as its record accrues.
+          No deployments have reached the minimum {minDays} trading days yet. Deploy a
+          strategy from the playground and it will appear here as its record accrues.
         </p>
       ) : (
         <div className="mt-8 overflow-x-auto rounded-xl border border-hairline">
@@ -157,6 +171,47 @@ export default async function LeaderboardPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {qualifying.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Warming up
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            Deployed and tracking, but not yet at the {minDays} trading days required to
+            rank. Their clocks — and their records — are already running.
+          </p>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {qualifying.map((e) => (
+              <li
+                key={e.slug}
+                className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-panel px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={`/strategy/${e.slug}`}
+                    className="truncate text-sm font-medium hover:text-accent focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+                  >
+                    {e.name}
+                  </Link>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
+                    <span>{ownerLabel(e)}</span>
+                    {e.owner === "house" && (
+                      <span className="rounded-full border border-hairline px-1.5 py-0 text-[10px] uppercase tracking-wide">
+                        House
+                      </span>
+                    )}
+                    <span>· since {e.deployed_at}</span>
+                  </div>
+                </div>
+                <span className="tnum shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-muted">
+                  day {e.days_live} of {minDays}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <p className="mt-6 text-[11px] text-muted">
