@@ -101,3 +101,32 @@ def test_clamp_spec_clamps_numbers():
     assert clamped["stop_loss_pct"] == 0
     # original untouched
     assert spec["position_size_pct"] == 500
+
+
+def test_clamp_is_identity_for_in_bounds_specs():
+    # Regression: max(0.0, 0) returns 0.0, which changed spec hashes and broke
+    # template-run exemption in production. In-range values must be untouched.
+    spec = good_spec()
+    spec["take_profit_pct"] = 0
+    spec["stop_loss_pct"] = 0
+    clamped = clamp_spec(spec)
+    assert clamped == spec
+    assert type(clamped["take_profit_pct"]) is int
+    assert type(clamped["stop_loss_pct"]) is int
+
+
+def test_all_templates_hash_stable_through_clamp():
+    import json
+    from pathlib import Path
+
+    from service.forward import spec_hash_of
+
+    templates_dir = Path(__file__).resolve().parents[2] / "templates"
+    checked = 0
+    for path in templates_dir.glob("*.json"):
+        if path.name.startswith("_"):
+            continue
+        spec = json.loads(path.read_text(encoding="utf-8"))["spec"]
+        assert spec_hash_of(clamp_spec(spec)) == spec_hash_of(spec), path.name
+        checked += 1
+    assert checked == 8

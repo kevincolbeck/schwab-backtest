@@ -162,7 +162,11 @@ def backtest(
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
 
     limits = auth.limits_for(user)
-    is_template_run = forward.spec_hash_of(spec) in _template_hashes()
+    # Match on the RAW request spec — clamping may not be byte-identical.
+    is_template_run = (
+        forward.spec_hash_of(req.spec) in _template_hashes()
+        or forward.spec_hash_of(spec) in _template_hashes()
+    )
 
     if not is_template_run:
         identity = user["id"] if user else f"ip:{_client_ip(request)}"

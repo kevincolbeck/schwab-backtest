@@ -172,12 +172,17 @@ def validate_spec(spec: dict) -> List[str]:
 
 
 def clamp_spec(spec: dict) -> dict:
-    """Return a copy with numeric fields clamped into PARAM_BOUNDS."""
+    """Return a copy with out-of-range numeric fields clamped into PARAM_BOUNDS.
+
+    In-range values are left untouched (identity) — clamping must not perturb
+    types (max(0.0, 0) returns 0.0!) or the spec's canonical hash.
+    """
     clamped = copy.deepcopy(spec)
     for param, (lo, hi) in PARAM_BOUNDS.items():
         value = clamped.get(param)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            clamped[param] = max(lo, min(hi, value))
+            if not (lo <= value <= hi):
+                clamped[param] = max(lo, min(hi, value))
     return clamped
 
 
