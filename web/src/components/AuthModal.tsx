@@ -9,6 +9,7 @@ import {
 } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import ProviderLogo from "@/components/ProviderLogo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 const AuthModalContext = createContext<{ openAuth: (reason?: string) => void }>({
@@ -84,7 +85,10 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
           <div className="mb-4 space-y-2">
             {OAUTH_PROVIDERS.map((p) => (
               <Button key={p} variant="outline" className="w-full" disabled={busy} onClick={() => oauth(p)}>
-                {PROVIDER_LABEL[p]}
+                <span className="flex items-center justify-center gap-2.5">
+                  <ProviderLogo provider={p} />
+                  {PROVIDER_LABEL[p]}
+                </span>
               </Button>
             ))}
             <div className="flex items-center gap-3 py-1 text-[11px] text-faint">
