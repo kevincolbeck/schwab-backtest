@@ -36,6 +36,13 @@ from data.us_universe import USMarketUniverseProvider  # noqa: E402
 ALL_US_TOKENS = {"ALL_US", "*", "ALL", "ALL_US_SYMBOLS"}
 BENCHMARK = "SPY"
 
+# auto | yfinance | polygon — production sets BACKTEST_DATA_SOURCE=polygon
+# (yfinance is dev-only per the master plan; Yahoo also blocks many
+# datacenter IPs, and the stale-cache fallback hides transient failures).
+import os  # noqa: E402
+
+DEFAULT_DATA_SOURCE = os.getenv("BACKTEST_DATA_SOURCE", "auto")
+
 # The OHLCV cache has a single writer; serialize data loading across requests.
 _fetch_lock = threading.Lock()
 
@@ -64,7 +71,7 @@ def run_backtest(
     starting_capital: float = 100_000.0,
     slippage_pct: float = 0.05,
     max_symbols: int = 0,
-    data_source: str = "auto",
+    data_source: str = "",
     trade_start_date: str = "",
 ) -> tuple[dict, BacktestConfig]:
     """Run one backtest. Returns (raw results dict, bt_config). May contain 'error'."""
@@ -86,7 +93,7 @@ def run_backtest(
     )
 
     with _fetch_lock:
-        provider = HistoricalDataProvider(data_source=data_source)
+        provider = HistoricalDataProvider(data_source=data_source or DEFAULT_DATA_SOURCE)
         try:
             data = provider.fetch_universe(symbols, start_date, end_date)
         finally:
