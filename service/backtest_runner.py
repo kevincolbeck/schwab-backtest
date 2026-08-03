@@ -65,6 +65,36 @@ def resolve_symbols(spec: dict, max_symbols: int = 0) -> tuple[list, bool]:
     return symbols, is_all_us
 
 
+def fetch_intraday_data(
+    symbols: list,
+    start_date: str,
+    end_date: str,
+    timeframe: str,
+    data_source: str = "",
+) -> dict:
+    """Per-symbol intraday fetch inside the cache's fetch lock -> {symbol: df}.
+
+    Shared by /backtest runs and the forward worker's prefetch (one fetch per
+    (symbol, timeframe) across all deployments in a worker pass).
+    """
+    out: dict = {}
+    with _fetch_lock:
+        provider = HistoricalDataProvider(data_source=data_source or DEFAULT_DATA_SOURCE)
+        try:
+            for sym in symbols:
+                try:
+                    df = provider.fetch_intraday_symbol(
+                        sym, start_date=start_date, end_date=end_date, interval=timeframe
+                    )
+                    if not df.empty:
+                        out[sym] = df
+                except Exception as exc:
+                    logger.error("Intraday fetch failed for %s [%s]: %s", sym, timeframe, exc)
+        finally:
+            provider.close()
+    return out
+
+
 def run_backtest(
     spec: dict,
     start_date: str,
@@ -74,8 +104,13 @@ def run_backtest(
     max_symbols: int = 0,
     data_source: str = "",
     trade_start_date: str = "",
+    preloaded_intraday: Optional[dict] = None,
 ) -> tuple[dict, BacktestConfig]:
-    """Run one backtest. Returns (raw results dict, bt_config). May contain 'error'."""
+    """Run one backtest. Returns (raw results dict, bt_config). May contain 'error'.
+
+    preloaded_intraday ({symbol: DataFrame}) lets callers (the forward worker)
+    supply already-fetched intraday bars; only missing symbols are fetched.
+    """
     symbols, is_all_us = resolve_symbols(spec, max_symbols=max_symbols)
 
     bt_config = BacktestConfig(
@@ -98,31 +133,34 @@ def run_backtest(
     spec_obj = load_strategy_spec(bt_config)
     timeframe = spec_obj.backtest_timeframe or "1d"
 
-    with _fetch_lock:
-        provider = HistoricalDataProvider(data_source=data_source or DEFAULT_DATA_SOURCE)
-        try:
-            if timeframe == "1d":
+    if timeframe == "1d":
+        with _fetch_lock:
+            provider = HistoricalDataProvider(data_source=data_source or DEFAULT_DATA_SOURCE)
+            try:
                 data = provider.fetch_universe(symbols, start_date, end_date)
-                intraday_data = {}
+            finally:
+                provider.close()
+        intraday_data = {}
+    else:
+        # Intraday mode: the engine reads ONLY intraday bars — trade,
+        # reference, and benchmark frames alike (mirrors the wiring in
+        # engine/run_intraday_backtest.py) — so fetch per-symbol intraday
+        # data instead of the daily universe. Preloaded frames (forward
+        # worker's shared cache) are used as-is; only gaps are fetched.
+        data = {}
+        intraday_data = {}
+        missing = []
+        fetch_symbols = sorted(set(symbols) | set(referenced_price_symbols(spec_obj)))
+        for sym in fetch_symbols:
+            frame = (preloaded_intraday or {}).get(sym)
+            if frame is not None and len(frame):
+                intraday_data[sym] = frame
             else:
-                # Intraday mode: the engine reads ONLY intraday bars — trade,
-                # reference, and benchmark frames alike (mirrors the wiring in
-                # engine/run_intraday_backtest.py) — so fetch per-symbol
-                # intraday data instead of the daily universe.
-                data = {}
-                intraday_data = {}
-                fetch_symbols = sorted(set(symbols) | set(referenced_price_symbols(spec_obj)))
-                for sym in fetch_symbols:
-                    try:
-                        df = provider.fetch_intraday_symbol(
-                            sym, start_date=start_date, end_date=end_date, interval=timeframe
-                        )
-                        if not df.empty:
-                            intraday_data[sym] = df
-                    except Exception as exc:
-                        logger.error("Intraday fetch failed for %s [%s]: %s", sym, timeframe, exc)
-        finally:
-            provider.close()
+                missing.append(sym)
+        if missing:
+            intraday_data.update(
+                fetch_intraday_data(missing, start_date, end_date, timeframe, data_source)
+            )
 
     if not data and not intraday_data:
         return {"error": "No historical data available for the requested symbols"}, bt_config

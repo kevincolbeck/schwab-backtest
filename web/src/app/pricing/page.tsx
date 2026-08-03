@@ -147,9 +147,10 @@ export default function PricingPage() {
         </div>
       </div>
       <p className="mt-8 text-[11px] text-muted">
-        Credits are spent on backtest runs and AI messages (bigger timeframes cost
-        more). Cancel anytime through the billing portal. Payments handled by
-        Stripe — we never see your card.
+        Credits are spent on backtest runs and AI messages — bigger timeframes,
+        bigger symbol lists, and longer conversations cost more, and intraday
+        forward deployments carry a one-time credit fee. Cancel anytime through
+        the billing portal. Payments handled by Stripe — we never see your card.
       </p>
     </main>
   );

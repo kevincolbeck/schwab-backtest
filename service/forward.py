@@ -8,11 +8,15 @@ as_of] and appends whatever the ledger doesn't have yet; unique constraints
 make the append idempotent, and nothing in this module can mutate an
 existing signal row (the Supabase mirror additionally revokes UPDATE/DELETE).
 
-Execution model (stated on every strategy page): signals come from EOD bars;
-fills use the spec's entry_price_field and the same slippage assumption as
-backtests. Warm-up trades entered before the deployment date are discarded —
-only out-of-sample signals reach the ledger. Paper equity is the replay's
-equity curve from the deployment date, rebased to the paper starting capital.
+Execution model (stated on every strategy page): signals come from closed bars
+at the frozen spec's timeframe — EOD bars for 1d strategies, closed intraday
+candles (15m/30m/60m) for intraday deployments, all evaluated after the fact by
+the daily worker (never live/streaming). Fills use the spec's entry_price_field
+and the same slippage assumption as backtests. Warm-up trades entered before
+the deployment date are discarded — only out-of-sample signals reach the
+ledger. Paper equity is the replay's equity curve from the deployment date,
+rebased to the paper starting capital (one snapshot per day; intraday curves
+collapse to each day's last bar).
 
 Storage: SQLite at SERVICE_DATA_DIR/forward.db, schema mirroring
 supabase/migrations/0002_forward_ledger.sql (production mirrors rows there).
@@ -32,6 +36,10 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 WARMUP_DAYS = 730  # calendar days of pre-deployment history for indicator warm-up
+# Intraday deployments use a much shorter warm-up: intraday indicators need far
+# fewer calendar days of bars, and the fetch window grows with every worker
+# pass (deployed_at - warmup .. as_of) — keep the fixed part small.
+INTRADAY_WARMUP_DAYS = 30
 DEFAULT_STARTING_CAPITAL = 100_000.0
 MIN_LEADERBOARD_DAYS = int(os.getenv("MIN_LEADERBOARD_DAYS", "20"))
 
@@ -121,6 +129,20 @@ def spec_hash_of(spec: dict) -> str:
     return hashlib.sha256(
         json.dumps(spec, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def slug_for(name: Optional[str], spec: dict) -> str:
+    """The slug create_deployment will mint for (name, spec) — collision-free
+    duplicates get a suffix, but this base form is what callers should use as
+    an idempotency ref (e.g. the intraday deploy fee)."""
+    return _slugify(name or spec.get("name", "strategy"), spec_hash_of(spec))
+
+
+def deployment_timeframe(deployment: dict) -> str:
+    """The deployment's bar timeframe, derived from the FROZEN spec (the spec
+    is immutable, so this can never drift from what the replay uses)."""
+    spec = deployment.get("spec_frozen") or {}
+    return str(spec.get("backtest_timeframe") or "1d").strip() or "1d"
 
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
@@ -278,66 +300,111 @@ def _exit_action(reason: str) -> Optional[str]:
     return _EXIT_ACTION.get(reason, "exit")
 
 
-def process_deployment(deployment: dict, as_of: str) -> dict:
+def _sliced_intraday(intraday_cache: dict, timeframe: str, start: str, as_of: str):
+    """Slice the worker's shared frames ({(symbol, timeframe): df}) to one
+    deployment's replay window, so every replay sees exactly its own
+    [warmup, as_of] bars — deterministic regardless of what other deployments
+    caused to be fetched."""
+    import pandas as pd
+
+    lo = pd.Timestamp(start)
+    hi = pd.Timestamp(as_of) + pd.Timedelta(days=1)  # as_of day inclusive
+    out = {}
+    for (symbol, tf), frame in intraday_cache.items():
+        if tf != timeframe or frame is None or not len(frame):
+            continue
+        sliced = frame[(frame["datetime"] >= lo) & (frame["datetime"] < hi)]
+        if not sliced.empty:
+            out[symbol] = sliced.reset_index(drop=True)
+    return out or None
+
+
+def process_deployment(deployment: dict, as_of: str, intraday_cache: Optional[dict] = None) -> dict:
     """Replay the frozen spec to as_of and append anything the ledger lacks.
 
-    Idempotent per (deployment, date): re-running the same day appends nothing
-    (unique constraints) and equity snapshots are INSERT OR IGNORE.
+    Timeframe-aware: 1d deployments replay on daily bars as always; intraday
+    deployments replay on the frozen spec's closed candles (same engine, same
+    trade_start_date semantics — no second signal implementation). Intraday
+    signal keys keep their bar timestamp so multiple same-day trades stay
+    distinct in the append-only ledger; equity still snapshots once per day
+    (last bar of the day).
+
+    Idempotent per (deployment, signal key): re-running the same day appends
+    nothing (unique constraints) and equity snapshots are INSERT OR IGNORE.
     """
     from service.backtest_runner import run_backtest, serialize_results
 
     spec = deployment["spec_frozen"]
     deployed_at = deployment["deployed_at"]
+    timeframe = deployment_timeframe(deployment)
+    is_intraday = timeframe != "1d"
+    warmup_days = INTRADAY_WARMUP_DAYS if is_intraday else WARMUP_DAYS
     warmup_start = (
-        datetime.strptime(deployed_at, "%Y-%m-%d") - timedelta(days=WARMUP_DAYS)
+        datetime.strptime(deployed_at, "%Y-%m-%d") - timedelta(days=warmup_days)
     ).strftime("%Y-%m-%d")
+
+    preloaded = None
+    if is_intraday and intraday_cache:
+        preloaded = _sliced_intraday(intraday_cache, timeframe, warmup_start, as_of)
 
     # Full history for indicator warm-up, but trading starts FLAT at the
     # deployment date (engine-enforced) — no warm-up positions can bleed in.
+    # NOTE: no 60-day intraday span cap here — that cap is a /backtest request
+    # guard; forward records legitimately grow past it (1m/5m are blocked at
+    # deploy time instead, where data volume compounds fastest).
     results, _bt = run_backtest(
         spec=spec,
         start_date=warmup_start,
         end_date=as_of,
         starting_capital=deployment["starting_capital"],
         trade_start_date=deployed_at,
+        preloaded_intraday=preloaded,
     )
     serialized = serialize_results(results)
     if serialized.get("error"):
         return {"deployment": deployment["slug"], "error": serialized["error"], "appended": 0}
 
     # Out-of-sample signals only: trades entered on/after the deployment date.
+    # Intraday keys keep the full bar timestamp; 1d keys stay date-only
+    # (identical to every ledger row ever written — no drift).
     new_signals = []
     for trade in serialized["trades"]:
-        entry_date = str(trade["entry_date"])[:10]
-        if entry_date < deployed_at:
+        entry_stamp = str(trade["entry_date"])
+        if entry_stamp[:10] < deployed_at:
             continue  # warm-up trade — discarded, never enters the ledger
-        new_signals.append((entry_date, "entry", trade["symbol"],
+        entry_key = entry_stamp if is_intraday else entry_stamp[:10]
+        new_signals.append((entry_key, "entry", trade["symbol"],
                             float(trade["entry_price"]), float(trade["shares"]),
                             trade.get("signal_type") or "ENTRY"))
         action = _exit_action(str(trade.get("exit_reason") or ""))
         if action:
-            exit_date = str(trade["exit_date"])[:10]
-            new_signals.append((exit_date, action, trade["symbol"],
+            exit_stamp = str(trade["exit_date"])
+            exit_key = exit_stamp if is_intraday else exit_stamp[:10]
+            new_signals.append((exit_key, action, trade["symbol"],
                                 float(trade["exit_price"]), float(trade["shares"]),
                                 str(trade.get("exit_reason") or "")))
 
     # Paper equity: replay curve from deployment date, rebased to paper capital.
+    # One snapshot per calendar day; intraday curves collapse to the day's
+    # last bar (the daily worker evaluates closed days, not live bars).
     curve = [p for p in serialized["equity_curve"] if str(p["date"])[:10] >= deployed_at]
     snapshots = []
     if curve:
         base = curve[0]["equity"] or deployment["starting_capital"]
         factor = deployment["starting_capital"] / base if base else 1.0
+        by_day: dict = {}
         for p in curve:
             if p["equity"] is None:
                 continue
-            snapshots.append((str(p["date"])[:10], round(p["equity"] * factor, 2)))
+            by_day[str(p["date"])[:10]] = p["equity"]  # last bar of the day wins
+        snapshots = [(day, round(eq * factor, 2)) for day, eq in by_day.items()]
 
     appended = 0
     with _db_lock:
         conn = _connect()
         try:
             for sig_date, action, symbol, price, shares, reason in new_signals:
-                if sig_date > as_of:
+                if sig_date[:10] > as_of:
                     continue
                 cur = conn.execute(
                     "INSERT OR IGNORE INTO forward_signals"
@@ -369,16 +436,61 @@ def process_deployment(deployment: dict, as_of: str) -> dict:
             "snapshots": len(snapshots), "error": None}
 
 
+def _prefetch_intraday(deployments: list, as_of: str) -> dict:
+    """One shared fetch per (symbol, timeframe) for every intraday deployment
+    in a worker pass — N deployments on the same universe cost one fetch, not
+    N. Returns {(symbol, timeframe): DataFrame}; failures degrade to an empty
+    cache (each deployment's replay then fetches for itself)."""
+    plans: dict = {}  # timeframe -> {"symbols": set, "start": min warmup start}
+    for dep in deployments:
+        try:
+            timeframe = deployment_timeframe(dep)
+            if timeframe == "1d":
+                continue
+            start = (
+                datetime.strptime(dep["deployed_at"], "%Y-%m-%d")
+                - timedelta(days=INTRADAY_WARMUP_DAYS)
+            ).strftime("%Y-%m-%d")
+            plan = plans.setdefault(timeframe, {"symbols": set(), "start": start})
+            plan["start"] = min(plan["start"], start)
+            from service.backtest_runner import resolve_symbols
+            symbols, _ = resolve_symbols(dep["spec_frozen"])
+            plan["symbols"].update(symbols)
+        except Exception:
+            # Prefetch is an optimization — a bad deployment must not break
+            # the pass; its own process_deployment run will surface the error.
+            logger.warning("intraday prefetch planning failed for %s",
+                           dep.get("slug"), exc_info=True)
+
+    cache: dict = {}
+    if not plans:
+        return cache
+    from service.backtest_runner import fetch_intraday_data
+    for timeframe, plan in plans.items():
+        try:
+            frames = fetch_intraday_data(
+                sorted(plan["symbols"]), plan["start"], as_of, timeframe
+            )
+        except Exception:
+            logger.warning("shared intraday prefetch failed for %s", timeframe, exc_info=True)
+            continue
+        for symbol, frame in frames.items():
+            cache[(symbol, timeframe)] = frame
+    return cache
+
+
 def run_worker(as_of: Optional[str] = None) -> dict:
-    """One worker pass over all active deployments. Safe to re-run any time."""
+    """One worker pass over all active deployments — mixed EOD + intraday in
+    the same pass. Safe to re-run any time."""
     as_of = as_of or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     deployments = list_deployments("active")
+    intraday_cache = _prefetch_intraday(deployments, as_of)
     results = []
     errors = []
     total_appended = 0
     for dep in deployments:
         try:
-            out = process_deployment(dep, as_of)
+            out = process_deployment(dep, as_of, intraday_cache=intraday_cache)
             results.append(out)
             total_appended += out.get("appended", 0)
             if out.get("error"):
@@ -481,6 +593,7 @@ def leaderboard(min_days: Optional[int] = None) -> list:
             "owner": dep["owner"],
             "deployed_at": dep["deployed_at"],
             "spec_hash_short": dep["spec_hash"][:12],
+            "timeframe": deployment_timeframe(dep),  # UI badge (1d vs intraday)
             **summary,
         })
     entries.sort(key=lambda e: e["forward_return_pct"], reverse=True)

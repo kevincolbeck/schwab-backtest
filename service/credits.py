@@ -8,6 +8,7 @@ switches itself on when the SQL lands.
 """
 
 import logging
+import math
 import os
 import threading
 import time
@@ -22,26 +23,86 @@ logger = logging.getLogger(__name__)
 
 SIGNUP_GRANT = 250
 
-# What actions cost (docs/pricing-model.md is the tunable source of truth).
+# ── Pricing constants (docs/pricing-model.md is the tunable source of truth) ──
+# Margin rule (owner directive): every credit-priced action must carry a large
+# gross margin over its worst-case marginal cost. Chat scales with tokens,
+# backtests scale with universe size, intraday deployments pay a one-time fee.
+
+# Chat: tokens are estimated deterministically BEFORE the model call
+# (request chars / CHAT_CHARS_PER_TOKEN + a fixed output allowance) and priced
+# at CHAT_TOKENS_PER_CREDIT tokens per credit with a CHAT_COST_MIN floor.
+# CHAT_CHARS_PER_TOKEN=2.5 is deliberately below English's ~4: dense-token text
+# (CJK, minified code) can hit ~2 chars/token, and the margin floor must hold
+# for adversarial inputs too, not just typical prose.
+CHAT_COST_MIN = 12
+CHAT_TOKENS_PER_CREDIT = 800
+CHAT_CHARS_PER_TOKEN = 2.5
+CHAT_OUTPUT_TOKEN_ALLOWANCE = 1500
+
+# Backtests: one base cost (by timeframe) per SYMBOL_BLOCK resolved symbols,
+# capped at SYMBOL_MULTIPLIER_CAP blocks — so an ALL_US 1d run prices at the
+# cap (10 × 20 = 200 credits) no matter how large the universe grows.
+SYMBOL_BLOCK = 10
+SYMBOL_MULTIPLIER_CAP = 20
+
+# Intraday forward deployments: one-time fee at deploy time, pro/max plans
+# only. 1m/5m carry a premium — their data volume compounds fastest in the
+# daily worker (every pass replays the growing window).
+INTRADAY_DEPLOY_CREDITS = 100
+INTRADAY_DEPLOY_CREDITS_FAST = 250  # 1m / 5m
+INTRADAY_DEPLOY_TIMEFRAMES = ("15m", "30m", "60m", "1m", "5m")
+
 COSTS = {
-    "chat": 5,
+    "chat": CHAT_COST_MIN,         # minimum; actual price is chat_cost(tokens)
     "explain": 5,
-    "backtest_1d": 10,
+    "backtest_1d": 10,             # per symbol block (see symbol_multiplier)
     "backtest_intraday": 25,       # 15m / 30m / 60m
     "backtest_intraday_fast": 50,  # 1m / 5m
+    "deploy_intraday": INTRADAY_DEPLOY_CREDITS,
+    "deploy_intraday_fast": INTRADAY_DEPLOY_CREDITS_FAST,
 }
+
+
+def intraday_deploy_cost(timeframe: str) -> int:
+    """One-time deploy fee by timeframe tier (1m/5m are the premium class)."""
+    return (
+        INTRADAY_DEPLOY_CREDITS_FAST
+        if (timeframe or "").strip() in ("1m", "5m")
+        else INTRADAY_DEPLOY_CREDITS
+    )
 
 MONTHLY_GRANTS = {"pro": 2500, "max": 10000}
 PACKS = {"small": {"credits": 500, "usd": 10}, "large": {"credits": 1500, "usd": 25}}
 
 
-def backtest_cost(timeframe: str) -> int:
+def chat_cost(estimated_tokens: int) -> int:
+    """Token-scaled chat price: max(floor, ceil(tokens / tokens-per-credit))."""
+    tokens = max(0, int(estimated_tokens))
+    return max(CHAT_COST_MIN, math.ceil(tokens / CHAT_TOKENS_PER_CREDIT))
+
+
+def estimate_chat_tokens(request_chars: int) -> int:
+    """Deterministic pre-call token estimate: chars/4 + output allowance."""
+    chars = max(0, int(request_chars))
+    return math.ceil(chars / CHAT_CHARS_PER_TOKEN) + CHAT_OUTPUT_TOKEN_ALLOWANCE
+
+
+def symbol_multiplier(n_symbols: int) -> int:
+    """×1 per SYMBOL_BLOCK symbols, capped (10 symbols ×1, 11 ×2, ALL_US ×20)."""
+    blocks = math.ceil(max(1, int(n_symbols)) / SYMBOL_BLOCK)
+    return min(SYMBOL_MULTIPLIER_CAP, max(1, blocks))
+
+
+def backtest_cost(timeframe: str, n_symbols: int = 1) -> int:
+    """Run price = timeframe base cost × symbol multiplier (resolved count)."""
     tf = (timeframe or "1d").strip()
     if tf in ("1m", "5m"):
-        return COSTS["backtest_intraday_fast"]
-    if tf in ("15m", "30m", "60m"):
-        return COSTS["backtest_intraday"]
-    return COSTS["backtest_1d"]
+        base = COSTS["backtest_intraday_fast"]
+    elif tf in ("15m", "30m", "60m"):
+        base = COSTS["backtest_intraday"]
+    else:
+        base = COSTS["backtest_1d"]
+    return base * symbol_multiplier(n_symbols)
 
 
 _state_lock = threading.Lock()

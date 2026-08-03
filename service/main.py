@@ -250,7 +250,17 @@ def backtest(
     charged = False
     if user is not None and credits.enabled_for(user):
         # Credits meter every run, templates included — compute costs money.
-        run_cost = credits.backtest_cost(timeframe)
+        # Price scales with the RESOLVED universe size (post-expansion, so
+        # ALL_US prices at the multiplier cap); template runs stay at base.
+        if is_template_run:
+            billable_symbols = 1
+        else:
+            resolved, _ = backtest_runner.resolve_symbols(
+                spec, max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0
+            )
+            # The auto-appended benchmark rides along free.
+            billable_symbols = len([s for s in resolved if s != backtest_runner.BENCHMARK])
+        run_cost = credits.backtest_cost(timeframe, billable_symbols)
         allowed, bal = credits.spend(user["id"], run_cost, "backtest")
         if not allowed:
             raise HTTPException(
@@ -318,6 +328,7 @@ def backtest(
         "stats": serialized["stats"],
         "equity_curve": serialized["equity_curve"],
         "trades": serialized["trades"],
+        "credits_charged": run_cost if charged else 0,
         "credits_remaining": credits.balance(user["id"]) if (user and charged) else None,
         "disclaimer": DISCLAIMER,
     }
@@ -516,30 +527,13 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
             detail="sign in to chat with the AI strategist — free starter credits included",
         )
 
-    chat_cost = 0
-    charged = False
-    if user is not None and credits.enabled_for(user):
-        chat_cost = credits.COSTS["chat"]
-        allowed, bal = credits.spend(user["id"], chat_cost, "chat")
-        if not allowed:
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "out_of_credits", "balance": bal, "needed": chat_cost,
-                        "message": "You're out of credits — upgrade or grab a top-up pack."},
-            )
-        charged = bal is not None  # (True, None) = fail-open, nothing was debited
-    if user is not None and not charged:
-        # Credits dormant or unreachable — a per-day cap still meters model spend.
-        if not auth.check_and_count_run(f"chat:{user['id']}", CHAT_PER_DAY):
-            raise HTTPException(
-                status_code=429, detail=f"daily chat limit reached ({CHAT_PER_DAY}/day)"
-            )
-
+    # Invalid requests must never cost credits — validate before any spend.
     messages = [m.model_dump() for m in req.messages if m.role in ("user", "assistant")]
     if not messages:
-        if charged:
-            credits.refund(user["id"], chat_cost, "chat_invalid")
         raise HTTPException(status_code=422, detail="messages must contain at least one turn")
+    # Context cap (chat.py constants): last N messages, each truncated —
+    # applied BEFORE the token estimate so what's billed is what's sent.
+    messages = chat_brain.cap_history(messages)
 
     try:
         system_prompt = chat_brain.build_system_prompt(
@@ -551,12 +545,38 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
         system_prompt = chat_brain.build_system_prompt(
             req.current_spec, None, req.bt_summary or "No backtest configured yet."
         )
+
+    # Deterministic, transparent pre-call token estimate: everything we send
+    # (the system prompt embeds the spec JSON + bt_summary) plus the capped
+    # message history, at ~4 chars/token, plus a fixed output allowance.
+    request_chars = len(system_prompt) + sum(len(m["content"]) for m in messages)
+    estimated_tokens = credits.estimate_chat_tokens(request_chars)
+
+    chat_fee = 0
+    charged = False
+    if user is not None and credits.enabled_for(user):
+        chat_fee = credits.chat_cost(estimated_tokens)
+        allowed, bal = credits.spend(user["id"], chat_fee, "chat")
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "out_of_credits", "balance": bal, "needed": chat_fee,
+                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            )
+        charged = bal is not None  # (True, None) = fail-open, nothing was debited
+    if user is not None and not charged:
+        # Credits dormant or unreachable — a per-day cap still meters model spend.
+        if not auth.check_and_count_run(f"chat:{user['id']}", CHAT_PER_DAY):
+            raise HTTPException(
+                status_code=429, detail=f"daily chat limit reached ({CHAT_PER_DAY}/day)"
+            )
+
     try:
         raw = chat_brain.call_claude(messages, system_prompt)
     except Exception:
         logger.error("chat model call failed", exc_info=True)
         if charged:
-            credits.refund(user["id"], chat_cost, "chat_failed")
+            credits.refund(user["id"], chat_fee, "chat_failed")
         raise HTTPException(status_code=502, detail="chat model call failed")
 
     parsed = chat_brain.parse_chat_response(raw)
@@ -579,7 +599,9 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
                 },
             ]
             try:
-                raw_retry = chat_brain.call_claude(retry_messages, system_prompt)
+                raw_retry = chat_brain.call_claude(
+                    chat_brain.cap_history(retry_messages), system_prompt
+                )
                 reparsed = chat_brain.parse_chat_response(raw_retry)
                 if reparsed["updated_spec"] is not None:
                     retry_spec = clamp_spec(reparsed["updated_spec"])
@@ -605,6 +627,7 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
         "updated_spec": parsed["updated_spec"],
         "should_rerun": parsed["should_rerun"],
         "validation_errors": validation_errors,
+        "credits_charged": chat_fee if charged else 0,
         "credits_remaining": credits.balance(user["id"]) if (user and charged) else None,
         "disclaimer": DISCLAIMER,
     }
@@ -639,17 +662,70 @@ def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
     errors = validate_spec(spec)
     if errors:
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
-    deployment = forward.create_deployment(
-        spec=spec,
-        name=req.name or spec.get("name"),
-        owner=owner,
-        visibility=req.visibility,
-        starting_capital=req.starting_capital,
-        deployed_at=req.deployed_at if user is None else None,  # backdating is house-only
-        source_run_id=req.run_id,
-        backtest_stats=run.get("stats"),
-    )
-    return {"deployment": _public_deployment(deployment), "disclaimer": DISCLAIMER}
+
+    # Intraday deployments (granularity parity: a 15m strategy forward-tests
+    # on 15m closed candles, evaluated after the fact by the daily worker).
+    # EOD (1d) deploys stay free within plan slots; intraday needs pro/max +
+    # a one-time credit fee. All gates fire BEFORE any spend.
+    timeframe = str(spec.get("backtest_timeframe") or "1d").strip() or "1d"
+    deploy_fee = 0
+    fee_charged = False
+    slug_ref = None
+    if timeframe != "1d":
+        if timeframe not in credits.INTRADAY_DEPLOY_TIMEFRAMES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{timeframe} forward deployments are coming soon — the data "
+                "volume is too high for the daily worker right now; allowed intraday "
+                f"timeframes: {', '.join(credits.INTRADAY_DEPLOY_TIMEFRAMES)}",
+            )
+        if (user or {}).get("plan") not in ("pro", "max"):
+            raise HTTPException(
+                status_code=403,
+                detail="intraday forward testing is a Pro feature — upgrade to deploy "
+                "15m/30m/60m strategies to the ledger",
+            )
+        if credits.enabled_for(user):
+            deploy_fee = credits.intraday_deploy_cost(timeframe)
+            # ref = the deployment slug → the ledger RPC makes retries idempotent.
+            slug_ref = forward.slug_for(req.name, spec)
+            allowed, bal = credits.spend(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
+            if not allowed:
+                raise HTTPException(
+                    status_code=402,
+                    detail={"error": "out_of_credits", "balance": bal, "needed": deploy_fee,
+                            "message": "You're out of credits — upgrade or grab a top-up pack."},
+                )
+            fee_charged = bal is not None  # (True, None) = fail-open, nothing debited
+
+    # Everything after the fee refunds on failure — a failed deploy must
+    # never eat the intraday fee.
+    try:
+        deployment = forward.create_deployment(
+            spec=spec,
+            name=req.name or spec.get("name"),
+            owner=owner,
+            visibility=req.visibility,
+            starting_capital=req.starting_capital,
+            deployed_at=req.deployed_at if user is None else None,  # backdating is house-only
+            source_run_id=req.run_id,
+            backtest_stats=run.get("stats"),
+        )
+    except HTTPException:
+        if fee_charged:
+            credits.refund(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
+        raise
+    except Exception:
+        logger.error("deploy failed", exc_info=True)
+        if fee_charged:
+            credits.refund(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
+        raise HTTPException(status_code=500, detail="deploy failed — credits refunded")
+    return {
+        "deployment": _public_deployment(deployment),
+        "credits_charged": deploy_fee if fee_charged else 0,
+        "credits_remaining": credits.balance(user["id"]) if (user and fee_charged) else None,
+        "disclaimer": DISCLAIMER,
+    }
 
 
 class ShareRequest(BaseModel):
@@ -688,6 +764,8 @@ def _public_deployment(dep: dict) -> dict:
         "spec_hash": dep["spec_hash"],
         "starting_capital": dep["starting_capital"],
         "deployed_at": dep["deployed_at"],
+        # Derived from the FROZEN spec — the UI badges 1d vs intraday with it.
+        "timeframe": forward.deployment_timeframe(dep),
     }
 
 
@@ -714,6 +792,22 @@ def strategy_page(slug: str):
     if dep is None or dep["visibility"] != "public":
         raise HTTPException(status_code=404, detail="strategy not found")
     owner_identity = identity.resolve(dep["owner"]) or {}
+    dep_timeframe = forward.deployment_timeframe(dep)
+    if dep_timeframe == "1d":
+        execution_model = (
+            "Paper trading on end-of-day data: signals are evaluated on the daily "
+            "close and filled per the strategy's entry price field with the same "
+            "slippage assumption as backtests. The deployed spec is frozen "
+            "(hash-verified); the ledger is append-only."
+        )
+    else:
+        execution_model = (
+            f"Paper trading on {dep_timeframe} closed candles, evaluated after the "
+            "fact by the daily worker (not live or streaming): signals are evaluated "
+            "on closed bars and filled per the strategy's entry price field with the "
+            "same slippage assumption as backtests. The deployed spec is frozen "
+            "(hash-verified); the ledger is append-only."
+        )
     return {
         "deployment": _public_deployment(dep),
         "owner_display": owner_identity.get("display_name"),
@@ -724,12 +818,7 @@ def strategy_page(slug: str):
         "signals": forward.get_signals(dep["id"]),
         "equity": forward.get_equity_series(dep["id"]),
         "summary": forward.forward_summary(dep),
-        "execution_model": (
-            "Paper trading on end-of-day data: signals are evaluated on the daily "
-            "close and filled per the strategy's entry price field with the same "
-            "slippage assumption as backtests. The deployed spec is frozen "
-            "(hash-verified); the ledger is append-only."
-        ),
+        "execution_model": execution_model,
         "disclaimer": DISCLAIMER,
     }
 

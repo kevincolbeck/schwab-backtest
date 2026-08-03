@@ -6,11 +6,13 @@ import { fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { LeaderboardEntry } from "@/lib/types";
 
-/** Social identity fields ship with the Phase G service deploy — typed optional
- *  so the page renders gracefully before (and without) them. */
+/** Social identity fields ship with the Phase G service deploy, and `timeframe`
+ *  with the intraday-deploy update — typed optional so the page renders
+ *  gracefully before (and without) them. */
 type LeaderboardRow = LeaderboardEntry & {
   owner_display?: string | null;
   owner_avatar?: string | null;
+  timeframe?: string | null;
 };
 
 export const metadata = {
@@ -132,6 +134,14 @@ export default async function LeaderboardPage() {
                         </span>
                       )}
                       <span>· since {e.deployed_at}</span>
+                      {e.timeframe && (
+                        <span
+                          className="tnum rounded-full border border-hairline px-1.5 py-0 text-[10px]"
+                          title="Bar timeframe this strategy trades on"
+                        >
+                          {e.timeframe}
+                        </span>
+                      )}
                       {daysBadge(e.days_live) && (
                         <span className="rounded-full border border-hairline px-1.5 py-0 text-[10px]">
                           {daysBadge(e.days_live)}
@@ -203,6 +213,14 @@ export default async function LeaderboardPage() {
                       </span>
                     )}
                     <span>· since {e.deployed_at}</span>
+                    {e.timeframe && (
+                      <span
+                        className="tnum rounded-full border border-hairline px-1.5 py-0 text-[10px]"
+                        title="Bar timeframe this strategy trades on"
+                      >
+                        {e.timeframe}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <span className="tnum shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-muted">

@@ -497,6 +497,13 @@ function PlaygroundInner() {
   const headerRange = runRange(run);
   const rules = spec ? englishRules(spec) : null;
 
+  // Deploy disclosure: intraday deploys carry a one-time fee (Pro/Max), and
+  // 1m/5m strategies can't be forward-deployed yet (docs/pricing-model.md).
+  const deployTimeframe = (run?.spec.backtest_timeframe ?? "1d").trim() || "1d";
+  const intradayDeploy = ["15m", "30m", "60m", "1m", "5m"].includes(deployTimeframe);
+  // 1m/5m are the premium data class — deployable day one at a higher fee.
+  const deployFee = ["1m", "5m"].includes(deployTimeframe) ? 250 : 100;
+
   const tradedSymbols = useMemo(() => {
     if (!run) return [];
     return Array.from(new Set(run.trades.map((t) => t.symbol)));
@@ -878,15 +885,25 @@ function PlaygroundInner() {
                     On the ledger →
                   </Link>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={onDeploy}
-                    disabled={deploying || busy}
-                    title="Freeze this strategy and track it on the public forward-test ledger"
-                  >
-                    {deploying ? "Deploying…" : "Deploy to forward test"}
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onDeploy}
+                      disabled={deploying || busy}
+                      title="Freeze this strategy and track it on the public forward-test ledger"
+                    >
+                      {deploying ? "Deploying…" : "Deploy to forward test"}
+                    </Button>
+                    {intradayDeploy && (
+                      <span
+                        className="text-[10px] text-faint"
+                        title="Intraday forward tests are evaluated on your strategy's own closed candles — one-time credit fee, Pro/Max plans"
+                      >
+                        Intraday deployment — Pro/Max · {deployFee} credits
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             )}

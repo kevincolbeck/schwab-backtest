@@ -57,6 +57,11 @@ export default async function StrategyPage({
 
   const { deployment, summary, signals, backtest_stats } = data;
 
+  // `timeframe` ships with the intraday-deploy service update — typed optional
+  // so older payloads (and 1d-only deployments) render unchanged.
+  const timeframe = (deployment as typeof deployment & { timeframe?: string | null })
+    .timeframe;
+
   // Forward curve with drawdown computed for the chart's sub-panel.
   let peak = -Infinity;
   const forwardCurve: EquityPoint[] = data.equity.map((p) => {
@@ -82,6 +87,14 @@ export default async function StrategyPage({
             <span className="rounded-full border border-hairline bg-panel px-2.5 py-0.5">
               Forward-tested {summary.days_live} days
             </span>
+            {timeframe && (
+              <span
+                className="tnum rounded-full border border-hairline px-2 py-0.5"
+                title="Bar timeframe this strategy trades on"
+              >
+                {timeframe}
+              </span>
+            )}
             <span>by {deployment.owner}</span>
             <span>· deployed {deployment.deployed_at}</span>
             <span

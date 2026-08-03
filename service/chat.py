@@ -29,7 +29,11 @@ from typing import Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_CHAT_MODEL = "claude-sonnet-4-6"
-MAX_HISTORY_MESSAGES = 20
+# Context cap — bounds our worst-case Anthropic cost per call. Only the most
+# recent MAX_HISTORY_MESSAGES reach the model, each truncated to
+# MAX_MESSAGE_CHARS characters. System prompt/spec are never truncated.
+MAX_HISTORY_MESSAGES = 12
+MAX_MESSAGE_CHARS = 2000
 
 DISCLAIMER = (
     "Historical simulation for research and education. Not financial advice. "
@@ -263,6 +267,17 @@ def build_bt_summary(
         f"Benchmark: {benchmark}\n"
         f"Slippage: {slippage_pct}%"
     )
+
+
+def cap_history(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Apply the chat context cap: last MAX_HISTORY_MESSAGES messages, each
+    truncated to MAX_MESSAGE_CHARS. The /chat endpoint estimates tokens (and
+    charges credits) over exactly this capped list, so what's billed is what's
+    sent."""
+    return [
+        {**m, "content": str(m.get("content", ""))[:MAX_MESSAGE_CHARS]}
+        for m in messages[-MAX_HISTORY_MESSAGES:]
+    ]
 
 
 def call_claude(
