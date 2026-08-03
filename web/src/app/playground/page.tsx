@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import CandleChart, { type Bar, type TradeMarker } from "@/components/CandleChart";
 import ChatPanel from "@/components/ChatPanel";
 import DiffStrip from "@/components/DiffStrip";
@@ -43,6 +43,19 @@ function runRange(run: RunResult | null): { start: string; end: string } | null 
   return { start: String(p.start_date), end: String(p.end_date) };
 }
 
+// Scratch-mode intake (Phase D): the chat co-builds a blank spec, so the empty
+// chat welcomes the user instead of assuming a template is already loaded.
+const SCRATCH_INTRO =
+  "Let's build your strategy from a blank page. Describe the idea in your own " +
+  "words — I'll turn it into exact rules with you, step by step: market → " +
+  "timeframe → entry → exits → sizing.";
+const SCRATCH_SUGGESTIONS = [
+  "A momentum strategy that rotates into the strongest tech stocks",
+  "Buy SPY dips below its 50-day average, exit on recovery",
+  "Breakouts to new 52-week highs with a trailing stop",
+];
+const SCRATCH_PLACEHOLDER = 'e.g. "buy oversold dips on QQQ with a 5% stop"';
+
 function LabGate() {
   const { openAuth } = useAuthModal();
   useEffect(() => {
@@ -72,8 +85,12 @@ function LabGate() {
 
 function PlaygroundInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState<string>("");
+  // Phase D "New from scratch": no template, no spec yet — the chat runs a
+  // guided intake and the first updated_spec it returns becomes the draft.
+  const [scratchMode, setScratchMode] = useState(false);
   const [spec, setSpec] = useState<Spec | null>(null);
   const [startDate, setStartDate] = useState(DEFAULT_START_DATE);
   const [endDate, setEndDate] = useState(todayISO());
@@ -147,6 +164,9 @@ function PlaygroundInner() {
   // and a generation counter so template switches invalidate in-flight work.
   const runRef = useRef<RunResult | null>(null);
   const genRef = useRef(0);
+  // The ?template= value consumed by entering scratch mode — the palette-jump
+  // effect must ignore it until the URL clear commits (see onStartScratch).
+  const staleTemplateParam = useRef<string | null>(null);
   useEffect(() => {
     runRef.current = run;
   }, [run]);
@@ -160,16 +180,20 @@ function PlaygroundInner() {
   // Load templates + apply ?template= / ?run= once.
   useEffect(() => {
     let cancelled = false;
+    const gen = genRef.current;
     (async () => {
       try {
         const { templates: list } = await fetchTemplates();
         if (cancelled) return;
         setTemplates(list);
+        // The rail always needs the list, but the default selection must not
+        // stomp a session the user already started (e.g. scratch mode).
+        if (genRef.current !== gen) return;
         const runParam = searchParams.get("run");
         if (runParam) {
           try {
             const loaded = await fetchRun(runParam);
-            if (cancelled) return;
+            if (cancelled || genRef.current !== gen) return;
             setSpec(loaded.spec);
             setRun(loaded);
             const range = runRange(loaded);
@@ -206,8 +230,15 @@ function PlaygroundInner() {
   // string (no remount), so apply ?template= whenever it changes post-mount.
   const wantedTemplate = searchParams.get("template");
   useEffect(() => {
-    if (!wantedTemplate || templates.length === 0) return;
+    if (!wantedTemplate) {
+      staleTemplateParam.current = null; // URL is clean again
+      return;
+    }
+    if (templates.length === 0) return;
     if (wantedTemplate === templateId) return;
+    // Entering scratch mode consumed this param (its URL clear may still be
+    // in flight) — only a NEW param value may pull us out of scratch mode.
+    if (wantedTemplate === staleTemplateParam.current) return;
     if (templates.some((t) => t.id === wantedTemplate)) {
       onSelectTemplate(wantedTemplate);
     }
@@ -308,8 +339,40 @@ function PlaygroundInner() {
     const t = templates.find((x) => x.id === id);
     if (!t) return;
     genRef.current += 1; // invalidate anything in flight
+    setScratchMode(false);
     setTemplateId(id);
     setSpec(t.spec);
+    setPrevRun(null);
+    setRun(null);
+    runRef.current = null;
+    setChanges([]);
+    setMessages([]);
+    setError(null);
+    setRunning(false);
+    setChatBusy(false);
+    setDeployedSlug(null);
+    setActiveTab("results");
+    setBarsCache({});
+    setInspectTrade(null);
+    setChartSymbol(null);
+    setAiEnglish(null);
+    setAiEnglishLoading(false);
+    setIntradayHint(false);
+  };
+
+  // Phase D "New from scratch": same session reset as a template switch, but
+  // with NO spec — the chat intake builds the first draft. Clicking it again
+  // deliberately starts another blank strategy.
+  const onStartScratch = () => {
+    genRef.current += 1; // invalidate anything in flight
+    // A ?template= (or ?run=) left in the URL must not yank us back out of
+    // scratch mode via the palette-jump effect: remember the param as
+    // consumed, then clear the query string.
+    staleTemplateParam.current = searchParams.get("template");
+    if (searchParams.toString()) router.replace("/playground", { scroll: false });
+    setScratchMode(true);
+    setTemplateId("");
+    setSpec(null);
     setPrevRun(null);
     setRun(null);
     runRef.current = null;
@@ -347,7 +410,7 @@ function PlaygroundInner() {
   };
 
   const onChatSend = async (text: string) => {
-    if (!spec || busy) return;
+    if ((!spec && !scratchMode) || busy) return;
     const gen = genRef.current;
     const nextMessages: ChatTurn[] = [...messages, { role: "user", content: text }];
     setMessages(nextMessages);
@@ -370,7 +433,8 @@ function PlaygroundInner() {
       }
       setMessages((current) => [...current, { role: "assistant", content: reply }]);
       if (res.updated_spec) {
-        const specChanges = diffSpecs(spec, res.updated_spec);
+        // The first scratch-mode draft has no baseline to diff against.
+        const specChanges = spec ? diffSpecs(spec, res.updated_spec) : [];
         setSpec(res.updated_spec);
         if (res.should_rerun) {
           await executeRun(res.updated_spec, specChanges);
@@ -505,6 +569,93 @@ function PlaygroundInner() {
     URL.revokeObjectURL(url);
   };
 
+  // The Rules tab renders both after a run and pre-run (scratch/template
+  // drafts): it always reflects the live spec draft, while the raw spec block
+  // prefers the as-run spec once a run exists.
+  const rulesPanel =
+    spec && rules ? (
+      <div
+        role="tabpanel"
+        id="lab-tabs-panel-rules"
+        aria-labelledby="lab-tabs-rules"
+        className="space-y-3"
+      >
+        <div className="card p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Rules in plain English</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  spec &&
+                  download(
+                    `${slugifyName(spec.name)}.py`,
+                    pythonExport(spec),
+                    "text/x-python",
+                  )
+                }
+                title="A runnable Python file with your rules and the spec embedded"
+              >
+                ↓ Python
+              </Button>
+              <Button size="sm" variant="outline" onClick={downloadSpec}>
+                ↓ Spec JSON
+              </Button>
+            </div>
+          </div>
+          {aiEnglishLoading && (
+            <p role="status" className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
+              Writing the plain-English version…
+            </p>
+          )}
+          {aiEnglish && aiEnglish.forSpec === spec && (
+            <div className="mb-4 whitespace-pre-wrap rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+              {aiEnglish.text}
+            </div>
+          )}
+          <dl className="space-y-4 text-sm leading-relaxed">
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-faint">Universe</dt>
+              <dd className="mt-1">{rules.universe}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-faint">Entry</dt>
+              <dd className="mt-1 space-y-1">
+                {rules.entry.map((s) => (
+                  <p key={s}>{s}</p>
+                ))}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-faint">Exits</dt>
+              <dd className="mt-1 space-y-1">
+                {rules.exits.map((s) => (
+                  <p key={s}>{s}</p>
+                ))}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-faint">Sizing</dt>
+              <dd className="mt-1">{rules.sizing}</dd>
+            </div>
+          </dl>
+          <p className="mt-4 border-t border-hairline pt-3 text-[11px] leading-relaxed text-faint">
+            Written so you could trade it by hand. Simulated results include a
+            slippage assumption; manual execution will differ.
+          </p>
+        </div>
+        <details className="card px-5 py-4">
+          <summary className="focus-ring cursor-pointer rounded-md text-sm font-medium">
+            The spec (exact rules, no black box)
+          </summary>
+          <pre className="tnum slim-scroll mt-3 overflow-x-auto rounded-xl bg-background p-4 text-xs leading-relaxed">
+            {JSON.stringify(run?.spec ?? spec, null, 2)}
+          </pre>
+        </details>
+      </div>
+    ) : null;
+
   return (
     <div className="flex flex-1 flex-col">
       <h1 className="sr-only">The Lab — backtesting playground</h1>
@@ -514,27 +665,38 @@ function PlaygroundInner() {
         <div className="flex flex-wrap items-center gap-2.5 px-4 py-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold leading-tight">
-              {spec?.name ?? "The Lab"}
+              {spec?.name ?? (scratchMode ? "New strategy" : "The Lab")}
             </p>
             <p className="text-[10px] uppercase tracking-widest text-faint">
-              {templateId ? "template" : run ? "loaded run" : "strategy"}
+              {scratchMode
+                ? "from scratch"
+                : templateId
+                  ? "template"
+                  : run
+                    ? "loaded run"
+                    : "strategy"}
             </p>
           </div>
 
           {/* mobile-only template select (rail is hidden there) */}
           <select
-            value={templateId}
-            onChange={(e) => onSelectTemplate(e.target.value)}
+            value={scratchMode ? "__scratch__" : templateId}
+            onChange={(e) =>
+              e.target.value === "__scratch__"
+                ? onStartScratch()
+                : onSelectTemplate(e.target.value)
+            }
             disabled={busy}
             aria-label="Strategy template"
             className="focus-ring rounded-[10px] border border-hairline bg-panel px-2.5 py-1.5 text-sm md:hidden"
           >
-            {templateId === "" && <option value="">Loaded run</option>}
+            {templateId === "" && !scratchMode && <option value="">Loaded run</option>}
             {templates.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.meta.display_name}
               </option>
             ))}
+            <option value="__scratch__">+ New from scratch</option>
           </select>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -662,15 +824,25 @@ function PlaygroundInner() {
               );
             })}
           </div>
-          <div
-            title="Describe every rule yourself — the scratch builder is coming soon"
-            className="mt-3 cursor-not-allowed rounded-xl border border-dashed border-hairline px-3 py-2.5 text-sm text-faint"
+          <button
+            onClick={onStartScratch}
+            disabled={busy}
+            aria-pressed={scratchMode}
+            title="Blank strategy — describe your rules and the AI builds the spec with you"
+            className={`focus-ring mt-3 w-full rounded-xl border border-dashed px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
+              scratchMode
+                ? "border-accent/50 bg-accent-soft"
+                : "border-hairline hover:border-accent/50 hover:bg-panel"
+            }`}
           >
-            + Start from scratch
-            <span className="ml-1.5 rounded-full border border-hairline px-1.5 text-[9px] uppercase tracking-wide">
-              soon
-            </span>
-          </div>
+            <p className="truncate text-sm font-medium">
+              {scratchMode && <span aria-hidden="true">▸ </span>}
+              + New from scratch
+            </p>
+            <p className="mt-0.5 text-[10px] uppercase tracking-wide text-faint">
+              AI-guided intake
+            </p>
+          </button>
         </aside>
 
         {/* Center workspace */}
@@ -828,89 +1000,41 @@ function PlaygroundInner() {
                 </div>
               )}
 
-              {activeTab === "rules" && rules && (
-                <div
-                  role="tabpanel"
-                  id="lab-tabs-panel-rules"
-                  aria-labelledby="lab-tabs-rules"
-                  className="space-y-3"
-                >
-                  <div className="card p-5">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <h2 className="text-sm font-semibold">Rules in plain English</h2>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            spec &&
-                            download(
-                              `${slugifyName(spec.name)}.py`,
-                              pythonExport(spec),
-                              "text/x-python",
-                            )
-                          }
-                          title="A runnable Python file with your rules and the spec embedded"
-                        >
-                          ↓ Python
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={downloadSpec}>
-                          ↓ Spec JSON
-                        </Button>
-                      </div>
-                    </div>
-                    {aiEnglishLoading && (
-                      <p role="status" className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
-                        Writing the plain-English version…
-                      </p>
-                    )}
-                    {aiEnglish && aiEnglish.forSpec === spec && (
-                      <div className="mb-4 whitespace-pre-wrap rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm leading-relaxed">
-                        {aiEnglish.text}
-                      </div>
-                    )}
-                    <dl className="space-y-4 text-sm leading-relaxed">
-                      <div>
-                        <dt className="text-[11px] uppercase tracking-wide text-faint">Universe</dt>
-                        <dd className="mt-1">{rules.universe}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[11px] uppercase tracking-wide text-faint">Entry</dt>
-                        <dd className="mt-1 space-y-1">
-                          {rules.entry.map((s) => (
-                            <p key={s}>{s}</p>
-                          ))}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[11px] uppercase tracking-wide text-faint">Exits</dt>
-                        <dd className="mt-1 space-y-1">
-                          {rules.exits.map((s) => (
-                            <p key={s}>{s}</p>
-                          ))}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[11px] uppercase tracking-wide text-faint">Sizing</dt>
-                        <dd className="mt-1">{rules.sizing}</dd>
-                      </div>
-                    </dl>
-                    <p className="mt-4 border-t border-hairline pt-3 text-[11px] leading-relaxed text-faint">
-                      Written so you could trade it by hand. Simulated results include a
-                      slippage assumption; manual execution will differ.
-                    </p>
-                  </div>
-                  <details className="card px-5 py-4">
-                    <summary className="focus-ring cursor-pointer rounded-md text-sm font-medium">
-                      The spec (exact rules, no black box)
-                    </summary>
-                    <pre className="tnum slim-scroll mt-3 overflow-x-auto rounded-xl bg-background p-4 text-xs leading-relaxed">
-                      {JSON.stringify(run.spec, null, 2)}
-                    </pre>
-                  </details>
-                </div>
-              )}
+              {activeTab === "rules" && rulesPanel}
             </>
+          ) : activeTab === "rules" && rulesPanel ? (
+            // Pre-run drafts (scratch or template) still get the live Rules view.
+            rulesPanel
+          ) : scratchMode ? (
+            <div className="card flex min-h-[380px] items-center justify-center border-dashed">
+              <div className="max-w-sm text-center">
+                {spec ? (
+                  <>
+                    <p className="text-sm text-muted">
+                      Draft in progress — keep refining in chat, then hit{" "}
+                      <span className="font-medium text-ink">Run backtest</span> to
+                      see results.
+                    </p>
+                    <p className="mt-2 text-xs text-faint">
+                      The Rules tab shows the live draft in plain English.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] uppercase tracking-widest text-accent">
+                      New from scratch
+                    </p>
+                    <p className="mt-2 text-sm text-muted">
+                      Describe your idea in the chat — the AI will build it with
+                      you: market → timeframe → entry → exits → sizing.
+                    </p>
+                    <p className="mt-2 text-xs text-faint">
+                      A live draft appears here as soon as the first rule lands.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="card flex min-h-[380px] items-center justify-center border-dashed">
               <div className="max-w-sm text-center">
@@ -933,7 +1057,10 @@ function PlaygroundInner() {
             messages={messages}
             busy={chatBusy}
             onSend={onChatSend}
-            disabled={!spec || running}
+            disabled={(!spec && !scratchMode) || running}
+            intro={scratchMode ? SCRATCH_INTRO : undefined}
+            suggestions={scratchMode ? SCRATCH_SUGGESTIONS : undefined}
+            placeholder={scratchMode && !spec ? SCRATCH_PLACEHOLDER : undefined}
           />
         </div>
       </main>
@@ -944,7 +1071,10 @@ function PlaygroundInner() {
           messages={messages}
           busy={chatBusy}
           onSend={onChatSend}
-          disabled={!spec || running}
+          disabled={(!spec && !scratchMode) || running}
+          intro={scratchMode ? SCRATCH_INTRO : undefined}
+          suggestions={scratchMode ? SCRATCH_SUGGESTIONS : undefined}
+          placeholder={scratchMode && !spec ? SCRATCH_PLACEHOLDER : undefined}
         />
       </div>
 

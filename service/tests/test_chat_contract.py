@@ -67,3 +67,24 @@ def test_system_prompt_contains_hard_rules_and_context():
     assert "Golden Cross" in prompt          # spec is embedded
     assert "Most Recent Backtest Results" in prompt
     assert '"should_rerun"' in prompt        # strict contract documented
+
+
+def test_scratch_mode_prompt_runs_guided_intake():
+    prompt = build_system_prompt(None, None, "No backtest configured yet.")
+    assert "Guided Intake" in prompt
+    assert "No strategy loaded yet" in prompt
+    assert "may NOT predict future prices" in prompt  # guardrails survive scratch mode
+    assert '"should_rerun"' in prompt
+
+
+def test_empty_spec_counts_as_scratch_mode():
+    prompt = build_system_prompt({}, None, "x")
+    assert "Guided Intake" in prompt
+
+
+def test_loaded_spec_skips_intake_but_keeps_failure_patterns():
+    prompt = build_system_prompt(SPEC, None, "x")
+    assert "Guided Intake" not in prompt
+    assert "Known Failure Patterns" in prompt
+    assert "Look-ahead bias" in prompt
+    assert "~30 total trades" in prompt       # too-few-trades significance duty

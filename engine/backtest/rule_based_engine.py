@@ -891,6 +891,7 @@ class RuleBasedBacktestEngine:
                                 "shares": int(pos.shares),
                                 "days_held": int(days_held),
                             },
+                            history=self._exit_rule_history(symbol, current_date),
                         )
                     except Exception as exc:
                         raise ValueError(
@@ -1077,6 +1078,21 @@ class RuleBasedBacktestEngine:
         if isinstance(row, pd.DataFrame):
             row = row.iloc[-1]
         return row
+
+    # Inline rolling indicators inside exit rules see at most this many bars;
+    # precomputed indicator columns are unaffected.
+    _EXIT_RULE_LOOKBACK_BARS = 600
+
+    def _exit_rule_history(self, symbol: str, current_date: datetime) -> Optional[pd.DataFrame]:
+        frame = self._frames.get(symbol)
+        if frame is None:
+            return None
+        key = pd.Timestamp(current_date)
+        if not self._is_intraday_mode():
+            key = key.normalize()
+        if key not in frame.index:
+            return None
+        return frame.loc[:key].tail(self._EXIT_RULE_LOOKBACK_BARS)
 
     def _effective_max_positions(self) -> int:
         """Return regime-dependent max positions."""
@@ -1352,9 +1368,32 @@ def _evaluate_rule_scalar(
     row: pd.Series,
     position_side: str = "LONG",
     context: Optional[dict] = None,
+    history: Optional[pd.DataFrame] = None,
 ) -> bool:
     expr = _normalize_expression(expression)
     _validate_expression(expr)
+
+    if history is not None and len(history) > 0:
+        # Series semantics ending at the current bar: exit rules get the same
+        # function set as entry rules (crosses_above, lag, sma, ...) while
+        # position context stays scalar; the final value is the answer.
+        local_env = _build_rule_env_series(history)
+        side = str(position_side or "LONG").upper()
+        if isinstance(context, dict):
+            for key, value in context.items():
+                local_env[str(key)] = value
+        local_env.update(
+            {"position_side": side, "is_long": side == "LONG", "is_short": side == "SHORT"}
+        )
+        try:
+            result = eval(expr, {"__builtins__": {}}, local_env)
+        except NameError as exc:
+            raise ValueError(f"{exc}. Unknown variable in strategy rule.") from exc
+        if isinstance(result, (pd.Series, list, tuple, np.ndarray)):
+            return bool(_coerce_to_bool_series(result, history.index).iloc[-1])
+        if isinstance(result, (np.bool_, bool, int, float, np.number)):
+            return bool(result)
+        return False
 
     local_env = _build_rule_env_scalar(row, position_side=position_side, context=context)
     try:

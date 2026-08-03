@@ -1,9 +1,17 @@
 import Link from "next/link";
+import ShareToX from "@/components/ShareToX";
 import Sparkline from "@/components/Sparkline";
 import { DISCLAIMER } from "@/lib/constants";
 import { fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { LeaderboardEntry } from "@/lib/types";
+
+/** Social identity fields ship with the Phase G service deploy — typed optional
+ *  so the page renders gracefully before (and without) them. */
+type LeaderboardRow = LeaderboardEntry & {
+  owner_display?: string | null;
+  owner_avatar?: string | null;
+};
 
 export const metadata = {
   title: "Forward-Test Leaderboard — Chat to Backtest",
@@ -11,15 +19,22 @@ export const metadata = {
     "Public strategies ranked by live out-of-sample paper performance. Timestamped, append-only, no backfilled track records.",
 };
 
-async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+async function getLeaderboard(): Promise<LeaderboardRow[]> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
     if (!res.ok) return [];
-    const body = (await res.json()) as { entries: LeaderboardEntry[] };
+    const body = (await res.json()) as { entries: LeaderboardRow[] };
     return body.entries ?? [];
   } catch {
     return [];
   }
+}
+
+function ownerLabel(e: LeaderboardRow): string {
+  if (e.owner_display) return e.owner_display;
+  if (e.owner === "house") return "Chat·Backtest";
+  // Raw owner ids are opaque UUIDs — shorten until the service sends a display name.
+  return e.owner.length > 12 ? `${e.owner.slice(0, 8)}…` : e.owner;
 }
 
 function daysBadge(days: number): string | null {
@@ -62,6 +77,9 @@ export default async function LeaderboardPage() {
                 <th className="px-4 py-3 font-medium text-right">Days live</th>
                 <th className="px-4 py-3 font-medium text-right">Signals</th>
                 <th className="px-4 py-3 font-medium">Trend</th>
+                <th className="px-2 py-3 font-medium">
+                  <span className="sr-only">Share</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -76,7 +94,29 @@ export default async function LeaderboardPage() {
                       {e.name}
                     </Link>
                     <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
-                      <span>by {e.owner}</span>
+                      <span className="flex items-center gap-1.5">
+                        {e.owner_avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- OAuth avatars come from arbitrary hosts; next/image needs remotePatterns config
+                          <img
+                            src={e.owner_avatar}
+                            alt=""
+                            className="h-4 w-4 rounded-full border border-hairline object-cover"
+                          />
+                        ) : (
+                          <span
+                            aria-hidden
+                            className="flex h-4 w-4 items-center justify-center rounded-full bg-accent-soft text-[9px] font-semibold uppercase text-accent"
+                          >
+                            {ownerLabel(e).charAt(0)}
+                          </span>
+                        )}
+                        <span>{ownerLabel(e)}</span>
+                      </span>
+                      {e.owner === "house" && (
+                        <span className="rounded-full border border-hairline px-1.5 py-0 text-[10px] uppercase tracking-wide">
+                          House
+                        </span>
+                      )}
                       <span>· since {e.deployed_at}</span>
                       {daysBadge(e.days_live) && (
                         <span className="rounded-full border border-hairline px-1.5 py-0 text-[10px]">
@@ -101,6 +141,16 @@ export default async function LeaderboardPage() {
                   <td className="tnum px-4 py-3 text-right">{e.signal_count}</td>
                   <td className="px-4 py-3">
                     <Sparkline values={e.sparkline} baseline={100000} />
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <ShareToX
+                      iconOnly
+                      name={e.name}
+                      path={`/strategy/${e.slug}`}
+                      rank={i + 1}
+                      forwardReturnPct={e.forward_return_pct}
+                      daysLive={e.days_live}
+                    />
                   </td>
                 </tr>
               ))}

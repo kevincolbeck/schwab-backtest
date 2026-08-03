@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import EquityChart from "@/components/EquityChart";
+import ShareToX from "@/components/ShareToX";
 import StatTiles from "@/components/StatTiles";
 import { fmtDate, fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
@@ -17,6 +19,24 @@ async function getStrategy(slug: string): Promise<StrategyPagePayload | null> {
   } catch {
     return null;
   }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const data = await getStrategy(slug);
+  if (!data) return { title: "Strategy not found — Chat·Backtest" };
+  const title = `${data.deployment.name} — forward-test record`;
+  const description = `${fmtSignedPct(data.summary.forward_return_pct, 2)} over ${data.summary.days_live} trading days on the public, append-only forward ledger. Simulated performance for research/education. Not financial advice.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+    twitter: { card: "summary_large_image", title, description },
+  };
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -72,14 +92,22 @@ export default async function StrategyPage({
             </span>
           </div>
         </div>
-        {data.source_run_id && (
-          <Link
-            href={`/playground?run=${encodeURIComponent(data.source_run_id)}`}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-          >
-            Fork this strategy
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <ShareToX
+            name={deployment.name}
+            path={`/strategy/${deployment.slug}`}
+            forwardReturnPct={summary.forward_return_pct}
+            daysLive={summary.days_live}
+          />
+          {data.source_run_id && (
+            <Link
+              href={`/playground?run=${encodeURIComponent(data.source_run_id)}`}
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+            >
+              Fork this strategy
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Side-by-side: backtest vs forward. NEVER merged into one curve. */}

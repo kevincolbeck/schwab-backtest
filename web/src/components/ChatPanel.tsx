@@ -10,11 +10,20 @@ export default function ChatPanel({
   busy,
   onSend,
   disabled = false,
+  intro,
+  suggestions,
+  placeholder,
 }: {
   messages: ChatTurn[];
   busy: boolean;
   onSend: (text: string) => void;
   disabled?: boolean;
+  /** Welcome copy shown above the suggestion chips while the conversation is empty. */
+  intro?: string;
+  /** Replaces the default suggestion chips (e.g. scratch-mode intake prompts). */
+  suggestions?: string[];
+  /** Replaces the default enabled-state input placeholder. */
+  placeholder?: string;
 }) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,8 +57,13 @@ export default function ChatPanel({
       <div ref={scrollRef} className="slim-scroll flex-1 overflow-y-auto px-4 py-3">
         {messages.length === 0 && !busy && (
           <div className="space-y-2">
+            {intro && (
+              <p className="mb-3 rounded-2xl rounded-bl-md border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm leading-relaxed">
+                {intro}
+              </p>
+            )}
             <p className="text-[11px] uppercase tracking-widest text-faint">Try one of these</p>
-            {CHAT_SUGGESTIONS.map((s) => (
+            {(suggestions ?? CHAT_SUGGESTIONS).map((s) => (
               <button
                 key={s}
                 onClick={() => send(s)}
@@ -107,7 +121,7 @@ export default function ChatPanel({
             placeholder={
               disabled
                 ? "Run a backtest first, then ask about it"
-                : 'e.g. "what if the stop was 5% instead of 8%?"'
+                : placeholder ?? 'e.g. "what if the stop was 5% instead of 8%?"'
             }
             disabled={disabled}
             className="focus-ring flex-1 resize-none rounded-xl border border-hairline bg-background px-3 py-2 text-sm placeholder:text-faint focus:border-accent disabled:opacity-50"

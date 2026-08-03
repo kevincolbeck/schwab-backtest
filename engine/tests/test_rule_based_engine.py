@@ -342,6 +342,38 @@ def test_evaluate_rule_scalar_supports_position_side_variable():
     assert not _evaluate_rule_scalar("position_side == 'LONG' & close > open", row, "SHORT")
 
 
+def test_evaluate_rule_scalar_with_history_supports_series_functions():
+    # Exit rules run through the scalar evaluator; with history they must
+    # support the full series function set (regression: crosses_below raised
+    # "Unknown variable in strategy rule" and 500'd every such run).
+    frame = pd.DataFrame(
+        {
+            "close": [100.0, 101.0, 102.0, 101.0, 99.0],
+            "sma_fast": [100.0, 100.5, 101.0, 101.0, 100.0],
+            "sma_slow": [100.5, 100.5, 100.5, 100.6, 100.7],
+        },
+        index=pd.date_range("2026-07-01 09:30", periods=5, freq="15min"),
+    )
+    row = frame.iloc[-1]
+    # fast was above slow on the prior bar, below on the last -> cross down
+    assert _evaluate_rule_scalar(
+        "crosses_below(sma_fast, sma_slow)", row, "LONG", history=frame
+    )
+    assert not _evaluate_rule_scalar(
+        "crosses_above(sma_fast, sma_slow)", row, "LONG", history=frame
+    )
+    # position context and lookback sugar still work alongside series funcs
+    assert _evaluate_rule_scalar(
+        "close < entry_price & close < close[1]",
+        row,
+        "LONG",
+        context={"entry_price": 103.0},
+        history=frame,
+    )
+    # scalar fallback (no history) is unchanged
+    assert _evaluate_rule_scalar("close < entry_price", row, "LONG", context={"entry_price": 103.0})
+
+
 def test_vwap_proxy_indicator_supported():
     data = {
         "AAPL": _make_price_data("AAPL"),

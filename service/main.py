@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, model_validator
 from service import env  # noqa: F401  (loads .env before anything reads os.environ)
 from service import auth, credits
 from service import chat as chat_brain
-from service import backtest_runner, forward, runs_store
+from service import backtest_runner, forward, identity, runs_store
 from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -713,8 +713,11 @@ def strategy_page(slug: str):
     dep = forward.get_deployment_by_slug(slug)
     if dep is None or dep["visibility"] != "public":
         raise HTTPException(status_code=404, detail="strategy not found")
+    owner_identity = identity.resolve(dep["owner"]) or {}
     return {
         "deployment": _public_deployment(dep),
+        "owner_display": owner_identity.get("display_name"),
+        "owner_avatar": owner_identity.get("avatar_url"),
         "spec": dep["spec_frozen"],
         "backtest_stats": dep["backtest_stats"],
         "source_run_id": dep["source_run_id"],
@@ -733,8 +736,15 @@ def strategy_page(slug: str):
 
 @app.get("/leaderboard")
 def get_leaderboard(min_days: Optional[int] = None):
+    entries = forward.leaderboard(min_days=min_days)
+    # One batch through the identity cache — warm-cache requests do zero HTTP.
+    owners = identity.resolve_many([e["owner"] for e in entries])
+    for entry in entries:
+        owner_identity = owners.get(entry["owner"]) or {}
+        entry["owner_display"] = owner_identity.get("display_name")
+        entry["owner_avatar"] = owner_identity.get("avatar_url")
     return {
-        "entries": forward.leaderboard(min_days=min_days),
+        "entries": entries,
         "min_days": forward.MIN_LEADERBOARD_DAYS if min_days is None else min_days,
         "disclaimer": DISCLAIMER,
     }
