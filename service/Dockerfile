@@ -22,7 +22,8 @@ ENV PYTHONPATH=/app:/app/engine \
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"
+# Railway injects PORT and routes/healthchecks against it — always honor it.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
+  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/healthz' % os.environ.get('PORT','8000'), timeout=4)"
 
-CMD ["python", "-m", "uvicorn", "service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "python -m uvicorn service.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
