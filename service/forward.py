@@ -433,6 +433,39 @@ def forward_summary(deployment: dict) -> dict:
     }
 
 
+def seed_house_templates(
+    templates_dir: str,
+    deployed_at: Optional[str] = None,
+) -> dict:
+    """Deploy every template as a house deployment (idempotent by spec hash),
+    so the leaderboard is alive before the first user arrives."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    tdir = _Path(templates_dir)
+    stats_path = tdir / "_stats.json"
+    cached_stats = _json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else {}
+    existing = {d["spec_hash"] for d in list_deployments("active") if d["owner"] == "house"}
+    deployed, skipped = [], []
+    for path in sorted(tdir.glob("*.json")):
+        if path.name.startswith("_"):
+            continue
+        doc = _json.loads(path.read_text(encoding="utf-8"))
+        spec = doc.get("spec", doc)
+        if spec_hash_of(spec) in existing:
+            skipped.append(path.stem)
+            continue
+        dep = create_deployment(
+            spec,
+            name=doc.get("meta", {}).get("display_name", spec.get("name")),
+            owner="house",
+            deployed_at=deployed_at,
+            backtest_stats=(cached_stats.get(path.stem) or {}).get("stats"),
+        )
+        deployed.append(dep["slug"])
+    return {"deployed": deployed, "skipped": skipped}
+
+
 def leaderboard(min_days: Optional[int] = None) -> list:
     threshold = MIN_LEADERBOARD_DAYS if min_days is None else min_days
     entries = []

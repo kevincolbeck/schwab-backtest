@@ -428,6 +428,33 @@ def get_leaderboard(min_days: Optional[int] = None):
     }
 
 
+# ── Admin ops (remote seeding/worker runs; guarded by ADMIN_TOKEN) ───────────
+
+def _require_admin(request: Request) -> None:
+    token = os.getenv("ADMIN_TOKEN", "")
+    if not token:
+        raise HTTPException(status_code=404, detail="not found")  # endpoint hidden
+    supplied = request.headers.get("x-admin-token", "")
+    if not supplied or supplied != token:
+        raise HTTPException(status_code=403, detail="bad admin token")
+
+
+@app.post("/admin/seed-house")
+def admin_seed_house(request: Request, deployed_at: Optional[str] = None):
+    """Deploy all templates as house strategies (idempotent) + run the worker."""
+    _require_admin(request)
+    seeded = forward.seed_house_templates(str(TEMPLATES_DIR), deployed_at=deployed_at)
+    worker = forward.run_worker()
+    return {"seeded": seeded, "worker": worker, "leaderboard": forward.leaderboard(min_days=0)}
+
+
+@app.post("/admin/run-worker")
+def admin_run_worker(request: Request, as_of: Optional[str] = None):
+    """Manual/backfill worker pass (same as the cron; idempotent)."""
+    _require_admin(request)
+    return forward.run_worker(as_of=as_of)
+
+
 @app.get("/templates")
 def templates():
     if not TEMPLATES_DIR.exists():

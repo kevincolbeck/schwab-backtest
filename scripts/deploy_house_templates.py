@@ -22,28 +22,11 @@ from service import forward  # noqa: E402
 deployed_at = sys.argv[1] if len(sys.argv) > 1 else "2026-06-01"
 as_of = sys.argv[2] if len(sys.argv) > 2 else datetime.now().strftime("%Y-%m-%d")
 
-stats_path = REPO / "templates" / "_stats.json"
-cached_stats = json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else {}
-
-existing_hashes = {d["spec_hash"] for d in forward.list_deployments("active") if d["owner"] == "house"}
-
-for path in sorted((REPO / "templates").glob("*.json")):
-    if path.name.startswith("_"):
-        continue
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    spec = doc.get("spec", doc)
-    digest = forward.spec_hash_of(spec)
-    if digest in existing_hashes:
-        print(f"skip {path.stem} (already deployed)")
-        continue
-    dep = forward.create_deployment(
-        spec,
-        name=doc.get("meta", {}).get("display_name", spec.get("name")),
-        owner="house",
-        deployed_at=deployed_at,
-        backtest_stats=(cached_stats.get(path.stem) or {}).get("stats"),
-    )
-    print(f"deployed {dep['slug']} (deployed_at {deployed_at})")
+seeded = forward.seed_house_templates(str(REPO / "templates"), deployed_at=deployed_at)
+for slug in seeded["deployed"]:
+    print(f"deployed {slug} (deployed_at {deployed_at})")
+for stem in seeded["skipped"]:
+    print(f"skip {stem} (already deployed)")
 
 print(f"\nrunning worker catch-up to {as_of}...")
 out = forward.run_worker(as_of=as_of)
