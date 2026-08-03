@@ -8,7 +8,7 @@ gallery shows real numbers before a visitor clicks anything.
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -17,6 +17,7 @@ sys.path.insert(0, str(REPO))
 from service.backtest_runner import run_backtest, serialize_results  # noqa: E402
 
 START_DATE = "2016-01-01"
+INTRADAY_WINDOW_DAYS = 45  # intraday templates run a recent window, not 2016+
 HEADLINE_KEYS = [
     "total_return_pct", "cagr", "sharpe", "max_drawdown",
     "total_trades", "win_rate", "profit_factor",
@@ -34,8 +35,16 @@ def main():
             continue
         doc = json.loads(path.read_text(encoding="utf-8"))
         spec = doc.get("spec", doc)
+        timeframe = str(spec.get("backtest_timeframe") or "1d")
+        start_date = (
+            START_DATE
+            if timeframe == "1d"
+            else (
+                datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=INTRADAY_WINDOW_DAYS)
+            ).strftime("%Y-%m-%d")
+        )
         t0 = time.time()
-        results, _bt = run_backtest(spec, START_DATE, end_date)
+        results, _bt = run_backtest(spec, start_date, end_date)
         elapsed = time.time() - t0
         serialized = serialize_results(results)
 
@@ -48,8 +57,9 @@ def main():
         headline = {k: stats.get(k) for k in HEADLINE_KEYS}
         out[path.stem] = {
             "stats": headline,
-            "start_date": START_DATE,
+            "start_date": start_date,
             "end_date": end_date,
+            "timeframe": timeframe,
             "elapsed_seconds": round(elapsed, 2),
             "computed_at": datetime.now().isoformat(timespec="seconds"),
         }

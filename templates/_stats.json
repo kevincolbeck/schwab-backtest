@@ -1,122 +1,226 @@
 {
   "52-week-high": {
-    "computed_at": "2026-08-02T17:25:15",
-    "elapsed_seconds": 9.79,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:39:18",
+    "elapsed_seconds": 29.68,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 12.202092608962989,
-      "max_drawdown": 24.353423686063287,
-      "profit_factor": 1.7328243896252167,
-      "sharpe": 0.7939696827843304,
-      "total_return_pct": 237.71644425292476,
+      "cagr": 12.202091236519896,
+      "max_drawdown": 24.353442942288343,
+      "profit_factor": 1.7328241797443138,
+      "sharpe": 0.7939695925972072,
+      "total_return_pct": 237.7164005857443,
       "total_trades": 502,
       "win_rate": 22.90836653386454
-    }
+    },
+    "timeframe": "1d"
+  },
+  "bollinger-reversion": {
+    "computed_at": "2026-08-03T18:39:27",
+    "elapsed_seconds": 9.47,
+    "end_date": "2026-08-03",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 3.1453427717299975,
+      "max_drawdown": 7.424253728568356,
+      "profit_factor": 1.9630386818360697,
+      "sharpe": 0.7164463474882719,
+      "total_return_pct": 38.73110418636256,
+      "total_trades": 228,
+      "win_rate": 65.78947368421053
+    },
+    "timeframe": "1d"
   },
   "buy-the-dip": {
-    "computed_at": "2026-08-02T17:25:17",
-    "elapsed_seconds": 1.56,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:39:30",
+    "elapsed_seconds": 2.21,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 2.2524013021914646,
-      "max_drawdown": 12.383372767915187,
-      "profit_factor": 1.570161534237135,
-      "sharpe": 0.35219037727888014,
-      "total_return_pct": 26.548559521477905,
+      "cagr": 2.2524069152197512,
+      "max_drawdown": 12.383347652086453,
+      "profit_factor": 1.5701639611571265,
+      "sharpe": 0.3521913301087577,
+      "total_return_pct": 26.548632954366592,
       "total_trades": 80,
       "win_rate": 62.5
-    }
+    },
+    "timeframe": "1d"
+  },
+  "donchian-breakout": {
+    "computed_at": "2026-08-03T18:39:55",
+    "elapsed_seconds": 25.8,
+    "end_date": "2026-08-03",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 29.421738168892663,
+      "max_drawdown": 23.97282300772223,
+      "profit_factor": 2.0589039449892583,
+      "sharpe": 1.3226190446169983,
+      "total_return_pct": 1427.6036940943134,
+      "total_trades": 329,
+      "win_rate": 46.20060790273556
+    },
+    "timeframe": "1d"
+  },
+  "dual-momentum": {
+    "computed_at": "2026-08-03T18:40:03",
+    "elapsed_seconds": 7.48,
+    "end_date": "2026-08-03",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 12.65675626881575,
+      "max_drawdown": 24.536949807538726,
+      "profit_factor": 6.944070057555272,
+      "sharpe": 0.7568131294527916,
+      "total_return_pct": 252.466321638699,
+      "total_trades": 26,
+      "win_rate": 53.84615384615385
+    },
+    "timeframe": "1d"
   },
   "golden-cross": {
-    "computed_at": "2026-08-02T17:25:22",
-    "elapsed_seconds": 5.07,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:40:21",
+    "elapsed_seconds": 18.1,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 21.756381252163504,
-      "max_drawdown": 30.96957760934033,
-      "profit_factor": 15.526310127974059,
-      "sharpe": 0.9845110951175436,
-      "total_return_pct": 701.1605947727127,
+      "cagr": 21.756381503800924,
+      "max_drawdown": 30.969573138295107,
+      "profit_factor": 15.526304649116936,
+      "sharpe": 0.9845112030219778,
+      "total_return_pct": 701.1606122757191,
       "total_trades": 20,
       "win_rate": 75.0
-    }
+    },
+    "timeframe": "1d"
+  },
+  "macd-trend": {
+    "computed_at": "2026-08-03T18:40:43",
+    "elapsed_seconds": 21.92,
+    "end_date": "2026-08-03",
+    "start_date": "2016-01-01",
+    "stats": {
+      "cagr": 25.161871550780646,
+      "max_drawdown": 20.555923111247868,
+      "profit_factor": 2.9520715669105613,
+      "sharpe": 1.370471406351795,
+      "total_return_pct": 972.411873615497,
+      "total_trades": 202,
+      "win_rate": 49.00990099009901
+    },
+    "timeframe": "1d"
   },
   "minervini-trend": {
-    "computed_at": "2026-08-02T17:25:33",
-    "elapsed_seconds": 11.35,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:41:11",
+    "elapsed_seconds": 27.65,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 18.288662177804447,
-      "max_drawdown": 25.780673899614033,
-      "profit_factor": 1.8028672274384934,
-      "sharpe": 0.9129398302065709,
-      "total_return_pct": 490.2964735871982,
+      "cagr": 18.288662773346864,
+      "max_drawdown": 25.780701967118127,
+      "profit_factor": 1.8028674279858634,
+      "sharpe": 0.912939863842904,
+      "total_return_pct": 490.29650500308674,
       "total_trades": 336,
       "win_rate": 31.845238095238095
-    }
+    },
+    "timeframe": "1d"
   },
   "qullamaggie-breakout": {
-    "computed_at": "2026-08-02T17:25:44",
-    "elapsed_seconds": 10.62,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:41:25",
+    "elapsed_seconds": 14.33,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 1.9013726334493386,
-      "max_drawdown": 24.75517209161979,
-      "profit_factor": 1.1502655454777395,
-      "sharpe": 0.2170912357535759,
-      "total_return_pct": 22.030909184818405,
+      "cagr": 1.901373414501184,
+      "max_drawdown": 24.755168916035345,
+      "profit_factor": 1.1502656520298489,
+      "sharpe": 0.21709130667195017,
+      "total_return_pct": 22.030919072153733,
       "total_trades": 239,
       "win_rate": 39.74895397489539
-    }
+    },
+    "timeframe": "1d"
+  },
+  "range-breakout-15m": {
+    "computed_at": "2026-08-03T18:41:31",
+    "elapsed_seconds": 5.78,
+    "end_date": "2026-08-03",
+    "start_date": "2026-06-19",
+    "stats": {
+      "cagr": -57.174067960874034,
+      "max_drawdown": 9.291065426718152,
+      "profit_factor": 0.226574796702584,
+      "sharpe": -11.457410612891138,
+      "total_return_pct": -9.291065426718152,
+      "total_trades": 77,
+      "win_rate": 14.285714285714285
+    },
+    "timeframe": "15m"
   },
   "rsi2-mean-reversion": {
-    "computed_at": "2026-08-02T17:25:51",
-    "elapsed_seconds": 7.55,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:41:48",
+    "elapsed_seconds": 16.97,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 5.250141285145804,
-      "max_drawdown": 11.215003419728315,
-      "profit_factor": 1.3498706725787528,
-      "sharpe": 0.7734909241225538,
-      "total_return_pct": 71.75623670658018,
-      "total_trades": 2025,
-      "win_rate": 56.19753086419753
-    }
+      "cagr": 5.243694945080746,
+      "max_drawdown": 11.220432075530114,
+      "profit_factor": 1.3496660912771217,
+      "sharpe": 0.772630578146059,
+      "total_return_pct": 71.64506728884409,
+      "total_trades": 2024,
+      "win_rate": 56.27470355731226
+    },
+    "timeframe": "1d"
   },
   "sell-in-may": {
-    "computed_at": "2026-08-02T17:25:52",
-    "elapsed_seconds": 1.03,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:41:51",
+    "elapsed_seconds": 3.44,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 6.400160585070247,
-      "max_drawdown": 33.671839845050464,
-      "profit_factor": 4.4649343963943435,
-      "sharpe": 0.5028200622094703,
-      "total_return_pct": 92.66490744316118,
+      "cagr": 6.400159125923266,
+      "max_drawdown": 33.67184145628233,
+      "profit_factor": 4.464921333611951,
+      "sharpe": 0.5028199295639222,
+      "total_return_pct": 92.6648795132906,
       "total_trades": 11,
       "win_rate": 72.72727272727273
-    }
+    },
+    "timeframe": "1d"
   },
   "turtle-breakout": {
-    "computed_at": "2026-08-02T17:26:01",
-    "elapsed_seconds": 8.54,
-    "end_date": "2026-08-02",
+    "computed_at": "2026-08-03T18:42:17",
+    "elapsed_seconds": 25.95,
+    "end_date": "2026-08-03",
     "start_date": "2016-01-01",
     "stats": {
-      "cagr": 6.742622162257272,
-      "max_drawdown": 17.21578852865048,
-      "profit_factor": 1.9032457113941161,
-      "sharpe": 0.6545628544177721,
-      "total_return_pct": 99.32194355879538,
+      "cagr": 6.992149216672883,
+      "max_drawdown": 17.2307433487715,
+      "profit_factor": 1.9583750856369635,
+      "sharpe": 0.6817581428762014,
+      "total_return_pct": 104.30284579394444,
       "total_trades": 246,
-      "win_rate": 40.65040650406504
-    }
+      "win_rate": 40.243902439024396
+    },
+    "timeframe": "1d"
+  },
+  "vwap-reversion-15m": {
+    "computed_at": "2026-08-03T18:42:20",
+    "elapsed_seconds": 3.16,
+    "end_date": "2026-08-03",
+    "start_date": "2026-06-19",
+    "stats": {
+      "cagr": -42.56624725615712,
+      "max_drawdown": 7.631691041679413,
+      "profit_factor": 0.6401517740415694,
+      "sharpe": -3.922162762258238,
+      "total_return_pct": -6.177565038309972,
+      "total_trades": 72,
+      "win_rate": 50.0
+    },
+    "timeframe": "15m"
   }
 }

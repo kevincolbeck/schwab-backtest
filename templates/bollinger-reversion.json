@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "display_name": "Bollinger Band Reversion",
+    "category": "Mean Reversion",
+    "difficulty": "beginner",
+    "one_liner": "Buy quality stocks when they close below the lower Bollinger Band, sell when they snap back to the middle.",
+    "explainer_md": "Bollinger Bands wrap a 20-day average in a two-standard-deviation envelope — a statistical definition of 'stretched'. A close below the lower band means the stock has fallen unusually far, unusually fast. This strategy buys those closes, but only in stocks still above their 200-day average (healthy uptrends, not collapses), and sells when price recovers to the 20-day middle band. It's the classic rubber-band trade: stretched prices tend to snap back — until the one time they don't, which is why the time-stop matters."
+  },
+  "spec": {
+    "name": "Bollinger Band Reversion",
+    "description": "Close below sma_20 - 2*stddev_20 while above sma_200; exit at the middle band.",
+    "symbols": ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "JPM", "V", "HD", "UNH"],
+    "indicators": [
+      {"name": "sma_20", "type": "sma", "source": "close", "length": 20},
+      {"name": "stddev_20", "type": "stddev", "source": "close", "length": 20},
+      {"name": "sma_200", "type": "sma", "source": "close", "length": 200}
+    ],
+    "entry_rule_long": "(close < sma_20 - 2 * stddev_20) & (close > sma_200)",
+    "exit_rule": "close > sma_20",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 10,
+    "max_positions": 5,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 15
+  }
+}

@@ -1,7 +1,7 @@
 {
   "meta": {
     "display_name": "Minervini Trend Template",
-    "category": "Trend Following",
+    "category": "Trend",
     "difficulty": "intermediate",
     "one_liner": "Only own stocks in confirmed 'stage 2' uptrends: price above rising 50, 150 and 200-day averages.",
     "explainer_md": "Mark Minervini's famous checklist boils down to: only buy stocks where the moving averages are stacked in the right order — price above the 50-day, 50 above the 150, 150 above the 200 — with momentum confirming (RSI above 55). That alignment is his definition of a stage-2 uptrend. The strategy exits when price loses the 50-day average, and an 8% stop caps any single mistake."

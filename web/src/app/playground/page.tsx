@@ -27,6 +27,7 @@ import {
 import { DEFAULT_START_DATE, DISCLAIMER } from "@/lib/constants";
 import { diffSpecs } from "@/lib/diff";
 import { englishRules } from "@/lib/englishRules";
+import { pineExport } from "@/lib/exportPine";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
 import { useAuthModal } from "@/components/AuthModal";
@@ -576,6 +577,11 @@ function PlaygroundInner() {
     URL.revokeObjectURL(url);
   };
 
+  // Pine export is deterministic and cheap (pure string work), so computing it
+  // per render keeps the warnings note in sync with the live spec draft
+  // without another hook before the auth gate.
+  const pineOut = spec ? pineExport(spec) : null;
+
   // The Rules tab renders both after a run and pre-run (scratch/template
   // drafts): it always reflects the live spec draft, while the raw spec block
   // prefers the as-run spec once a run exists.
@@ -606,11 +612,33 @@ function PlaygroundInner() {
               >
                 ↓ Python
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  pineOut &&
+                  spec &&
+                  download(`${slugifyName(spec.name)}.pine`, pineOut.code)
+                }
+                title="A Pine Script v6 strategy — run the same rules on TradingView"
+              >
+                ↓ Pine Script (.pine)
+              </Button>
               <Button size="sm" variant="outline" onClick={downloadSpec}>
                 ↓ Spec JSON
               </Button>
             </div>
           </div>
+          {pineOut && pineOut.warnings.length > 0 && (
+            <p className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-[11px] leading-relaxed text-muted">
+              Pine export: {pineOut.warnings.length} part
+              {pineOut.warnings.length === 1 ? "" : "s"} of this strategy need
+              manual attention on TradingView (marked{" "}
+              <span className="font-mono">// TODO</span> in the file):{" "}
+              {pineOut.warnings.join("; ")}. TradingView results will differ —
+              different fill models and data.
+            </p>
+          )}
           {aiEnglishLoading && (
             <p role="status" className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
               Writing the plain-English version…

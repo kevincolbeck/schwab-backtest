@@ -7,9 +7,12 @@ Endpoints:
     GET  /runs/{id}/diff/{other}   side-by-side stat blocks
     POST /chat            spec-editing chat (strict JSON contract, one self-correction retry)
     GET  /templates       template gallery specs (+ cached headline stats when built)
+    GET  /markets/overview   public EOD sector heatmap + movers (cache-only)
+    GET  /markets/calendar   public earnings/IPO week (Finnhub, graceful)
 
 Env: ANTHROPIC_API_KEY, CHAT_MODEL, POLYGON_API_KEY, BACKTEST_CACHE_DB,
-SERVICE_DATA_DIR, ALLOWED_ORIGINS, MAX_SYMBOLS_PER_RUN, TEMPLATES_DIR.
+SERVICE_DATA_DIR, ALLOWED_ORIGINS, MAX_SYMBOLS_PER_RUN, TEMPLATES_DIR,
+FINNHUB_API_KEY.
 """
 
 import json
@@ -26,7 +29,7 @@ from pydantic import BaseModel, Field, model_validator
 from service import env  # noqa: F401  (loads .env before anything reads os.environ)
 from service import auth, credits
 from service import chat as chat_brain
-from service import backtest_runner, forward, identity, runs_store
+from service import backtest_runner, forward, identity, markets, runs_store
 from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -843,6 +846,23 @@ def get_leaderboard(min_days: Optional[int] = None):
         "min_days": threshold,
         "disclaimer": DISCLAIMER,
     }
+
+
+# ── Markets (public marketing surface: settled EOD closes, no auth) ──────────
+
+@app.get("/markets/overview")
+def markets_overview():
+    """Sector heatmap + top movers from the last two SETTLED closes in the
+    local daily-bars cache. Cache-only by design — a public unauthenticated
+    endpoint must never trigger outbound data fetches (cost/DoS vector)."""
+    return {**markets.overview(), "disclaimer": DISCLAIMER}
+
+
+@app.get("/markets/calendar")
+def markets_calendar():
+    """This week's earnings + IPO calendars (Finnhub, 6h cache). Degrades to
+    configured=false when the key is absent — the page renders regardless."""
+    return {**markets.calendars(), "disclaimer": DISCLAIMER}
 
 
 # ── Admin ops (remote seeding/worker runs; guarded by ADMIN_TOKEN) ───────────

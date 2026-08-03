@@ -1,7 +1,7 @@
 {
   "meta": {
     "display_name": "Buy the Dip (tested)",
-    "category": "Famous Claims — tested",
+    "category": "Mean Reversion",
     "difficulty": "beginner",
     "one_liner": "Everyone says 'buy the dip.' This tests it: buy 3% pullbacks in a bull market, sell +5% or after 10 days.",
     "explainer_md": "The internet's favorite advice, made precise so it can actually be tested: when SPY or QQQ falls 3% or more over five days while still above its 200-day average (so the bull market is intact), buy. Take profit at +5%, or get out after 10 trading days, whichever comes first. Now you can see what 'buy the dip' really returned — and how it felt in 2020 and 2022."

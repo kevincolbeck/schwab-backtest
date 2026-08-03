@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "display_name": "MACD Trend (12/26)",
+    "category": "Trend",
+    "difficulty": "beginner",
+    "one_liner": "The Golden Cross's faster cousin: buy when the 12-day EMA crosses above the 26-day, exit on the cross back down.",
+    "explainer_md": "MACD — moving average convergence divergence — boils down to one question: is the fast (12-day) exponential average above the slow (26-day) one? When the fast line crosses above, the MACD line crosses zero and the trend is said to be turning up; this strategy buys that cross and holds until the fast average drops back below the slow one. Exponential averages react quicker than the simple 50/200 pair, so it catches turns earlier — at the cost of more whipsaws in choppy markets. Compare it with the Golden Cross on the same symbols and see the trade-off yourself."
+  },
+  "spec": {
+    "name": "MACD Trend (12/26)",
+    "description": "EMA12 crosses above EMA26 (MACD line crosses zero); exit on cross-down.",
+    "symbols": ["SPY", "QQQ", "AAPL", "MSFT", "NVDA"],
+    "indicators": [
+      {"name": "ema_12", "type": "ema", "source": "close", "length": 12},
+      {"name": "ema_26", "type": "ema", "source": "close", "length": 26}
+    ],
+    "entry_rule_long": "crosses_above(ema_12, ema_26)",
+    "exit_rule": "ema_12 < ema_26",
+    "entry_price_field": "open",
+    "backtest_timeframe": "1d",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 20,
+    "max_positions": 5,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

@@ -1,7 +1,7 @@
 {
   "meta": {
     "display_name": "Momentum Breakout (Qullamaggie-style)",
-    "category": "Momentum",
+    "category": "Breakout",
     "difficulty": "intermediate",
     "one_liner": "Buy stocks that already moved big, right as they break out to new highs on volume.",
     "explainer_md": "Popularized by the trader known as Qullamaggie: find stocks that gained 30%+ in the last quarter, wait for them to break above their recent 50-day high on heavier-than-usual volume, and ride the trend with a stop underneath. The idea is that big moves tend to continue — winners keep winning until they don't, which is what the 8% stop and 10-day-average exit are for."

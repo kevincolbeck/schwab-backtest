@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "display_name": "Donchian Channel Breakout",
+    "category": "Breakout",
+    "difficulty": "beginner",
+    "one_liner": "Buy 20-day highs, exit 10-day lows: the original channel breakout, on mega-cap stocks.",
+    "explainer_md": "Richard Donchian's channel is just the highest high and lowest low of the last N days. His rule — buy when price breaks above the 20-day high, exit when it breaks below the 10-day low — predates computers and inspired the famous Turtle system (our Turtle template is the slower 40/20 version on ETFs). This version runs the classic fast channel on mega-cap stocks with an 8% stop underneath. It never predicts anything: it simply insists on being long whatever is already making new highs."
+  },
+  "spec": {
+    "name": "Donchian Channel Breakout",
+    "description": "20-day-high entry, 10-day-low exit, 8% stop, mega-cap stocks.",
+    "symbols": ["AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "AMD", "AVGO", "NFLX"],
+    "indicators": [
+      {"name": "high_20", "type": "rolling_max", "source": "high", "length": 20},
+      {"name": "low_10", "type": "rolling_min", "source": "low", "length": 10},
+      {"name": "high_20_prev", "type": "lag", "source": "high_20", "length": 1},
+      {"name": "low_10_prev", "type": "lag", "source": "low_10", "length": 1}
+    ],
+    "entry_rule_long": "close > high_20_prev",
+    "exit_rule": "close < low_10_prev",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 20,
+    "max_positions": 5,
+    "stop_loss_pct": 8,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

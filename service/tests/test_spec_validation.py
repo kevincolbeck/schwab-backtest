@@ -129,7 +129,7 @@ def test_all_templates_hash_stable_through_clamp():
         spec = json.loads(path.read_text(encoding="utf-8"))["spec"]
         assert spec_hash_of(clamp_spec(spec)) == spec_hash_of(spec), path.name
         checked += 1
-    assert checked == 8
+    assert checked >= 8  # every shipped template, however many exist
 
 
 def test_template_universe_subset_logic():

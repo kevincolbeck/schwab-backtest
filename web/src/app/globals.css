@@ -26,6 +26,11 @@
   --loss-soft: rgba(242, 54, 69, 0.1);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px -12px rgba(0, 0, 0, 0.5);
   --shadow-pop: 0 24px 80px -16px rgba(0, 0, 0, 0.7);
+  --gloss-warm: rgba(240, 187, 120, 0.85); /* single warm glint in the gloss ring */
+  --gloss-opacity: 0.75;
+  --gloss-opacity-hover: 1;
+  --aurora-1: rgba(139, 124, 246, 0.14);
+  --aurora-2: rgba(63, 169, 142, 0.1);
 }
 
 [data-theme="light"] {
@@ -50,6 +55,11 @@
   --prev-run: #2c8a72;
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px -16px rgba(15, 23, 42, 0.16);
   --shadow-pop: 0 24px 64px -16px rgba(15, 23, 42, 0.25);
+  --gloss-warm: rgba(196, 138, 63, 0.65); /* dimmer — glow must not wash out light surfaces */
+  --gloss-opacity: 0.5;
+  --gloss-opacity-hover: 0.75;
+  --aurora-1: rgba(109, 90, 230, 0.07);
+  --aurora-2: rgba(44, 138, 114, 0.05);
 }
 
 @theme inline {
@@ -130,6 +140,111 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, black 30%, transparent 75%);
 }
 
+/* ── Gloss ring ─────────────────────────────────────────────────────────────
+   Animated conic-gradient border: violet → warm glint → teal → violet, rotating
+   slowly. Drawn by a masked pseudo-element (padding-box/border-box double
+   background) so it hugs rounded corners over any element background.
+   .gloss-ring       — always on (slow), brightens on hover.
+   .gloss-ring-hover — invisible until hover/focus-visible.                  */
+@property --gloss-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.gloss-ring,
+.gloss-ring-hover {
+  position: relative;
+}
+.gloss-ring::after,
+.gloss-ring-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  background: conic-gradient(
+      from var(--gloss-angle),
+      var(--accent),
+      var(--gloss-warm) 12%,
+      var(--accent) 26%,
+      var(--prev-run) 58%,
+      var(--accent)
+    )
+    border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
+  mask-composite: exclude;
+  opacity: var(--gloss-opacity);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  animation: gloss-spin 7s linear infinite;
+}
+.gloss-ring:hover::after {
+  opacity: var(--gloss-opacity-hover);
+}
+.gloss-ring-hover::after {
+  opacity: 0;
+}
+.gloss-ring-hover:hover::after,
+.gloss-ring-hover:focus-visible::after {
+  opacity: var(--gloss-opacity-hover);
+}
+
+@keyframes gloss-spin {
+  to {
+    --gloss-angle: 360deg;
+  }
+}
+
+/* ── Aurora backdrop ────────────────────────────────────────────────────────
+   Three big soft blobs (one static wash + two drifting) in violet/teal at very
+   low opacity, for section backgrounds. Parent needs relative + overflow
+   handling; content above it needs position: relative.                       */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 45% at 50% 18%, var(--aurora-1), transparent 70%);
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform;
+}
+.aurora::before {
+  width: 38rem;
+  height: 38rem;
+  top: -14rem;
+  left: -8rem;
+  background: radial-gradient(circle, var(--aurora-1), transparent 65%);
+  animation: aurora-drift-a 44s ease-in-out infinite alternate;
+}
+.aurora::after {
+  width: 32rem;
+  height: 32rem;
+  bottom: -12rem;
+  right: -6rem;
+  background: radial-gradient(circle, var(--aurora-2), transparent 65%);
+  animation: aurora-drift-b 56s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift-a {
+  to {
+    transform: translate3d(9rem, 5rem, 0) scale(1.12);
+  }
+}
+@keyframes aurora-drift-b {
+  to {
+    transform: translate3d(-8rem, -4rem, 0) scale(0.94);
+  }
+}
+
 /* Thin scrollbars inside docks/rails. */
 .slim-scroll::-webkit-scrollbar {
   width: 8px;
@@ -150,5 +265,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  /* Gloss rings and auroras degrade to static gradients. */
+  .gloss-ring::after,
+  .gloss-ring-hover::after,
+  .aurora::before,
+  .aurora::after {
+    animation: none;
   }
 }

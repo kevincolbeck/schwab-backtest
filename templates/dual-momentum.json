@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "display_name": "Dual Momentum Rotation (simplified)",
+    "category": "Momentum",
+    "difficulty": "intermediate",
+    "one_liner": "Hold the strongest asset class — stocks, small caps, international, gold or bonds — and only while its 6-month return is positive.",
+    "explainer_md": "Gary Antonacci's 'dual momentum' combines two filters: relative momentum (own the strongest asset in the menu) and absolute momentum (only own it if its own recent return is actually positive — otherwise sit in cash). This simplified version ranks six ETFs — US large caps, Nasdaq, small caps, international stocks, gold and long bonds — by 6-month return, holds the strongest one whose return is positive, and steps aside when that holding's 6-month return turns negative. One position, no leverage, long stretches in cash during bear markets. Simplified how? The original rebalances monthly to the strongest asset; this version only switches after an exit, so it can ride one winner longer than the strict rules would."
+  },
+  "spec": {
+    "name": "Dual Momentum Rotation",
+    "description": "Rank 6 ETFs by 6-month return; hold the strongest while its momentum is positive.",
+    "symbols": ["SPY", "QQQ", "IWM", "EFA", "GLD", "TLT"],
+    "indicators": [
+      {"name": "close_126", "type": "lag", "source": "close", "length": 126},
+      {"name": "mom_126", "type": "custom", "formula": "close / close_126"}
+    ],
+    "entry_rule_long": "mom_126 > 1.0",
+    "exit_rule": "mom_126 < 1.0",
+    "entry_price_field": "close",
+    "backtest_timeframe": "1d",
+    "ranking_field": "mom_126",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 100,
+    "max_positions": 1,
+    "stop_loss_pct": 0,
+    "take_profit_pct": 0,
+    "max_holding_days": 0
+  }
+}

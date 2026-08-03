@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "display_name": "15-Minute Range Breakout",
+    "category": "Breakout",
+    "difficulty": "intermediate",
+    "one_liner": "Intraday Donchian: buy a 15-minute close above the highest high of the past full session's worth of bars.",
+    "explainer_md": "The intraday cousin of the Donchian breakout, on 15-minute bars. It tracks the highest high of the last 26 bars — roughly one full trading session — and buys when a 15-minute close pushes above it, i.e. when price clears everything it traded at over the previous day of bars (extended hours included). The exit is symmetric and fast: a close back below the 20-bar average, a 1.5% stop, or a two-day time limit, whichever hits first. Note it is not a classic 'opening range' breakout — the range here is a rolling window of bars, not the first N minutes of each session — so that's not what we named it."
+  },
+  "spec": {
+    "name": "15-Minute Range Breakout",
+    "description": "15m bars: close above the prior 26-bar high; exit under ema_20, 1.5% stop, 2-day limit.",
+    "symbols": ["SPY", "QQQ", "NVDA", "TSLA"],
+    "indicators": [
+      {"name": "high_26", "type": "rolling_max", "source": "high", "length": 26},
+      {"name": "high_26_prev", "type": "lag", "source": "high_26", "length": 1},
+      {"name": "ema_20", "type": "ema", "source": "close", "length": 20}
+    ],
+    "entry_rule_long": "close > high_26_prev",
+    "exit_rule": "close < ema_20",
+    "entry_price_field": "close",
+    "backtest_timeframe": "15m",
+    "position_size_mode": "notional_pct",
+    "position_size_pct": 25,
+    "max_positions": 2,
+    "stop_loss_pct": 1.5,
+    "take_profit_pct": 0,
+    "max_holding_days": 2
+  }
+}

@@ -5,6 +5,8 @@ import { serverSession } from "@/lib/supabase/server";
 
 const LINKS = [
   { label: "The Lab", href: "/playground" },
+  { label: "Library", href: "/library" },
+  { label: "Markets", href: "/markets" },
   { label: "Leaderboard", href: "/leaderboard" },
   { label: "Pricing", href: "/pricing" },
 ];

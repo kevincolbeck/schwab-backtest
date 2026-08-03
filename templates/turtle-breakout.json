@@ -1,7 +1,7 @@
 {
   "meta": {
     "display_name": "Turtle-style Breakout",
-    "category": "Trend Following",
+    "category": "Breakout",
     "difficulty": "intermediate",
     "one_liner": "The legendary Turtle rules on ETFs: buy 40-day highs, exit 20-day lows, risk-managed with an ATR stop.",
     "explainer_md": "In the 1980s, Richard Dennis taught a group of beginners — the 'Turtles' — a simple system that made many of them rich: buy anything breaking above its recent high, exit when it breaks below its recent low, and size positions by volatility. This version trades a diversified ETF basket (stocks, small caps, sectors, gold, bonds) with a 40-day-high entry, 20-day-low exit, and a 2-ATR stop, just like the original 'System 2'."

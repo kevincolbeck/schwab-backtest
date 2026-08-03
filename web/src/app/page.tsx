@@ -77,6 +77,7 @@ export default async function Home() {
     <main className="w-full">
       {/* Hero */}
       <section className="relative overflow-hidden">
+        <div className="aurora" aria-hidden />
         <div className="hero-grid pointer-events-none absolute inset-0" />
         <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-14 lg:grid-cols-2 lg:pb-24 lg:pt-20">
           <Reveal>
@@ -97,7 +98,7 @@ export default async function Home() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/playground"
-                className="btn-glow focus-ring rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
+                className="gloss-ring btn-glow focus-ring rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
               >
                 Open the lab
               </Link>
@@ -137,8 +138,9 @@ export default async function Home() {
 
       {/* Ledger teaser */}
       {ledger.length > 0 && (
-        <section className="border-t border-hairline">
-          <div className="mx-auto w-full max-w-6xl px-6 py-16">
+        <section className="relative overflow-hidden border-t border-hairline">
+          <div className="aurora" aria-hidden />
+          <div className="relative mx-auto w-full max-w-6xl px-6 py-16">
             <Reveal>
               <p className="text-[11px] uppercase tracking-widest text-accent">
                 The Board · Live now
@@ -187,8 +189,9 @@ export default async function Home() {
       )}
 
       {/* Templates */}
-      <section id="templates" className="border-t border-hairline">
-        <div className="mx-auto w-full max-w-6xl px-6 py-16">
+      <section id="templates" className="relative overflow-hidden border-t border-hairline">
+        <div className="aurora" aria-hidden />
+        <div className="relative mx-auto w-full max-w-6xl px-6 py-16">
           <Reveal>
             <p className="text-[11px] uppercase tracking-widest text-accent">
               Templates · The starting point
@@ -278,8 +281,9 @@ export default async function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-hairline">
-        <div className="mx-auto w-full max-w-6xl px-6 py-20 text-center">
+      <section className="relative overflow-hidden border-t border-hairline">
+        <div className="aurora" aria-hidden />
+        <div className="relative mx-auto w-full max-w-6xl px-6 py-20 text-center">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight">
               Curious what &ldquo;buy the dip&rdquo; actually returned?
@@ -287,7 +291,7 @@ export default async function Home() {
             <p className="mt-2 text-sm text-muted">Find out in about four seconds.</p>
             <Link
               href="/playground?template=buy-the-dip"
-              className="btn-glow focus-ring mt-7 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
+              className="gloss-ring-hover btn-glow focus-ring mt-7 inline-block rounded-xl bg-accent px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
             >
               Test it now
             </Link>

@@ -38,29 +38,31 @@ export default function LivePreview() {
   };
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
-        <div>
-          <p className="text-sm font-medium">{demo.name}</p>
-          <p className="tnum text-[11px] text-faint">
-            {demo.params.start_date.slice(0, 4)}–{demo.params.end_date.slice(0, 4)} · daily ·
-            real data, live crosshair
-          </p>
-        </div>
-        <Button size="sm" variant="outline" onClick={goFullscreen}>
-          Go fullscreen ↗
-        </Button>
-      </div>
-      <div className="grid grid-cols-4 gap-px border-b border-hairline bg-hairline">
-        {STATS.map((s) => (
-          <div key={s.label} className="bg-panel px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-faint">{s.label}</p>
-            <p className={`tnum text-sm ${s.pnl ? "text-gain" : ""}`}>{s.value}</p>
+    <div className="gloss-ring rounded-[14px]">
+      <div className="card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
+          <div>
+            <p className="text-sm font-medium">{demo.name}</p>
+            <p className="tnum text-[11px] text-faint">
+              {demo.params.start_date.slice(0, 4)}–{demo.params.end_date.slice(0, 4)} · daily ·
+              real data, live crosshair
+            </p>
           </div>
-        ))}
-      </div>
-      <div className="px-2 pb-2 pt-3">
-        <EquityChart curve={demo.equity_curve} height={230} />
+          <Button size="sm" variant="outline" onClick={goFullscreen}>
+            Go fullscreen ↗
+          </Button>
+        </div>
+        <div className="grid grid-cols-4 gap-px border-b border-hairline bg-hairline">
+          {STATS.map((s) => (
+            <div key={s.label} className="bg-panel px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-faint">{s.label}</p>
+              <p className={`tnum text-sm ${s.pnl ? "text-gain" : ""}`}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="px-2 pb-2 pt-3">
+          <EquityChart curve={demo.equity_curve} height={230} />
+        </div>
       </div>
     </div>
   );
