@@ -8,15 +8,17 @@ export const alt =
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Design tokens v2, dark values (the card commits to the dark look — see globals.css).
-const BG = "#07090e";
-const PANEL = "#0c0f16";
-const HAIRLINE = "rgba(148, 163, 184, 0.18)";
-const INK = "#edf0f7";
-const MUTED = "#8a94a6";
-const ACCENT = "#8b7cf6";
-const GAIN = "#089981";
-const LOSS = "#f23645";
+// Sanctioned hardcode (design/SYSTEM.md §12): OG renders off-DOM and cannot read
+// CSS custom properties. These constants MUST mirror styles/tokens.css dark values —
+// keep in sync when tokens change. The card commits to the dark look.
+const BG = "#0c0f14"; // --bg-0
+const PANEL = "#12151c"; // --bg-1
+const HAIRLINE = "rgba(148, 163, 184, 0.22)"; // --hairline-strong (1px reads at OG scale)
+const INK = "#e9edf4"; // --ink
+const MUTED = "#98a2b3"; // --muted
+const ACCENT = "#4da2ff"; // --accent
+const GAIN = "#089981"; // --gain
+const LOSS = "#f23645"; // --loss
 
 const DISCLAIMER_LINE =
   "Simulated performance for research/education. Not financial advice.";
@@ -34,7 +36,7 @@ async function getStrategy(slug: string): Promise<StrategyPagePayload | null> {
   }
 }
 
-/** Shared frame: dark bg, violet top strip, eyebrow header, disclaimer footer. */
+/** Shared frame: dark bg, accent top strip, eyebrow header, disclaimer footer. */
 function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -52,7 +54,7 @@ function Frame({ children }: { children: React.ReactNode }) {
         style={{
           height: 6,
           width: "100%",
-          background: `linear-gradient(90deg, ${ACCENT}, rgba(139, 124, 246, 0))`,
+          background: `linear-gradient(90deg, ${ACCENT}, rgba(77, 162, 255, 0))`,
         }}
       />
       <div
@@ -63,7 +65,7 @@ function Frame({ children }: { children: React.ReactNode }) {
           marginTop: 40,
         }}
       >
-        <div style={{ fontSize: 28, fontWeight: 700 }}>Chat·Backtest</div>
+        <div style={{ fontSize: 28, fontWeight: 600 }}>Chat·Backtest</div>
         <div
           style={{
             fontSize: 20,
@@ -113,7 +115,7 @@ export default async function Image({
               justifyContent: "center",
             }}
           >
-            <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.15 }}>
+            <div style={{ fontSize: 64, fontWeight: 600, lineHeight: 1.15 }}>
               The forward-test ledger
             </div>
             <div style={{ fontSize: 28, color: MUTED, marginTop: 20 }}>
@@ -148,7 +150,7 @@ export default async function Image({
             justifyContent: "center",
           }}
         >
-          <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.15 }}>
+          <div style={{ fontSize: 52, fontWeight: 600, lineHeight: 1.15 }}>
             {name}
           </div>
           <div
@@ -159,7 +161,7 @@ export default async function Image({
               marginTop: 18,
             }}
           >
-            <div style={{ fontSize: 132, fontWeight: 700, color: fwdColor }}>
+            <div style={{ fontSize: 132, fontWeight: 600, color: fwdColor }}>
               {fmtSignedPct(fwd, 2)}
             </div>
             <div

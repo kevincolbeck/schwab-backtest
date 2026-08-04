@@ -59,7 +59,7 @@ export default function ShareToX({
         rel="noopener noreferrer"
         aria-label={label}
         title="Share on X"
-        className="focus-ring inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors duration-150 hover:bg-panel-2 hover:text-ink"
+        className="focus-ring inline-flex h-7 w-7 items-center justify-center rounded-(--radius-control) text-muted transition-colors duration-(--dur-micro) hover:bg-panel-2 hover:text-ink"
       >
         <XLogo size={13} />
       </a>
@@ -72,7 +72,7 @@ export default function ShareToX({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-hairline-strong px-4 py-2 text-sm text-ink transition-colors duration-150 hover:bg-panel-2"
+      className="focus-ring inline-flex h-9 items-center justify-center gap-1.5 rounded-(--radius-control) border border-hairline-strong px-4 text-sm text-ink transition-colors duration-(--dur-micro) hover:bg-panel-2"
     >
       <XLogo />
       Share on X

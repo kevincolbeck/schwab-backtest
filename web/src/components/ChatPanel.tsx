@@ -41,15 +41,11 @@ export default function ChatPanel({
 
   return (
     <div className="card flex h-full flex-col overflow-hidden">
+      {/* No pulsing "live" dot: decoration pretending to be data is forbidden
+          (SYSTEM.md §3) — the only motion here is the real busy indicator. */}
       <div className="glass border-b border-hairline px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full motion-reduce:animate-none bg-accent opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-          </span>
-          <h2 className="text-sm font-semibold">AI Strategist</h2>
-        </div>
-        <p className="mt-0.5 text-[11px] text-faint">
+        <h2 className="text-sm font-semibold">AI Strategist</h2>
+        <p className="mt-0.5 text-caption text-faint">
           Ask questions or change the strategy in plain English.
         </p>
       </div>
@@ -58,17 +54,17 @@ export default function ChatPanel({
         {messages.length === 0 && !busy && (
           <div className="space-y-2">
             {intro && (
-              <p className="mb-3 rounded-2xl rounded-bl-md border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm leading-relaxed">
+              <p className="mb-3 rounded-(--radius-card) rounded-bl-(--radius-tag) border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm leading-relaxed">
                 {intro}
               </p>
             )}
-            <p className="text-[11px] uppercase tracking-widest text-faint">Try one of these</p>
+            <p className="text-caption uppercase tracking-widest text-faint">Try one of these</p>
             {(suggestions ?? CHAT_SUGGESTIONS).map((s) => (
               <button
                 key={s}
                 onClick={() => send(s)}
                 disabled={disabled}
-                className="focus-ring block w-full rounded-xl border border-hairline bg-panel-2 px-3 py-2.5 text-left text-xs text-ink transition-colors hover:border-accent/60 hover:bg-accent-soft disabled:opacity-50"
+                className="focus-ring block w-full rounded-(--radius-control) border border-hairline bg-panel-2 px-3 py-2.5 text-left text-xs text-ink transition-colors duration-(--dur-micro) hover:border-accent hover:bg-accent-soft disabled:opacity-50"
               >
                 {s}
               </button>
@@ -79,10 +75,10 @@ export default function ChatPanel({
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`max-w-[94%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+              className={`max-w-[94%] whitespace-pre-wrap rounded-(--radius-card) px-3.5 py-2.5 text-sm leading-relaxed ${
                 m.role === "user"
-                  ? "ml-auto rounded-br-md bg-accent-soft"
-                  : "mr-auto rounded-bl-md border border-hairline bg-panel-2"
+                  ? "ml-auto rounded-br-(--radius-tag) bg-accent-soft"
+                  : "mr-auto rounded-bl-(--radius-tag) border border-hairline bg-panel-2"
               }`}
             >
               <span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>
@@ -92,12 +88,12 @@ export default function ChatPanel({
           {busy && (
             <div
               role="status"
-              className="mr-auto flex items-center gap-2 rounded-2xl rounded-bl-md border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm text-muted"
+              className="mr-auto flex items-center gap-2 rounded-(--radius-card) rounded-bl-(--radius-tag) border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm text-muted"
             >
               <span className="inline-flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted motion-reduce:animate-none [animation-delay:0ms]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted motion-reduce:animate-none [animation-delay:120ms]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted motion-reduce:animate-none [animation-delay:240ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:120ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:240ms]" />
               </span>
               Thinking
             </div>
@@ -124,7 +120,7 @@ export default function ChatPanel({
                 : placeholder ?? 'e.g. "what if the stop was 5% instead of 8%?"'
             }
             disabled={disabled}
-            className="focus-ring flex-1 resize-none rounded-xl border border-hairline bg-background px-3 py-2 text-sm placeholder:text-faint focus:border-accent disabled:opacity-50"
+            className="focus-ring flex-1 resize-none rounded-(--radius-control) border border-hairline bg-background px-3 py-2 text-sm placeholder:text-faint focus:border-accent disabled:opacity-50"
           />
           <Button
             className="self-end"
@@ -134,7 +130,7 @@ export default function ChatPanel({
             Send
           </Button>
         </div>
-        <p className="mt-1.5 text-[10px] leading-relaxed text-faint">
+        <p className="mt-1.5 text-caption leading-relaxed text-faint">
           The assistant edits strategy specs and explains historical results. It can&apos;t
           predict prices and won&apos;t recommend real-money trades.
         </p>

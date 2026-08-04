@@ -33,7 +33,7 @@ export default function Tabs({
     <div
       role="tablist"
       aria-label="Workspace views"
-      className={`flex items-center gap-1 rounded-xl border border-hairline bg-panel-2 p-1 ${className}`}
+      className={`flex items-center gap-1 rounded-(--radius-control) border border-hairline bg-panel-2 p-1 ${className}`}
     >
       {tabs.map((tab) => {
         const selected = tab.id === active;
@@ -57,15 +57,15 @@ export default function Tabs({
                 select(tabs[(idx - 1 + tabs.length) % tabs.length].id);
               }
             }}
-            className={`focus-ring rounded-lg px-3.5 py-1.5 text-sm transition-colors duration-150 ${
+            className={`focus-ring rounded-(--radius-tag) px-3.5 py-1.5 text-sm transition-colors duration-(--dur-micro) ${
               selected
-                ? "bg-panel text-ink shadow-sm border border-hairline"
+                ? "border border-hairline bg-panel text-ink"
                 : "text-muted hover:text-ink"
             }`}
           >
             {tab.label}
             {tab.badge !== undefined && (
-              <span className="tnum ml-1.5 text-[10px] text-faint">{tab.badge}</span>
+              <span className="tnum ml-1.5 text-caption text-faint">{tab.badge}</span>
             )}
           </button>
         );

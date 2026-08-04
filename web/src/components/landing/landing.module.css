@@ -1,0 +1,41 @@
+/* Landing-only recipes (Phase 3 homepage). Every value here resolves to a
+   token in styles/tokens.css — a raw hex or size would be a defect
+   (design/SYSTEM.md §12). */
+
+/* THE one kinetic touch on the hero headline (brief §4-hero): a single
+   gradient sweep across "Prove it in public." — runs ONCE on load over
+   --dur-slow, then settles into the static accent → accent-2 gradient.
+   accent-2's only sanctioned appearances are the gloss-ring spectrum and
+   this hero sweep (SYSTEM.md §1). Deliberately NOT a loop: the hero CTA's
+   gloss ring stays the viewport's single idle animation (SYSTEM.md §11).
+   Reduced motion / no-JS: the static gradient — finished, not disabled. */
+.kineticSweep {
+  background-image: linear-gradient(
+    100deg,
+    var(--accent) 0%,
+    var(--accent-2) 35%,
+    var(--accent) 55%,
+    var(--accent-2) 100%
+  );
+  background-size: 250% 100%;
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sweep var(--dur-slow) var(--ease-out) var(--dur-standard) 1 backwards;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kineticSweep {
+    animation: none;
+  }
+}

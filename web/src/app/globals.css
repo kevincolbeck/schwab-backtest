@@ -1,72 +1,18 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-/* ── Design tokens v2 (Phase A) ─────────────────────────────────────────────
-   Layered near-black surfaces, hairline borders, one violet accent, teal for
-   comparisons, TradingView green/red STRICTLY for P&L. Light mode ships via
-   [data-theme="light"]. See CLAUDE.md "Phase A — UI/UX rebuild".            */
-:root {
-  --bg-0: #07090e;
-  --bg-1: #0c0f16;
-  --bg-2: #11151e;
-  --bg-3: #171c27;
-  --glass: rgba(15, 19, 28, 0.72);
-  --hairline: rgba(148, 163, 184, 0.1);
-  --hairline-strong: rgba(148, 163, 184, 0.22);
-  --ink: #edf0f7;
-  --muted: #8a94a6;
-  --faint: #7f8a9d; /* WCAG AA on bg-0/bg-1 — faint carries real content */
-  --accent: #8b7cf6;
-  --accent-hover: #9d90ff;
-  --accent-soft: rgba(139, 124, 246, 0.13);
-  --accent-glow: rgba(139, 124, 246, 0.35);
-  --prev-run: #3fa98e;
-  --gain: #089981;
-  --loss: #f23645;
-  --gain-soft: rgba(8, 153, 129, 0.12);
-  --loss-soft: rgba(242, 54, 69, 0.1);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px -12px rgba(0, 0, 0, 0.5);
-  --shadow-pop: 0 24px 80px -16px rgba(0, 0, 0, 0.7);
-  --gloss-warm: rgba(240, 187, 120, 0.85); /* single warm glint in the gloss ring */
-  --gloss-opacity: 0.75;
-  --gloss-opacity-hover: 1;
-  --aurora-1: rgba(139, 124, 246, 0.14);
-  --aurora-2: rgba(63, 169, 142, 0.1);
-}
-
-[data-theme="light"] {
-  --bg-0: #f6f7fb;
-  --bg-1: #ffffff;
-  --bg-2: #f1f3f9;
-  --bg-3: #e9ecf4;
-  --glass: rgba(255, 255, 255, 0.78);
-  --hairline: rgba(15, 23, 42, 0.09);
-  --hairline-strong: rgba(15, 23, 42, 0.2);
-  --ink: #0e1320;
-  --muted: #5b6472;
-  --faint: #64708a; /* WCAG AA on light surfaces */
-  --gain: #067a67; /* darkened for AA text contrast on light surfaces */
-  --loss: #d1202f;
-  --gain-soft: rgba(6, 122, 103, 0.1);
-  --loss-soft: rgba(209, 32, 47, 0.09);
-  --accent: #6d5ae6;
-  --accent-hover: #5b48d4;
-  --accent-soft: rgba(109, 90, 230, 0.1);
-  --accent-glow: rgba(109, 90, 230, 0.25);
-  --prev-run: #2c8a72;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px -16px rgba(15, 23, 42, 0.16);
-  --shadow-pop: 0 24px 64px -16px rgba(15, 23, 42, 0.25);
-  --gloss-warm: rgba(196, 138, 63, 0.65); /* dimmer — glow must not wash out light surfaces */
-  --gloss-opacity: 0.5;
-  --gloss-opacity-hover: 0.75;
-  --aurora-1: rgba(109, 90, 230, 0.07);
-  --aurora-2: rgba(44, 138, 114, 0.05);
-}
+/* ── Design system v3 (Phase 1 redesign) ────────────────────────────────────
+   ALL raw values live in styles/tokens.css — this file only maps tokens to
+   Tailwind utilities and defines the system materials (glass, gloss ring,
+   aurora, docs prose). Ice-blue accent, near-black canvas, dark-first with
+   [data-theme="light"] as pure token overrides. Rules: design/SYSTEM.md.  */
 
 @theme inline {
   --color-background: var(--bg-0);
   --color-panel: var(--bg-1);
   --color-panel-2: var(--bg-2);
   --color-panel-3: var(--bg-3);
+  --color-overlay: var(--overlay);
   --color-hairline: var(--hairline);
   --color-hairline-strong: var(--hairline-strong);
   --color-ink: var(--ink);
@@ -75,15 +21,34 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-2: var(--accent-2);
   --color-prev: var(--prev-run);
   --color-gain: var(--gain);
   --color-loss: var(--loss);
   --color-gain-soft: var(--gain-soft);
   --color-loss-soft: var(--loss-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --radius-card: 14px;
-  --radius-control: 10px;
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: var(--font-stack-sans);
+  --font-mono: var(--font-stack-mono);
+  /* Named type steps beyond Tailwind's defaults (text-caption, text-title,
+     text-headline, text-display, text-display-xl). 14/16/18/20px map to the
+     stock text-sm/base/lg/xl utilities, which already match the scale. */
+  --text-caption: var(--type-caption);
+  --text-caption--line-height: var(--type-caption-lh);
+  --text-caption--letter-spacing: var(--type-caption-ls);
+  --text-title: var(--type-title);
+  --text-title--line-height: var(--type-title-lh);
+  --text-title--letter-spacing: var(--type-title-ls);
+  --text-headline: var(--type-headline);
+  --text-headline--line-height: var(--type-headline-lh);
+  --text-headline--letter-spacing: var(--type-headline-ls);
+  --text-display: var(--type-display);
+  --text-display--line-height: var(--type-display-lh);
+  --text-display--letter-spacing: var(--type-display-ls);
+  --text-display-xl: var(--type-display-xl);
+  --text-display-xl--line-height: var(--type-display-xl-lh);
+  --text-display-xl--letter-spacing: var(--type-display-xl-ls);
 }
 
 html {
@@ -93,21 +58,21 @@ html {
 body {
   background: var(--bg-0);
   color: var(--ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-stack-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tabular figures for every metric — numbers must line up. */
+/* Tabular figures for every metric — numbers must line up (evidence rule). */
 .tnum {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-stack-mono);
   font-variant-numeric: tabular-nums;
 }
 
 /* Frosted floating panels (nav, docks, modals). */
 .glass {
   background: var(--glass);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
 }
 
 /* Standard card surface. */
@@ -118,9 +83,9 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-/* Primary CTA glow. */
+/* Primary CTA glow — hero CTA only (SYSTEM.md §2). */
 .btn-glow {
-  box-shadow: 0 0 0 1px var(--accent), 0 8px 32px -8px var(--accent-glow);
+  box-shadow: var(--glow-cta);
 }
 
 /* Accessible focus ring everywhere. */
@@ -128,23 +93,26 @@ body {
   outline: none;
 }
 .focus-ring:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
 }
 
-/* Faint dotted grid backdrop for hero sections. */
+/* Faint dotted grid backdrop for hero sections (instrumentation texture). */
 .hero-grid {
   background-image: radial-gradient(var(--hairline) 1px, transparent 1px);
-  background-size: 26px 26px;
+  background-size: var(--grid-dot-gap) var(--grid-dot-gap);
   mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, black 30%, transparent 75%);
 }
 
 /* ── Gloss ring ─────────────────────────────────────────────────────────────
-   Animated conic-gradient border: violet → warm glint → teal → violet, rotating
-   slowly. Drawn by a masked pseudo-element (padding-box/border-box double
-   background) so it hugs rounded corners over any element background.
-   .gloss-ring       — always on (slow), brightens on hover.
+   Animated conic-gradient border in OUR cold accent spectrum: ice blue →
+   glacial glint → ice blue → deep cobalt → ice blue (a 3-stop spectrum, not
+   a rainbow — the rainbow is LuxAlgo's material). Drawn by a masked pseudo-
+   element (padding-box/border-box double background) so it hugs rounded
+   corners over any element background.
+   .gloss-ring       — always on (slow idle); brightens on hover. ONE per
+                       viewport, hero CTA only (SYSTEM.md §5).
    .gloss-ring-hover — invisible until hover/focus-visible.                  */
 @property --gloss-angle {
   syntax: "<angle>";
@@ -166,9 +134,9 @@ body {
   background: conic-gradient(
       from var(--gloss-angle),
       var(--accent),
-      var(--gloss-warm) 12%,
+      var(--ring-glint) 12%,
       var(--accent) 26%,
-      var(--prev-run) 58%,
+      var(--ring-deep) 58%,
       var(--accent)
     )
     border-box;
@@ -178,18 +146,22 @@ body {
   mask-composite: exclude;
   opacity: var(--gloss-opacity);
   pointer-events: none;
-  transition: opacity 0.2s ease;
-  animation: gloss-spin 7s linear infinite;
+  transition: opacity var(--dur-micro) var(--ease-out);
+  animation: gloss-spin var(--dur-ring-idle) linear infinite;
 }
 .gloss-ring:hover::after {
   opacity: var(--gloss-opacity-hover);
 }
+/* Brief §3.2 usage rule: only the hero CTA idle-animates. Hover rings keep
+   their rotation clock PAUSED until hover/focus — no hidden idle animation. */
 .gloss-ring-hover::after {
   opacity: 0;
+  animation-play-state: paused;
 }
 .gloss-ring-hover:hover::after,
 .gloss-ring-hover:focus-visible::after {
   opacity: var(--gloss-opacity-hover);
+  animation-play-state: running;
 }
 
 @keyframes gloss-spin {
@@ -199,9 +171,10 @@ body {
 }
 
 /* ── Aurora backdrop ────────────────────────────────────────────────────────
-   Three big soft blobs (one static wash + two drifting) in violet/teal at very
-   low opacity, for section backgrounds. Parent needs relative + overflow
-   handling; content above it needs position: relative.                       */
+   Three big soft blobs (one static wash + two drifting) in the accent
+   spectrum at very low opacity, for section backgrounds. ONE per page —
+   hero only (SYSTEM.md §6). Parent needs relative + overflow handling;
+   content above it needs position: relative.                               */
 .aurora {
   position: absolute;
   inset: 0;
@@ -214,7 +187,7 @@ body {
   content: "";
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
+  filter: blur(var(--aurora-blur));
   will-change: transform;
 }
 .aurora::before {
@@ -223,7 +196,7 @@ body {
   top: -14rem;
   left: -8rem;
   background: radial-gradient(circle, var(--aurora-1), transparent 65%);
-  animation: aurora-drift-a 44s ease-in-out infinite alternate;
+  animation: aurora-drift-a var(--dur-aurora-a) ease-in-out infinite alternate;
 }
 .aurora::after {
   width: 32rem;
@@ -231,7 +204,7 @@ body {
   bottom: -12rem;
   right: -6rem;
   background: radial-gradient(circle, var(--aurora-2), transparent 65%);
-  animation: aurora-drift-b 56s ease-in-out infinite alternate;
+  animation: aurora-drift-b var(--dur-aurora-b) ease-in-out infinite alternate;
 }
 
 @keyframes aurora-drift-a {
@@ -252,7 +225,7 @@ body {
 }
 .slim-scroll::-webkit-scrollbar-thumb {
   background: var(--hairline-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
 }
 .slim-scroll::-webkit-scrollbar-track {
   background: transparent;
@@ -278,10 +251,12 @@ body {
 /* ── Docs prose ─────────────────────────────────────────────────────────────
    Typography for /docs articles. Pages write semantic HTML (h2/h3/p/ul/ol/
    table/code/pre) with NO utility classes; this block styles all of it, in
-   both themes, via the design tokens above.                                 */
+   both themes, via the design tokens. Sizes come from the type scale;
+   em-based margins/paddings are prose-internal rhythm (structure, not
+   tokens).                                                                 */
 .docs-prose {
-  font-size: 0.9375rem;
-  line-height: 1.75;
+  font-size: var(--type-prose);
+  line-height: var(--type-prose-lh);
   color: var(--ink);
 }
 .docs-prose > :first-child {
@@ -290,23 +265,23 @@ body {
 
 .docs-prose h1 {
   margin: 0 0 0.75rem;
-  font-size: 1.875rem;
+  font-size: var(--type-headline);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: var(--type-headline-ls);
+  line-height: var(--type-headline-lh);
 }
 .docs-prose h2 {
   margin: 2.5rem 0 0.75rem;
-  font-size: 1.25rem;
+  font-size: var(--type-title-sm);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  letter-spacing: var(--type-title-sm-ls);
+  line-height: var(--type-title-sm-lh);
   padding-top: 1.25rem;
   border-top: 1px solid var(--hairline);
 }
 .docs-prose h3 {
   margin: 1.75rem 0 0.5rem;
-  font-size: 1rem;
+  font-size: var(--type-body);
   font-weight: 600;
   line-height: 1.4;
 }
@@ -317,7 +292,7 @@ body {
 /* Lede: the paragraph directly under the page h1 reads as a subtitle. */
 .docs-prose > h1 + p {
   color: var(--muted);
-  font-size: 1.0625rem;
+  font-size: var(--type-body-lg);
 }
 
 .docs-prose ul,
@@ -353,7 +328,7 @@ body {
   text-decoration: underline;
   text-decoration-color: var(--accent-soft);
   text-underline-offset: 3px;
-  transition: text-decoration-color 0.15s ease;
+  transition: text-decoration-color var(--dur-micro) var(--ease-out);
 }
 .docs-prose p a:hover,
 .docs-prose li a:hover,
@@ -363,17 +338,17 @@ body {
 .docs-prose p a:focus-visible,
 .docs-prose li a:focus-visible,
 .docs-prose td a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
   border-radius: 2px;
 }
 
 .docs-prose code {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.8125em;
+  font-family: var(--font-stack-mono);
+  font-size: 0.8125em; /* em on purpose — scales with heading/body context */
   background: var(--bg-2);
   border: 1px solid var(--hairline);
-  border-radius: 6px;
+  border-radius: var(--radius-tag);
   padding: 0.125rem 0.375rem;
   white-space: nowrap;
 }
@@ -384,8 +359,8 @@ body {
   border: 1px solid var(--hairline);
   border-radius: var(--radius-card);
   overflow-x: auto;
-  font-size: 0.8125rem;
-  line-height: 1.65;
+  font-size: var(--type-code);
+  line-height: var(--type-code-lh);
 }
 .docs-prose pre code {
   background: transparent;
@@ -400,13 +375,13 @@ body {
   margin: 1.25rem 0;
   border-collapse: collapse;
   border: 1px solid var(--hairline);
-  font-size: 0.875rem;
+  font-size: var(--type-body-sm);
   font-variant-numeric: tabular-nums;
 }
 .docs-prose th {
   background: var(--bg-1);
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--type-label);
   font-weight: 500;
   text-align: left;
   padding: 0.625rem 1rem;
@@ -452,3 +427,90 @@ body {
 .docs-prose .docs-step-body > :last-child {
   margin-bottom: 0;
 }
+
+/* ═══ PHASE 2 · COMPONENT LAYER ═════════════════════════════════════════════
+   Recipes consumed by the component kit (web/src/components). Every value
+   resolves to styles/tokens.css (or Tailwind's --spacing base unit, with the
+   token's own value as fallback). Usage rules: design/SYSTEM.md, brief §3. */
+
+/* One hover behavior for every interactive card (brief §3.3): slight lift +
+   hairline brightens. Featured items add .gloss-ring-hover on top. */
+.card-hover {
+  transition:
+    transform var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    box-shadow var(--dur-micro) var(--ease-out);
+}
+.card-hover:hover {
+  transform: translateY(calc(var(--spacing, 0.25rem) * -0.5));
+  border-color: var(--hairline-strong);
+}
+
+/* Scroll-reveal system (Reveal.tsx): fade-up --reveal-shift over --dur-reveal,
+   sibling stagger via --reveal-delay, once. JS applies .reveal-out only after
+   mount (no-JS keeps content visible) and swaps to .reveal-in on intersect. */
+.reveal-out {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift));
+}
+.reveal-in {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: var(--reveal-delay, 0s);
+}
+
+/* FAQ accordion (ui/Accordion.tsx): native <details>; body eases in on open. */
+details[open] > .acc-body {
+  animation: acc-in var(--dur-standard) var(--ease-out);
+}
+@keyframes acc-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--spacing, 0.25rem) * -1));
+  }
+}
+
+/* Mobile nav panel (MobileMenu.tsx) drop-in. */
+.menu-pop {
+  animation: menu-pop var(--dur-standard) var(--ease-out);
+}
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--spacing, 0.25rem) * -2));
+  }
+}
+
+/* Append-only ledger entrance (leaderboard rows, signals ledger): each row
+   fades in once on load, staggered top→down via --row-index — the append made
+   visible. Opacity-only (transforms on <tr> are unreliable cross-browser);
+   `backwards` fill keeps late rows hidden until their delay elapses. */
+.row-in {
+  animation: row-in var(--dur-reveal) var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-stagger) * var(--row-index, 0));
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover:hover {
+    transform: none;
+  }
+  .reveal-out {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-in {
+    transition: none;
+  }
+  details[open] > .acc-body,
+  .menu-pop,
+  .row-in {
+    animation: none;
+  }
+}
+/* ═══ END PHASE 2 · COMPONENT LAYER ═══════════════════════════════════════ */

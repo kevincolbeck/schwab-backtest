@@ -123,13 +123,13 @@ export default function StatTiles({
         return (
           <div
             key={String(tile.key)}
-            className="group relative rounded-lg border border-hairline bg-panel px-3 py-2.5"
+            className="group relative rounded-(--radius-control) border border-hairline bg-panel px-3 py-2.5"
           >
-            <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted">
+            <div className="flex items-center gap-1 text-caption uppercase tracking-wide text-muted">
               {tile.label}
               <button
                 type="button"
-                className="cursor-help rounded-full text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+                className="focus-ring cursor-help rounded-(--radius-pill) text-muted hover:text-ink"
                 aria-label={`${tile.label}: ${tile.hint}`}
                 title={tile.hint}
               >

@@ -1,55 +1,79 @@
 import Link from "next/link";
+import Sparkline from "@/components/Sparkline";
 import type { Template } from "@/lib/types";
-import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
+import { fmtPct, fmtSignedPct } from "@/lib/format";
 
-export default function TemplateCard({ template }: { template: Template }) {
+/** Template/strategy card, redesigned per brief §4: name, one-liner, THE
+ *  number (CAGR — total return when CAGR is absent) as the mono hero stat,
+ *  tiny sparkline, category tag. Everything else lives on the detail view.
+ *
+ *  Truth rule: the sparkline renders ONLY when real equity values are passed
+ *  via `spark` — it is never fabricated from the stats. Negative heroes stay
+ *  visibly negative (the honesty is the brand). */
+export default function TemplateCard({
+  template,
+  spark,
+  featured = false,
+}: {
+  template: Template;
+  /** Real equity-curve values for the tiny sparkline (optional). */
+  spark?: number[];
+  /** Featured items (one per section max) get the hover gloss ring. */
+  featured?: boolean;
+}) {
   const s = template.cached_stats?.stats;
   const cagr = s?.cagr ?? null;
+  const totalReturn = s?.total_return_pct ?? null;
+  const hero =
+    cagr !== null
+      ? { label: "CAGR", value: fmtPct(cagr, 1), negative: cagr < 0 }
+      : totalReturn !== null
+        ? { label: "Total return", value: fmtSignedPct(totalReturn, 0), negative: totalReturn < 0 }
+        : null;
+  const range = template.cached_stats
+    ? `${template.cached_stats.start_date.slice(0, 4)}–${template.cached_stats.end_date.slice(0, 4)}`
+    : null;
+
   return (
     <Link
       href={`/playground?template=${encodeURIComponent(template.id)}`}
-      className="group flex flex-col rounded-xl border border-hairline bg-panel p-4 transition-colors hover:border-accent"
+      className={`card card-hover focus-ring flex flex-col p-5 ${
+        featured ? "gloss-ring-hover" : ""
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium leading-tight">{template.meta.display_name}</h3>
-        <span className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-medium leading-snug text-ink">
+          {template.meta.display_name}
+        </h3>
+        <span className="shrink-0 rounded-(--radius-pill) border border-hairline px-2 py-0.5 text-caption uppercase tracking-wide text-muted">
           {template.meta.category}
         </span>
       </div>
-      <p className="mt-2 flex-1 text-xs leading-relaxed text-muted">
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
         {template.meta.one_liner}
       </p>
-      {s ? (
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-hairline pt-3">
+      {hero ? (
+        <div className="mt-4 flex items-end justify-between gap-3 border-t border-hairline pt-4">
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted">CAGR</div>
-            <div className={`tnum text-base ${cagr !== null && cagr < 0 ? "text-loss" : ""}`}>
-              {fmtPct(cagr, 1)}
+            <div className="text-caption uppercase tracking-widest text-muted">
+              {hero.label}
             </div>
+            <div
+              className={`tnum mt-0.5 text-headline ${hero.negative ? "text-loss" : "text-ink"}`}
+            >
+              {hero.value}
+            </div>
+            {range && <div className="tnum mt-1 text-caption text-faint">{range}</div>}
           </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted">Return</div>
-            <div className="tnum text-base">{fmtSignedPct(s.total_return_pct ?? null, 0)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted">Max DD</div>
-            <div className="tnum text-base">{fmtPct(s.max_drawdown ?? null, 0)}</div>
-          </div>
+          {spark && spark.length > 1 && (
+            <div className="pb-1">
+              <Sparkline values={spark} width={88} height={30} />
+            </div>
+          )}
         </div>
       ) : (
-        <div className="mt-3 border-t border-hairline pt-3 text-xs text-muted">
+        <div className="mt-4 border-t border-hairline pt-4 text-xs text-muted">
           Run it to see results
-        </div>
-      )}
-      {s && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
-          <span className="tnum">
-            {template.cached_stats?.start_date.slice(0, 4)}–
-            {template.cached_stats?.end_date.slice(0, 4)} · Sharpe {fmtNum(s.sharpe ?? null)}
-          </span>
-          <span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
-            Open →
-          </span>
         </div>
       )}
     </Link>

@@ -1,7 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import EquityChart from "@/components/EquityChart";
+import Reveal from "@/components/Reveal";
+import SectionShell from "@/components/SectionShell";
 import StatTiles from "@/components/StatTiles";
+import { Accordion, AccordionItem } from "@/components/ui/Accordion";
+import { ButtonLink } from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { RunResult } from "@/lib/types";
@@ -33,39 +37,59 @@ export default async function RunPage({
     | undefined;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{run.spec.name}</h1>
-          <p className="tnum mt-1 text-xs text-muted">
-            {p?.start_date} → {p?.end_date} · slippage {p?.slippage_pct ?? 0.05}% · run{" "}
-            {run.run_id}
-          </p>
+    <main className="w-full">
+      <SectionShell tight>
+        <div className="mx-auto w-full max-w-4xl">
+          <Reveal>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="max-w-2xl">
+                <p className="font-mono text-xs uppercase tracking-widest text-muted">
+                  <span aria-hidden className="mr-2 inline-block h-2 w-0.5 bg-accent" />
+                  Backtest run · Historical simulation
+                </p>
+                <h1 className="mt-4 text-headline font-semibold text-balance text-ink">
+                  {run.spec.name}
+                </h1>
+                <p className="tnum mt-2 text-caption text-faint">
+                  {p?.start_date} → {p?.end_date} · slippage {p?.slippage_pct ?? 0.05}%
+                  · run {run.run_id}
+                </p>
+              </div>
+              <ButtonLink href={`/playground?run=${encodeURIComponent(runId)}`}>
+                Fork this strategy
+              </ButtonLink>
+            </div>
+          </Reveal>
+
+          <Reveal>
+            <div className="mt-8">
+              <StatTiles stats={run.stats} />
+            </div>
+          </Reveal>
+
+          <Reveal>
+            <Card className="mt-4">
+              <EquityChart curve={run.equity_curve} />
+            </Card>
+          </Reveal>
+
+          <Reveal>
+            <Accordion className="mt-4">
+              <AccordionItem summary="Strategy rules (readable, no black box)">
+                <pre className="tnum overflow-x-auto rounded-(--radius-card) border border-hairline bg-panel-2 p-4 text-xs leading-relaxed text-ink">
+                  {JSON.stringify(run.spec, null, 2)}
+                </pre>
+              </AccordionItem>
+            </Accordion>
+          </Reveal>
+
+          <Reveal>
+            <p className="mt-4 max-w-prose text-caption leading-relaxed text-muted">
+              {DISCLAIMER}
+            </p>
+          </Reveal>
         </div>
-        <Link
-          href={`/playground?run=${encodeURIComponent(runId)}`}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-        >
-          Fork this strategy
-        </Link>
-      </div>
-
-      <StatTiles stats={run.stats} />
-
-      <div className="mt-4 rounded-lg border border-hairline bg-panel p-3">
-        <EquityChart curve={run.equity_curve} />
-      </div>
-
-      <details className="mt-4 rounded-lg border border-hairline bg-panel px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium">
-          Strategy rules (readable, no black box)
-        </summary>
-        <pre className="tnum mt-3 overflow-x-auto rounded-md bg-background p-3 text-xs leading-relaxed">
-          {JSON.stringify(run.spec, null, 2)}
-        </pre>
-      </details>
-
-      <p className="mt-6 text-[11px] text-muted">{DISCLAIMER}</p>
+      </SectionShell>
     </main>
   );
 }

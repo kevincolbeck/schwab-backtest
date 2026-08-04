@@ -10,7 +10,7 @@ import EquityChart from "@/components/EquityChart";
 import StatTiles from "@/components/StatTiles";
 import TradeInspector from "@/components/TradeInspector";
 import TradeTable from "@/components/TradeTable";
-import Button from "@/components/ui/Button";
+import Button, { buttonClasses } from "@/components/ui/Button";
 import Tabs from "@/components/ui/Tabs";
 import {
   ApiError,
@@ -66,7 +66,10 @@ function LabGate() {
   return (
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="card max-w-md p-8 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-accent">The Lab</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-muted">
+          <span aria-hidden className="mr-2 inline-block h-2 w-0.5 bg-accent" />
+          The Lab
+        </p>
         <h1 className="mt-2 text-xl font-semibold">Sign in to start building</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           Free accounts come with starter credits — enough to run strategies, chat
@@ -75,7 +78,7 @@ function LabGate() {
         <Button className="mt-6" onClick={() => openAuth()}>
           Sign in / create account
         </Button>
-        <p className="mt-4 text-[11px] text-faint">
+        <p className="mt-4 text-caption text-faint">
           Just browsing? The <Link href="/leaderboard" className="text-accent hover:underline">leaderboard</Link> and
           shared results are open to everyone.
         </p>
@@ -630,7 +633,7 @@ function PlaygroundInner() {
             </div>
           </div>
           {pineOut && pineOut.warnings.length > 0 && (
-            <p className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-[11px] leading-relaxed text-muted">
+            <p className="mb-4 rounded-(--radius-card) border border-hairline bg-panel-2 px-4 py-3 text-caption leading-relaxed text-muted">
               Pine export: {pineOut.warnings.length} part
               {pineOut.warnings.length === 1 ? "" : "s"} of this strategy need
               manual attention on TradingView (marked{" "}
@@ -640,22 +643,22 @@ function PlaygroundInner() {
             </p>
           )}
           {aiEnglishLoading && (
-            <p role="status" className="mb-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
+            <p role="status" className="mb-4 rounded-(--radius-card) border border-hairline bg-panel-2 px-4 py-3 text-sm text-muted">
               Writing the plain-English version…
             </p>
           )}
           {aiEnglish && aiEnglish.forSpec === spec && (
-            <div className="mb-4 whitespace-pre-wrap rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+            <div className="mb-4 whitespace-pre-wrap rounded-(--radius-card) border border-hairline bg-accent-soft px-4 py-3 text-sm leading-relaxed">
               {aiEnglish.text}
             </div>
           )}
           <dl className="space-y-4 text-sm leading-relaxed">
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-faint">Universe</dt>
+              <dt className="text-caption uppercase tracking-wide text-faint">Universe</dt>
               <dd className="mt-1">{rules.universe}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-faint">Entry</dt>
+              <dt className="text-caption uppercase tracking-wide text-faint">Entry</dt>
               <dd className="mt-1 space-y-1">
                 {rules.entry.map((s) => (
                   <p key={s}>{s}</p>
@@ -663,7 +666,7 @@ function PlaygroundInner() {
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-faint">Exits</dt>
+              <dt className="text-caption uppercase tracking-wide text-faint">Exits</dt>
               <dd className="mt-1 space-y-1">
                 {rules.exits.map((s) => (
                   <p key={s}>{s}</p>
@@ -671,20 +674,20 @@ function PlaygroundInner() {
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-faint">Sizing</dt>
+              <dt className="text-caption uppercase tracking-wide text-faint">Sizing</dt>
               <dd className="mt-1">{rules.sizing}</dd>
             </div>
           </dl>
-          <p className="mt-4 border-t border-hairline pt-3 text-[11px] leading-relaxed text-faint">
+          <p className="mt-4 border-t border-hairline pt-3 text-caption leading-relaxed text-faint">
             Written so you could trade it by hand. Simulated results include a
             slippage assumption; manual execution will differ.
           </p>
         </div>
         <details className="card px-5 py-4">
-          <summary className="focus-ring cursor-pointer rounded-md text-sm font-medium">
+          <summary className="focus-ring cursor-pointer rounded-(--radius-tag) text-sm font-medium">
             The spec (exact rules, no black box)
           </summary>
-          <pre className="tnum slim-scroll mt-3 overflow-x-auto rounded-xl bg-background p-4 text-xs leading-relaxed">
+          <pre className="tnum slim-scroll mt-3 overflow-x-auto rounded-(--radius-card) border border-hairline bg-background p-4 text-xs leading-relaxed">
             {JSON.stringify(run?.spec ?? spec, null, 2)}
           </pre>
         </details>
@@ -696,13 +699,13 @@ function PlaygroundInner() {
       <h1 className="sr-only">The Lab — backtesting playground</h1>
 
       {/* Lab toolbar */}
-      <header className="glass sticky top-12 z-30 border-b border-hairline">
+      <header className="glass sticky top-(--nav-h) z-30 border-b border-hairline">
         <div className="flex flex-wrap items-center gap-2.5 px-4 py-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold leading-tight">
               {spec?.name ?? (scratchMode ? "New strategy" : "The Lab")}
             </p>
-            <p className="text-[10px] uppercase tracking-widest text-faint">
+            <p className="font-mono text-caption uppercase tracking-widest text-faint">
               {scratchMode
                 ? "from scratch"
                 : templateId
@@ -723,7 +726,7 @@ function PlaygroundInner() {
             }
             disabled={busy}
             aria-label="Strategy template"
-            className="focus-ring rounded-[10px] border border-hairline bg-panel px-2.5 py-1.5 text-sm md:hidden"
+            className="focus-ring rounded-(--radius-control) border border-hairline bg-panel px-2.5 py-1.5 text-sm md:hidden"
           >
             {templateId === "" && !scratchMode && <option value="">Loaded run</option>}
             {templates.map((t) => (
@@ -745,7 +748,7 @@ function PlaygroundInner() {
                   setIntradayHint(false); // user took over the range
                 }}
                 aria-label="Backtest start date"
-                className="focus-ring rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
+                className="focus-ring rounded-(--radius-control) border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
               />
               →
               <input
@@ -755,7 +758,7 @@ function PlaygroundInner() {
                 max={todayISO()}
                 onChange={(e) => setEndDate(e.target.value)}
                 aria-label="Backtest end date"
-                className="focus-ring rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
+                className="focus-ring rounded-(--radius-control) border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent"
               />
             </div>
             <select
@@ -764,7 +767,7 @@ function PlaygroundInner() {
               disabled={!spec || busy}
               aria-label="Bar timeframe"
               title="Bar size. Intraday timeframes are limited to ~60 days of history."
-              className="focus-ring tnum hidden rounded-[10px] border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent sm:block"
+              className="focus-ring tnum hidden rounded-(--radius-control) border border-hairline bg-panel px-2 py-1.5 text-xs text-ink focus:border-accent sm:block"
             >
               <option value="1d">1D</option>
               <option value="60m">60m</option>
@@ -777,7 +780,7 @@ function PlaygroundInner() {
               <Link
                 href="/pricing"
                 title="Your credit balance — runs and chat messages spend credits"
-                className="focus-ring tnum hidden items-center gap-1 rounded-[10px] border border-hairline bg-panel px-2.5 py-1.5 text-xs sm:flex"
+                className="focus-ring tnum hidden items-center gap-1 rounded-(--radius-control) border border-hairline bg-panel px-2.5 py-1.5 text-xs sm:flex"
               >
                 <span className="text-accent" aria-hidden="true">◈</span>
                 <span className={creditBalance < 25 ? "text-loss" : "text-ink"}>
@@ -797,7 +800,7 @@ function PlaygroundInner() {
             {signedIn !== null && (
               <Link
                 href={signedIn ? "/dashboard" : "/login"}
-                className="focus-ring rounded-[10px] border border-hairline px-3 py-1.5 text-xs text-muted hover:text-ink"
+                className={buttonClasses("secondary", "sm")}
               >
                 {signedIn ? "Dashboard" : "Log in"}
               </Link>
@@ -826,7 +829,7 @@ function PlaygroundInner() {
       <main className="flex flex-1 gap-3 p-3">
         {/* Left rail — strategy browser */}
         <aside className="slim-scroll hidden w-56 shrink-0 overflow-y-auto md:block lg:w-64">
-          <p className="px-2 pb-2 pt-1 text-[10px] uppercase tracking-widest text-faint">
+          <p className="px-2 pb-2 pt-1 font-mono text-caption uppercase tracking-widest text-faint">
             Templates
           </p>
           <div className="space-y-1">
@@ -839,17 +842,19 @@ function PlaygroundInner() {
                   onClick={() => onSelectTemplate(t.id)}
                   disabled={busy}
                   aria-pressed={active}
-                  className={`focus-ring w-full rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
+                  className={`focus-ring w-full rounded-(--radius-control) border px-3 py-2.5 text-left transition-colors duration-(--dur-micro) disabled:opacity-50 ${
                     active
-                      ? "border-accent/50 bg-accent-soft"
+                      ? "border-accent bg-accent-soft"
                       : "border-transparent hover:border-hairline hover:bg-panel"
                   }`}
                 >
                   <p className="truncate text-sm font-medium">
-                    {active && <span aria-hidden="true">▸ </span>}
+                    {active && (
+                      <span aria-hidden="true" className="mr-2 inline-block h-2 w-0.5 bg-accent" />
+                    )}
                     {t.meta.display_name}
                   </p>
-                  <p className="mt-0.5 flex items-center justify-between text-[10px] text-faint">
+                  <p className="mt-0.5 flex items-center justify-between text-caption text-faint">
                     <span className="uppercase tracking-wide">{t.meta.category}</span>
                     {typeof cagr === "number" && (
                       <span className="tnum">{fmtPct(cagr, 1)} cagr</span>
@@ -864,17 +869,19 @@ function PlaygroundInner() {
             disabled={busy}
             aria-pressed={scratchMode}
             title="Blank strategy — describe your rules and the AI builds the spec with you"
-            className={`focus-ring mt-3 w-full rounded-xl border border-dashed px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
+            className={`focus-ring mt-3 w-full rounded-(--radius-control) border border-dashed px-3 py-2.5 text-left transition-colors duration-(--dur-micro) disabled:opacity-50 ${
               scratchMode
-                ? "border-accent/50 bg-accent-soft"
-                : "border-hairline hover:border-accent/50 hover:bg-panel"
+                ? "border-accent bg-accent-soft"
+                : "border-hairline hover:border-hairline-strong hover:bg-panel"
             }`}
           >
             <p className="truncate text-sm font-medium">
-              {scratchMode && <span aria-hidden="true">▸ </span>}
+              {scratchMode && (
+                <span aria-hidden="true" className="mr-2 inline-block h-2 w-0.5 bg-accent" />
+              )}
               + New from scratch
             </p>
-            <p className="mt-0.5 text-[10px] uppercase tracking-wide text-faint">
+            <p className="mt-0.5 text-caption uppercase tracking-wide text-faint">
               AI-guided intake
             </p>
           </button>
@@ -898,9 +905,9 @@ function PlaygroundInner() {
               <div className="flex items-center gap-1.5">
                 <Link
                   href={`/runs/${run.run_id}`}
-                  className="focus-ring rounded-md text-xs text-accent hover:underline"
+                  className="focus-ring rounded-(--radius-tag) text-xs text-accent hover:underline"
                 >
-                  Run {run.run_id.slice(-6)}
+                  Run <span className="tnum">{run.run_id.slice(-6)}</span>
                 </Link>
                 <Button size="sm" variant="ghost" onClick={copyRunLink}>
                   {copied ? "Copied!" : "Share"}
@@ -908,7 +915,7 @@ function PlaygroundInner() {
                 {deployedSlug ? (
                   <Link
                     href={`/strategy/${deployedSlug}`}
-                    className="focus-ring rounded-lg border border-accent/50 bg-accent-soft px-2.5 py-1 text-xs text-accent hover:opacity-90"
+                    className="focus-ring rounded-(--radius-control) border border-accent bg-accent-soft px-2.5 py-1 text-xs text-accent transition-colors duration-(--dur-micro) hover:text-accent-hover"
                   >
                     On the ledger →
                   </Link>
@@ -925,7 +932,7 @@ function PlaygroundInner() {
                     </Button>
                     {intradayDeploy && (
                       <span
-                        className="text-[10px] text-faint"
+                        className="text-caption text-faint"
                         title="Intraday forward tests are evaluated on your strategy's own closed candles — one-time credit fee, Pro/Max plans"
                       >
                         Intraday deployment — Pro/Max · {deployFee} credits
@@ -954,7 +961,7 @@ function PlaygroundInner() {
                     prevStats={notComparable ? null : prevRun?.stats ?? null}
                   />
                   {notComparable && (
-                    <p className="text-[11px] text-faint">
+                    <p className="text-caption text-faint">
                       Date range or timeframe changed between runs — before/after
                       comparison hidden (the runs aren&apos;t comparable).
                     </p>
@@ -973,7 +980,7 @@ function PlaygroundInner() {
                       prevCurve={notComparable ? null : prevRun?.equity_curve ?? null}
                     />
                   </div>
-                  <p className="text-[11px] text-faint">{run.disclaimer ?? DISCLAIMER}</p>
+                  <p className="text-caption text-faint">{run.disclaimer ?? DISCLAIMER}</p>
                 </div>
               )}
 
@@ -985,7 +992,7 @@ function PlaygroundInner() {
                   className="space-y-2"
                 >
                   <TradeTable trades={run.trades} onInspect={onInspect} />
-                  <p className="text-[11px] text-faint">
+                  <p className="text-caption text-faint">
                     Click any trade to see its exact entry and exit candles on the chart.
                   </p>
                 </div>
@@ -1006,13 +1013,18 @@ function PlaygroundInner() {
                             key={sym}
                             onClick={() => setChartSymbol(sym)}
                             aria-pressed={sym === activeChartSymbol}
-                            className={`focus-ring tnum rounded-full border px-3 py-1 text-xs transition-colors ${
+                            className={`focus-ring tnum rounded-(--radius-pill) border px-3 py-1 text-xs transition-colors duration-(--dur-micro) ${
                               sym === activeChartSymbol
-                                ? "border-accent/60 bg-accent-soft text-ink"
+                                ? "border-accent bg-accent-soft text-ink"
                                 : "border-hairline text-muted hover:text-ink"
                             }`}
                           >
-                            {sym === activeChartSymbol && <span aria-hidden="true">● </span>}
+                            {sym === activeChartSymbol && (
+                              <span
+                                aria-hidden="true"
+                                className="mr-1.5 inline-block h-1.5 w-1.5 rounded-(--radius-pill) bg-accent"
+                              />
+                            )}
                             {sym}
                           </button>
                         ))}
@@ -1032,13 +1044,13 @@ function PlaygroundInner() {
                           </div>
                         )}
                       </div>
-                      <p className="text-[11px] text-faint">
+                      <p className="text-caption text-faint">
                         ▲ entries · ▼ exits for {activeChartSymbol}. Click a row in the
                         Trades tab to zoom into a single trade.
                       </p>
                     </>
                   ) : (
-                    <div className="card flex min-h-[200px] items-center justify-center border-dashed">
+                    <div className="card flex min-h-48 items-center justify-center border-dashed">
                       <p className="text-sm text-muted">No trades to chart in this run.</p>
                     </div>
                   )}
@@ -1051,7 +1063,7 @@ function PlaygroundInner() {
             // Pre-run drafts (scratch or template) still get the live Rules view.
             rulesPanel
           ) : scratchMode ? (
-            <div className="card flex min-h-[380px] items-center justify-center border-dashed">
+            <div className="card flex min-h-96 items-center justify-center border-dashed">
               <div className="max-w-sm text-center">
                 {spec ? (
                   <>
@@ -1066,7 +1078,8 @@ function PlaygroundInner() {
                   </>
                 ) : (
                   <>
-                    <p className="text-[11px] uppercase tracking-widest text-accent">
+                    <p className="font-mono text-xs uppercase tracking-widest text-muted">
+                      <span aria-hidden className="mr-2 inline-block h-2 w-0.5 bg-accent" />
                       New from scratch
                     </p>
                     <p className="mt-2 text-sm text-muted">
@@ -1081,7 +1094,7 @@ function PlaygroundInner() {
               </div>
             </div>
           ) : (
-            <div className="card flex min-h-[380px] items-center justify-center border-dashed">
+            <div className="card flex min-h-96 items-center justify-center border-dashed">
               <div className="max-w-sm text-center">
                 <p className="text-sm text-muted">
                   Pick a template on the left and hit{" "}
@@ -1097,7 +1110,7 @@ function PlaygroundInner() {
         </div>
 
         {/* Right dock — AI chat */}
-        <div className="hidden h-[calc(100vh-140px)] w-[340px] shrink-0 lg:sticky lg:top-[104px] lg:block xl:w-[380px]">
+        <div className="hidden h-[calc(100vh_-_var(--nav-h)_-_5.75rem)] w-85 shrink-0 lg:sticky lg:top-[calc(var(--nav-h)_+_3.5rem)] lg:block xl:w-95">
           <ChatPanel
             messages={messages}
             busy={chatBusy}
@@ -1111,7 +1124,7 @@ function PlaygroundInner() {
       </main>
 
       {/* Chat on small screens (below workspace) */}
-      <div className="h-[420px] p-3 pt-0 lg:hidden">
+      <div className="h-105 p-3 pt-0 lg:hidden">
         <ChatPanel
           messages={messages}
           busy={chatBusy}

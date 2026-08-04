@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { TimestampMark } from "@/components/EvidenceMarks";
 import Sparkline from "@/components/Sparkline";
+import { ButtonLink } from "@/components/ui/Button";
 import { fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { serverSession } from "@/lib/supabase/server";
 import SignOutButton from "./signout";
+
+/** App-surface section label — SectionShell's eyebrow grammar (SYSTEM.md §7)
+ *  applied to dashboard list headers: mono small-caps + the accent tick. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="font-mono text-xs uppercase tracking-widest text-muted">
+      <span aria-hidden className="mr-2 inline-block h-2 w-0.5 bg-accent" />
+      {children}
+    </h2>
+  );
+}
 
 export const metadata = { title: "Dashboard — Chat to Backtest" };
 
@@ -34,40 +47,38 @@ export default async function DashboardPage() {
   const deployments = myDeployments?.deployments ?? [];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-(--container-max) px-4 py-12 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-headline font-semibold text-ink">Dashboard</h1>
           <p className="mt-1 text-sm text-muted">
             {session.user.email} ·{" "}
             <span className="uppercase">{me?.plan ?? "free"}</span> plan ·{" "}
-            <Link href="/account" className="text-accent hover:underline">
+            <Link
+              href="/account"
+              className="focus-ring rounded-(--radius-tag) text-accent hover:underline"
+            >
               manage account
             </Link>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/playground"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-          >
-            Open playground
-          </Link>
+          <ButtonLink href="/playground">Open playground</ButtonLink>
           <SignOutButton />
         </div>
       </div>
 
       <section className="mt-10">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
+        <SectionLabel>
           My forward deployments{" "}
           {me && (
-            <span className="tnum normal-case">
+            <span className="tnum normal-case tracking-normal">
               ({deployments.length}/{me.limits?.deployments ?? "—"} slots)
             </span>
           )}
-        </h2>
+        </SectionLabel>
         {deployments.length ? (
-          <div className="mt-3 overflow-hidden rounded-xl border border-hairline">
+          <div className="card mt-3 overflow-hidden">
             {deployments.map(
               (d: {
                 slug: string;
@@ -78,10 +89,15 @@ export default async function DashboardPage() {
                 <Link
                   key={d.slug}
                   href={`/strategy/${d.slug}`}
-                  className="flex items-center gap-4 border-b border-hairline bg-panel px-4 py-3 last:border-0 hover:bg-panel-2"
+                  className="focus-ring flex items-center gap-4 border-b border-hairline px-4 py-3 transition-colors duration-(--dur-micro) last:border-0 hover:bg-panel-2"
                 >
-                  <span className="flex-1 text-sm font-medium">{d.name}</span>
-                  <span className="hidden text-xs text-muted sm:block">
+                  <span className="flex-1 text-sm font-medium text-ink">{d.name}</span>
+                  <TimestampMark
+                    iso={d.deployed_at}
+                    prefix="since"
+                    className="hidden md:block"
+                  />
+                  <span className="tnum hidden text-xs text-muted sm:block">
                     {d.summary.days_live}d live · maxDD {fmtPct(d.summary.max_drawdown_pct)}
                   </span>
                   <Sparkline values={d.summary.sparkline} baseline={100000} width={90} height={22} />
@@ -101,7 +117,7 @@ export default async function DashboardPage() {
             )}
           </div>
         ) : (
-          <p className="mt-3 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
+          <p className="card mt-3 border-dashed p-4 text-sm text-muted">
             Nothing deployed yet. Run a backtest you like, then hit{" "}
             <span className="text-ink">Deploy to forward test</span> — the ledger does
             the rest, one honest day at a time.
@@ -110,11 +126,9 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
-          My recent runs
-        </h2>
+        <SectionLabel>My recent runs</SectionLabel>
         {runs.length ? (
-          <div className="mt-3 overflow-hidden rounded-xl border border-hairline">
+          <div className="card mt-3 overflow-hidden">
             {runs.map(
               (r: {
                 run_id: string;
@@ -124,11 +138,11 @@ export default async function DashboardPage() {
               }) => (
                 <div
                   key={r.run_id}
-                  className="flex items-center gap-4 border-b border-hairline bg-panel px-4 py-3 last:border-0"
+                  className="flex items-center gap-4 border-b border-hairline px-4 py-3 last:border-0"
                 >
                   <Link
                     href={`/runs/${r.run_id}`}
-                    className="flex-1 text-sm font-medium hover:text-accent"
+                    className="focus-ring flex-1 rounded-(--radius-tag) text-sm font-medium text-ink transition-colors duration-(--dur-micro) hover:text-accent"
                   >
                     {r.name ?? r.run_id}
                   </Link>
@@ -139,7 +153,7 @@ export default async function DashboardPage() {
                   {r.share_slug && (
                     <Link
                       href={`/s/${r.share_slug}`}
-                      className="text-xs text-accent hover:underline"
+                      className="focus-ring rounded-(--radius-tag) text-xs text-accent hover:underline"
                     >
                       shared
                     </Link>
@@ -149,7 +163,7 @@ export default async function DashboardPage() {
             )}
           </div>
         ) : (
-          <p className="mt-3 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
+          <p className="card mt-3 border-dashed p-4 text-sm text-muted">
             No saved runs yet — runs you make while signed in land here automatically.
           </p>
         )}

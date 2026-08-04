@@ -19,8 +19,8 @@ const KIND_STYLES: Record<
   },
   warn: {
     label: "Heads up",
-    color: "var(--gloss-warm)",
-    soft: "color-mix(in srgb, var(--gloss-warm) 9%, transparent)",
+    color: "var(--warn)",
+    soft: "var(--warn-soft)",
   },
   honest: {
     label: "Honestly",
@@ -41,14 +41,14 @@ export function Callout({
   const s = KIND_STYLES[kind];
   return (
     <aside
-      className="docs-callout my-6 rounded-xl border border-hairline p-4 pl-5"
+      className="docs-callout my-6 rounded-(--radius-card) border border-hairline p-4 pl-5"
       style={{
         background: s.soft,
         borderLeft: `3px solid ${s.color}`,
       }}
     >
       <p
-        className="docs-callout-label text-[11px] font-semibold uppercase tracking-widest"
+        className="docs-callout-label text-caption font-semibold uppercase tracking-widest"
         style={{ color: s.color }}
       >
         {s.label}
@@ -104,9 +104,9 @@ export function DocsFooterNav({ prev, next }: { prev?: FooterLink; next?: Footer
       {prev ? (
         <Link
           href={prev.href}
-          className="focus-ring group rounded-xl border border-hairline bg-panel px-4 py-3 transition-colors hover:border-hairline-strong"
+          className="focus-ring group card-hover rounded-(--radius-card) border border-hairline bg-panel px-4 py-3"
         >
-          <span className="text-[11px] uppercase tracking-widest text-faint">
+          <span className="text-caption uppercase tracking-widest text-faint">
             ← Previous
           </span>
           <span className="mt-1 block text-sm font-medium text-ink group-hover:text-accent">
@@ -119,9 +119,9 @@ export function DocsFooterNav({ prev, next }: { prev?: FooterLink; next?: Footer
       {next ? (
         <Link
           href={next.href}
-          className="focus-ring group rounded-xl border border-hairline bg-panel px-4 py-3 text-right transition-colors hover:border-hairline-strong sm:col-start-2"
+          className="focus-ring group card-hover rounded-(--radius-card) border border-hairline bg-panel px-4 py-3 text-right sm:col-start-2"
         >
-          <span className="text-[11px] uppercase tracking-widest text-faint">
+          <span className="text-caption uppercase tracking-widest text-faint">
             Next →
           </span>
           <span className="mt-1 block text-sm font-medium text-ink group-hover:text-accent">

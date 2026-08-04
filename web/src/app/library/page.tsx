@@ -1,6 +1,9 @@
 import Link from "next/link";
+import Reveal from "@/components/Reveal";
+import SectionShell from "@/components/SectionShell";
+import TemplateCard from "@/components/TemplateCard";
+import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
-import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { Template } from "@/lib/types";
 
@@ -54,134 +57,140 @@ function groupByCategory(templates: Template[]): Array<[string, Template[]]> {
   return ordered;
 }
 
-function timeframeOf(t: Template): string {
-  return t.spec?.backtest_timeframe || "1d";
+function slugOf(category: string): string {
+  return category.toLowerCase().replace(/\s+/g, "-");
 }
 
-function LibraryCard({ template }: { template: Template }) {
-  const s = template.cached_stats?.stats;
-  const cagr = s?.cagr ?? null;
-  const timeframe = timeframeOf(template);
-  const intraday = timeframe !== "1d";
+/** Category filter chip — server-rendered link, so filtering works without
+ *  JS. Accent marks the ACTIVE chip only (SYSTEM.md §1: active states are a
+ *  sanctioned accent use); resting chips stay hairline + muted. */
+function FilterChip({
+  href,
+  active,
+  label,
+  count,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+  count: number;
+}) {
   return (
     <Link
-      href={`/playground?template=${encodeURIComponent(template.id)}`}
-      className="group flex flex-col rounded-xl border border-hairline bg-panel p-4 transition-colors hover:border-accent"
+      href={href}
+      aria-current={active ? "true" : undefined}
+      className={`focus-ring inline-flex items-center gap-1.5 rounded-(--radius-control) border px-3 py-1.5 text-xs transition-colors duration-(--dur-micro) ${
+        active
+          ? "border-accent bg-accent-soft text-accent"
+          : "border-hairline text-muted hover:border-hairline-strong hover:text-ink"
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium leading-tight">{template.meta.display_name}</h3>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {intraday && (
-            <span
-              className="tnum rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent"
-              title={`Intraday strategy — runs on ${timeframe} bars`}
-            >
-              {timeframe}
-            </span>
-          )}
-          <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
-            {template.meta.category}
-          </span>
-        </div>
-      </div>
-      <p className="mt-2 flex-1 text-xs leading-relaxed text-muted">
-        {template.meta.one_liner}
-      </p>
-      {s ? (
-        <>
-          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-hairline pt-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted">CAGR</div>
-              <div className={`tnum text-base ${cagr !== null && cagr < 0 ? "text-loss" : ""}`}>
-                {fmtPct(cagr, 1)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted">Return</div>
-              <div
-                className={`tnum text-base ${
-                  (s.total_return_pct ?? 0) < 0 ? "text-loss" : ""
-                }`}
-              >
-                {fmtSignedPct(s.total_return_pct ?? null, 0)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted">Max DD</div>
-              <div className="tnum text-base">{fmtPct(s.max_drawdown ?? null, 0)}</div>
-            </div>
-          </div>
-          <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
-            <span className="tnum">
-              {intraday
-                ? `${timeframe} bars`
-                : `${template.cached_stats?.start_date.slice(0, 4)}–${template.cached_stats?.end_date.slice(0, 4)}`}
-              {" · "}Sharpe {fmtNum(s.sharpe ?? null)} · {s.total_trades ?? "—"} trades
-            </span>
-            <span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
-              Fork it →
-            </span>
-          </div>
-        </>
-      ) : (
-        <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-xs text-muted">
-          <span>Open it in the playground to run the backtest</span>
-          <span className="text-accent opacity-0 transition-opacity group-hover:opacity-100">
-            Fork it →
-          </span>
-        </div>
-      )}
+      {label}
+      <span className={`tnum text-caption ${active ? "" : "text-faint"}`}>{count}</span>
     </Link>
   );
 }
 
-export default async function LibraryPage() {
-  const templates = await getTemplates();
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string | string[] }>;
+}) {
+  const [templates, params] = await Promise.all([getTemplates(), searchParams]);
   const sections = groupByCategory(templates);
+  const rawCategory = Array.isArray(params.category) ? params.category[0] : params.category;
+  const activeCategory =
+    sections.find(([cat]) => slugOf(cat) === rawCategory)?.[0] ?? null;
+  const visible = activeCategory
+    ? sections.filter(([cat]) => cat === activeCategory)
+    : sections;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
-      <p className="text-xs uppercase tracking-widest text-accent">
-        The Library · Receipts included
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold">The Library</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-        Every strategy comes with receipts. Real backtests, forkable in one click,
-        deployable to the public forward ledger. The numbers on each card are the actual
-        simulated results — winners and losers alike — and one click drops the full
-        strategy into the playground where you can pick it apart, change any rule, and
-        rerun it yourself.
-      </p>
+    <main className="w-full">
+      <SectionShell
+        headingAs="h1"
+        hero
+        tight
+        eyebrow="The Library · Receipts included"
+        title="The Library"
+        sub={
+          <>
+            Every strategy comes with receipts. Real backtests, forkable in one click,
+            deployable to the public forward ledger. The numbers on each card are the
+            actual simulated results — winners and losers alike — and one click drops
+            the full strategy into the playground where you can pick it apart, change
+            any rule, and rerun it yourself.
+          </>
+        }
+      >
+        {sections.length === 0 ? (
+          <Card pad="sm" className="text-sm text-muted">
+            The library couldn&apos;t be loaded. Is the backtest service running?
+          </Card>
+        ) : (
+          <>
+            <Reveal>
+              <nav aria-label="Filter strategies by category" className="flex flex-wrap gap-2">
+                <FilterChip
+                  href="/library"
+                  active={activeCategory === null}
+                  label="All"
+                  count={templates.length}
+                />
+                {sections.map(([category, list]) => (
+                  <FilterChip
+                    key={category}
+                    href={`/library?category=${encodeURIComponent(slugOf(category))}`}
+                    active={activeCategory === category}
+                    label={category}
+                    count={list.length}
+                  />
+                ))}
+              </nav>
+            </Reveal>
 
-      {sections.length === 0 ? (
-        <p className="mt-8 rounded-lg border border-hairline bg-panel p-4 text-sm text-muted">
-          The library couldn&apos;t be loaded. Is the backtest service running?
-        </p>
-      ) : (
-        sections.map(([category, list]) => (
-          <section key={category} className="mt-10">
-            <div className="flex items-baseline gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">{category}</h2>
-              <span className="tnum rounded-full border border-hairline px-2 py-0.5 text-[10px] text-muted">
-                {list.length}
-              </span>
-            </div>
-            {CATEGORY_TAGLINES[category] && (
-              <p className="mt-1 text-xs text-muted">{CATEGORY_TAGLINES[category]}</p>
-            )}
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((t) => (
-                <LibraryCard key={t.id} template={t} />
+            <div className="mt-12 space-y-14">
+              {visible.map(([category, list]) => (
+                <section key={category} aria-labelledby={`cat-${slugOf(category)}`}>
+                  <Reveal>
+                    <div className="flex items-baseline gap-3">
+                      <h2
+                        id={`cat-${slugOf(category)}`}
+                        className="text-xl font-medium text-ink"
+                      >
+                        {category}
+                      </h2>
+                      <span className="tnum rounded-(--radius-pill) border border-hairline px-2 py-0.5 text-caption text-muted">
+                        {list.length}
+                      </span>
+                    </div>
+                    {CATEGORY_TAGLINES[category] && (
+                      <p className="mt-1.5 text-sm text-muted">
+                        {CATEGORY_TAGLINES[category]}
+                      </p>
+                    )}
+                  </Reveal>
+                  <Reveal>
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {list.map((t) => (
+                        <TemplateCard key={t.id} template={t} />
+                      ))}
+                    </div>
+                  </Reveal>
+                </section>
               ))}
             </div>
-          </section>
-        ))
-      )}
+          </>
+        )}
+      </SectionShell>
 
-      <p className="mt-10 text-[11px] text-muted">
-        Backtest results are simulations on historical data with a slippage assumption —
-        not real executions, and not a promise about the future. {DISCLAIMER}
-      </p>
+      <div className="mx-auto w-full max-w-(--container-max) px-4 pb-12 sm:px-6">
+        <p className="max-w-prose text-caption text-muted">
+          Backtest results are simulations on historical data with a slippage
+          assumption — not real executions, and not a promise about the future.{" "}
+          {DISCLAIMER}
+        </p>
+      </div>
     </main>
   );
 }

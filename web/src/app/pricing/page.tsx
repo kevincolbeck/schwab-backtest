@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import SectionShell from "@/components/SectionShell";
+import Card from "@/components/ui/Card";
+import Button, { ButtonLink } from "@/components/ui/Button";
 
 const TIERS = [
   {
@@ -52,6 +55,17 @@ const PACKS = [
   { pack: "large", name: "1,500 credits", price: "$25" },
 ];
 
+/** Split "$29/mo" so the amount is the mono hero and the period whispers. */
+function Price({ price }: { price: string }) {
+  const [amount, period] = price.split("/");
+  return (
+    <p className="tnum mt-2 text-headline text-ink">
+      {amount}
+      {period && <span className="ml-1 font-sans text-sm text-muted">/{period}</span>}
+    </p>
+  );
+}
+
 export default function PricingPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,81 +91,98 @@ export default function PricingPage() {
   const upgrade = (plan: string) => checkout({ plan });
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-16">
-      <h1 className="text-3xl font-semibold">Simple pricing</h1>
-      <p className="mt-2 max-w-xl text-sm text-muted">
-        Free is genuinely usable. Paid plans buy more scale and more forward-test
-        slots — never “better signals,” because we don&apos;t sell signals.
-      </p>
-      {error && (
-        <p role="alert" className="mt-4 text-sm text-loss">
-          {error} {error.includes("sign in") && <Link href="/login" className="underline">Sign in</Link>}
-        </p>
-      )}
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {TIERS.map((t) => (
-          <div
-            key={t.name}
-            className={`flex flex-col rounded-xl border p-6 ${
-              t.plan === "pro" ? "border-accent/60 bg-accent-soft" : "border-hairline bg-panel"
-            }`}
-          >
-            <h2 className="text-lg font-semibold">{t.name}</h2>
-            <div className="tnum mt-1 text-2xl">{t.price}</div>
-            <p className="mt-1 text-xs text-muted">{t.tagline}</p>
-            <ul className="mt-4 flex-1 space-y-2 text-sm">
-              {t.features.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <span className="text-accent">✓</span>
-                  <span className="text-muted">{f}</span>
-                </li>
-              ))}
-            </ul>
-            {t.plan ? (
-              <button
-                onClick={() => upgrade(t.plan!)}
-                disabled={busy !== null}
-                className="mt-6 rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-40"
-              >
-                {busy === t.plan ? "Redirecting…" : `Upgrade to ${t.name}`}
-              </button>
-            ) : (
-              <Link
-                href="/playground"
-                className="mt-6 rounded-md border border-hairline px-4 py-2 text-center text-sm hover:bg-panel-2"
-              >
-                Start free
+    <main>
+      <SectionShell
+        headingAs="h1"
+        hero
+        eyebrow="Pricing · Plans & credits"
+        title="Simple pricing"
+        sub={
+          <>
+            Free is genuinely usable. Paid plans buy more scale and more
+            forward-test slots — never &ldquo;better signals,&rdquo; because we
+            don&apos;t sell signals.
+          </>
+        }
+      >
+        {error && (
+          <p role="alert" className="mb-6 text-sm text-loss">
+            {error}{" "}
+            {error.includes("sign in") && (
+              <Link href="/login" className="focus-ring rounded-(--radius-tag) underline">
+                Sign in
               </Link>
             )}
-          </div>
-        ))}
-      </div>
-      <div className="mt-10 rounded-xl border border-hairline bg-panel p-6">
-        <h2 className="text-lg font-semibold">Need more credits?</h2>
-        <p className="mt-1 text-sm text-muted">
-          Top-up packs never expire. Subscriptions are the better deal — packs are
-          for the &ldquo;one more idea tonight&rdquo; moments.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {PACKS.map((p) => (
-            <button
-              key={p.pack}
-              onClick={() => checkout({ pack: p.pack })}
-              disabled={busy !== null}
-              className="focus-ring rounded-[10px] border border-hairline-strong px-4 py-2.5 text-sm hover:bg-panel-2 disabled:opacity-40"
+          </p>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {TIERS.map((t) => (
+            <Card
+              key={t.name}
+              pad="none"
+              featured={t.plan === "pro"}
+              className={`flex flex-col p-6 ${t.plan === "pro" ? "border-hairline-strong" : ""}`}
             >
-              <span className="tnum font-medium">{p.name}</span>
-              <span className="ml-2 text-muted">{busy === p.pack ? "…" : p.price}</span>
-            </button>
+              <h2 className="text-caption uppercase tracking-widest text-muted">{t.name}</h2>
+              <Price price={t.price} />
+              <p className="mt-1.5 text-sm text-muted">{t.tagline}</p>
+              <ul className="mt-5 flex-1 space-y-2 text-sm">
+                {t.features.map((f) => (
+                  <li key={f} className="flex gap-2 text-muted">
+                    <span aria-hidden>✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              {t.plan ? (
+                <Button
+                  variant={t.plan === "pro" ? "primary" : "secondary"}
+                  className="mt-6 w-full"
+                  onClick={() => upgrade(t.plan!)}
+                  disabled={busy !== null}
+                >
+                  {busy === t.plan ? "Redirecting…" : `Upgrade to ${t.name}`}
+                </Button>
+              ) : (
+                <ButtonLink variant="secondary" href="/playground" className="mt-6 w-full">
+                  Start free
+                </ButtonLink>
+              )}
+            </Card>
           ))}
         </div>
-      </div>
-      <p className="mt-8 text-[11px] text-muted">
-        Credits are spent on backtest runs and AI messages — bigger timeframes,
-        bigger symbol lists, and longer conversations cost more, and intraday
-        forward deployments carry a one-time credit fee. Cancel anytime through
-        the billing portal. Payments handled by Stripe — we never see your card.
-      </p>
+
+        <Card className="mt-6" pad="none">
+          <div className="p-6">
+            <h2 className="text-sm font-medium text-ink">Need more credits?</h2>
+            <p className="mt-1 text-sm text-muted">
+              Top-up packs never expire. Subscriptions are the better deal — packs
+              are for the &ldquo;one more idea tonight&rdquo; moments.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {PACKS.map((p) => (
+                <Button
+                  key={p.pack}
+                  variant="secondary"
+                  onClick={() => checkout({ pack: p.pack })}
+                  disabled={busy !== null}
+                >
+                  <span className="tnum font-medium">{p.name}</span>
+                  <span className="ml-2 text-muted">{busy === p.pack ? "…" : p.price}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        <p className="mt-8 max-w-prose text-caption leading-relaxed text-faint">
+          Credits are spent on backtest runs and AI messages — bigger timeframes,
+          bigger symbol lists, and longer conversations cost more, and intraday
+          forward deployments carry a one-time credit fee. Cancel anytime through
+          the billing portal. Payments handled by Stripe — we never see your card.
+        </p>
+      </SectionShell>
     </main>
   );
 }

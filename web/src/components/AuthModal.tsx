@@ -84,20 +84,20 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
         {OAUTH_PROVIDERS.length > 0 && (
           <div className="mb-4 space-y-2">
             {OAUTH_PROVIDERS.map((p) => (
-              <Button key={p} variant="outline" className="w-full" disabled={busy} onClick={() => oauth(p)}>
+              <Button key={p} variant="secondary" className="w-full" disabled={busy} onClick={() => oauth(p)}>
                 <span className="flex items-center justify-center gap-2.5">
                   <ProviderLogo provider={p} />
                   {PROVIDER_LABEL[p]}
                 </span>
               </Button>
             ))}
-            <div className="flex items-center gap-3 py-1 text-[11px] text-faint">
+            <div className="flex items-center gap-3 py-1 text-caption text-faint">
               <span className="h-px flex-1 bg-hairline" /> or <span className="h-px flex-1 bg-hairline" />
             </div>
           </div>
         )}
         {sent ? (
-          <p role="status" className="rounded-lg border border-accent/40 bg-accent-soft p-3 text-sm">
+          <p role="status" className="rounded-(--radius-control) border border-accent bg-accent-soft p-3 text-sm">
             Check your email — your sign-in link is on the way to{" "}
             <span className="font-medium">{email}</span>.
           </p>
@@ -110,7 +110,7 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
               onKeyDown={(e) => e.key === "Enter" && sendLink()}
               placeholder="you@example.com"
               aria-label="Email address"
-              className="focus-ring w-full rounded-[10px] border border-hairline bg-panel-2 px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
+              className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel-2 px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
             />
             <Button className="w-full" onClick={sendLink} disabled={busy || !email.trim()}>
               {busy ? "Sending…" : "Email me a sign-in link"}
@@ -120,7 +120,7 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
                 {error}
               </p>
             )}
-            <p className="text-[11px] leading-relaxed text-faint">
+            <p className="text-caption leading-relaxed text-faint">
               No password needed. Free to start — no card required.
             </p>
           </div>

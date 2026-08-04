@@ -55,26 +55,26 @@ export default function TradeInspector({
     <Modal open onClose={onClose} wide title={`${trade.symbol} — ${trade.side} trade`}>
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-faint">Entry</p>
+          <p className="text-caption uppercase tracking-wide text-faint">Entry</p>
           <p className="tnum text-sm">
             {fmtDate(trade.entry_date)} @ {fmtNum(trade.entry_price)}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-faint">Exit</p>
+          <p className="text-caption uppercase tracking-wide text-faint">Exit</p>
           <p className="tnum text-sm">
             {fmtDate(trade.exit_date)} @ {fmtNum(trade.exit_price)}
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-faint">P&L</p>
+          <p className="text-caption uppercase tracking-wide text-faint">P&L</p>
           <p className={`tnum text-sm ${win ? "text-gain" : "text-loss"}`}>
             {win ? "+" : ""}
             {fmtMoney(trade.pnl_dollars)} ({win ? "won" : "lost"})
           </p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wide text-faint">Exit reason</p>
+          <p className="text-caption uppercase tracking-wide text-faint">Exit reason</p>
           <p className="text-sm text-muted">{trade.exit_reason}</p>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function TradeInspector({
           height={340}
         />
       )}
-      <p className="mt-3 text-[10px] leading-relaxed text-faint">
+      <p className="mt-3 text-caption leading-relaxed text-faint">
         ▲ entry candle · ▼ exit candle · dashed line = initial stop. Simulated fills
         include slippage; markers sit on the signal dates.
       </p>

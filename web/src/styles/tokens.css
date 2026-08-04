@@ -1,0 +1,207 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   tokens.css — Chat·Backtest design tokens (Phase 1 · single source of truth)
+
+   Every color, type step, space rhythm, radius, shadow, duration, and easing
+   in the app resolves HERE. Components and pages consume tokens — directly
+   via var(), or through the Tailwind @theme mapping in globals.css. Zero
+   hardcoded values anywhere else. Usage rules: design/SYSTEM.md.
+
+   Dark is the source theme. [data-theme="light"] is a PURE override of the
+   same custom properties — if a light value cannot be expressed as a token
+   override, it does not ship.
+
+   Accent: ice blue (#4da2ff) with a glacial-cyan gradient partner. Rationale
+   in design/SYSTEM.md §1. Green/red stay reserved for P&L semantics.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Canvas & surfaces ──────────────────────────────────────────────────
+     Near-black, never pure black (brief §2.1: land between #0B0D10 and
+     #101318). Two elevation steps: bg-1 = card, bg-2 = nested panel.
+     bg-3 is a control/hover FILL, not a third elevation. Depth comes from
+     hairline + subtle lift — never decorative drop shadows.              */
+  --bg-0: #0c0f14; /* canvas */
+  --bg-1: #12151c; /* elevation 1 — cards, rails, table heads */
+  --bg-2: #171b23; /* elevation 2 — nested panels, code, tooltips */
+  --bg-3: #1d222c; /* control fill / hover step (not an elevation) */
+  --glass: rgba(18, 21, 28, 0.72); /* frosted nav/dock/modal surface */
+  --overlay: rgba(6, 8, 12, 0.6); /* modal + command-palette scrim */
+  --hairline: rgba(148, 163, 184, 0.1); /* THE border. 1px, cool ~8% */
+  --hairline-strong: rgba(148, 163, 184, 0.22); /* focus/emphasis border */
+
+  /* ── Text tiers (brief: ~92 / ~60 / ~38% white) ─────────────────────────
+     faint is tuned to ~42% so legacy content on it keeps ≥4:1 until Phase 3
+     reassigns real content up-tier; treat faint as marks/meta only.      */
+  --ink: #e9edf4; /* primary — headings, body, numbers */
+  --muted: #98a2b3; /* secondary — labels, subcopy (7.4:1 on bg-0) */
+  --faint: #6b7585; /* tertiary — timestamps, hashes, legal (4.1:1) */
+
+  /* ── Brand accent — ice blue. ONE accent, extreme restraint ─────────────
+     Appears ONLY on: primary CTAs, active/selected states, links, focus
+     rings, and the gloss-ring material. Never as decoration or large fill. */
+  --accent: #4da2ff;
+  --accent-hover: #74b7ff; /* hover = lighter (toward ice) */
+  --accent-soft: rgba(77, 162, 255, 0.13); /* selected fills, selection */
+  --accent-glow: rgba(77, 162, 255, 0.35); /* CTA halo only */
+  /* Gradient partner (accent #2) — glacial cyan. Materials ONLY: the
+     gloss ring spectrum and the single hero gradient sweep. Never text,
+     never fills, never data. */
+  --accent-2: #3edbf0;
+
+  /* ── Semantic colors — never decorative ─────────────────────────────────
+     gain/loss: TradingView pair, retained (5.3:1 / 4.9:1 on bg-0; teal-
+     leaning green keeps the pair CVD-distinguishable). P&L, deltas, and
+     candle valence ONLY. warn: cold amber for cautions/callouts — never
+     on charts, so it cannot be read as P&L.                              */
+  --gain: #089981;
+  --loss: #f23645;
+  --gain-soft: rgba(8, 153, 129, 0.12);
+  --loss-soft: rgba(242, 54, 69, 0.1);
+  --warn: #e2a33d;
+  --warn-soft: rgba(226, 163, 61, 0.12);
+
+  /* ── Comparison color — previous-run chart overlays ─────────────────────
+     Deep glacial cyan: same cold family as the accent (current run) but a
+     step greener/dimmer, so the ghost recedes. Chart strokes + legend
+     chips ONLY, always paired with a non-color cue (thinner/dashed line,
+     label) — never color alone. Never text, never badges.                */
+  --prev-run: #37b7ce;
+
+  /* ── Materials — gloss ring, glow, glass, ambient ───────────────────────
+     The ring is a SPECIAL MATERIAL, not palette: a 3-stop cold spectrum
+     of our accent (ice blue → glacial glint → deep cobalt). Usage rules:
+     SYSTEM.md §5 (one idle ring per viewport, hover elsewhere).          */
+  --ring-glint: #9fe9fa; /* bright icy flash stop */
+  --ring-deep: #2f6bdc; /* deep cobalt anchor stop */
+  --gloss-opacity: 0.75;
+  --gloss-opacity-hover: 1;
+  --gloss-warm: var(--warn); /* DEPRECATED alias — docs Callout(warn) still
+     reads it; Phase 2 re-points to --warn, then delete. Not in the ring. */
+  --glow-cta: 0 0 0 1px var(--accent), 0 8px 32px -8px var(--accent-glow);
+  --glass-backdrop: blur(14px) saturate(1.3);
+  --aurora-1: rgba(77, 162, 255, 0.13); /* ambient wash — accent */
+  --aurora-2: rgba(62, 219, 240, 0.09); /* ambient wash — partner */
+  --aurora-blur: 72px;
+  --grid-dot-gap: 26px; /* hero instrumentation grid pitch */
+
+  /* ── Elevation shadows (lift, not decoration) ───────────────────────── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px -12px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 24px 80px -16px rgba(0, 0, 0, 0.7);
+
+  /* ── Typography ─────────────────────────────────────────────────────────
+     Display/body: Geist (medium weights carry hierarchy — never bold-
+     everything). Numbers/hashes/timestamps: Geist Mono + tabular figures,
+     everywhere a number appears (evidence identity, SYSTEM.md §3).       */
+  --font-stack-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-stack-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  /* Type scale — 11/12/14/15/16/18/20/24/32/48/64. Fluid clamp() on the
+     display steps. Each step ships its line-height (-lh) and letter-
+     spacing (-ls); large sizes tighten tracking.                         */
+  --type-caption: 0.6875rem; /* 11px — captions, legal, table meta */
+  --type-caption-lh: 1.45;
+  --type-caption-ls: 0.01em;
+  --type-label: 0.75rem; /* 12px — labels, eyebrows, table heads */
+  --type-label-lh: 1.5;
+  --type-label-ls: 0.02em;
+  --type-body-sm: 0.875rem; /* 14px — dense UI body, tables */
+  --type-body-sm-lh: 1.6;
+  --type-prose: 0.9375rem; /* 15px — docs reading size */
+  --type-prose-lh: 1.75;
+  --type-body: 1rem; /* 16px — default body */
+  --type-body-lh: 1.65;
+  --type-body-lg: 1.125rem; /* 18px — ledes, subcopy */
+  --type-body-lg-lh: 1.6;
+  --type-title-sm: 1.25rem; /* 20px — card/panel titles */
+  --type-title-sm-lh: 1.4;
+  --type-title-sm-ls: -0.005em;
+  --type-title: 1.5rem; /* 24px — section subheads */
+  --type-title-lh: 1.35;
+  --type-title-ls: -0.01em;
+  --type-headline: 2rem; /* 32px — page titles, section heads */
+  --type-headline-lh: 1.25;
+  --type-headline-ls: -0.015em;
+  --type-display: clamp(2rem, 1.45rem + 2.2vw, 3rem); /* 32→48px */
+  --type-display-lh: 1.12;
+  --type-display-ls: -0.02em;
+  --type-display-xl: clamp(2.5rem, 1.7rem + 3.2vw, 4rem); /* 40→64px */
+  --type-display-xl-lh: 1.05;
+  --type-display-xl-ls: -0.025em;
+  --type-code: 0.8125rem; /* 13px — code blocks, hash fragments */
+  --type-code-lh: 1.65;
+
+  /* ── Space ── 4px base unit (Tailwind's default --spacing: 0.25rem IS
+     the scale — use spacing utilities). Named rhythm tokens:            */
+  --space-section: clamp(4rem, 2.6rem + 5.5vw, 8rem); /* 64→128px vertical */
+  --space-section-sm: clamp(3rem, 2.2rem + 3vw, 5rem); /* thin sections */
+  --container-max: 72rem; /* 1152px — the ONE marketing container width */
+  --nav-h: 3rem; /* 48px — sticky nav; layout offsets derive from this */
+
+  /* ── Radius language — never deviate ──────────────────────────────────
+     card 14 / control 10 / tag 6 / pill full. That's the whole language. */
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --radius-tag: 6px;
+  --radius-pill: 999px;
+
+  /* ── Motion — one easing family, four durations ───────────────────────
+     micro: hovers/toggles · standard: state changes · reveal: scroll
+     entrances · slow: chart draws. Ambient loops get their own clocks.  */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-micro: 150ms;
+  --dur-standard: 250ms;
+  --dur-reveal: 500ms;
+  --dur-slow: 700ms;
+  --reveal-shift: 16px; /* scroll-reveal fade-up distance */
+  --reveal-stagger: 60ms; /* sibling stagger */
+  --dur-ring-idle: 9s; /* idle gloss ring — brief: ≥8s, hero CTA only */
+  --dur-aurora-a: 44s;
+  --dur-aurora-b: 56s;
+
+  /* ── Focus ── one visible ring for every interactive element ────────── */
+  --focus-outline: 2px solid var(--accent);
+  --focus-offset: 2px;
+}
+
+/* ── Light theme — pure token overrides, nothing else ─────────────────────
+   Derived automatically from the dark tokens: same hues, contrast-flipped.
+   Accent/semantics darkened for AA on white; materials dimmed so glow
+   never washes out light surfaces.                                       */
+[data-theme="light"] {
+  --bg-0: #f6f7fb;
+  --bg-1: #ffffff;
+  --bg-2: #eff2f8;
+  --bg-3: #e7ebf3;
+  --glass: rgba(255, 255, 255, 0.78);
+  --overlay: rgba(10, 15, 24, 0.45);
+  --hairline: rgba(15, 23, 42, 0.09);
+  --hairline-strong: rgba(15, 23, 42, 0.2);
+
+  --ink: #10151f;
+  --muted: #545e6e;
+  --faint: #6a7488; /* AA on light surfaces */
+
+  --accent: #1670d6; /* darkened for 4.8:1 on white */
+  --accent-hover: #1160b8; /* hover = darker on light */
+  --accent-soft: rgba(22, 112, 214, 0.1);
+  --accent-glow: rgba(22, 112, 214, 0.25);
+  --accent-2: #0b93ac;
+
+  --gain: #067a67; /* AA-adjusted */
+  --loss: #d1202f;
+  --gain-soft: rgba(6, 122, 103, 0.1);
+  --loss-soft: rgba(209, 32, 47, 0.09);
+  --warn: #9a6a10;
+  --warn-soft: rgba(154, 106, 16, 0.1);
+  --prev-run: #0e7e93;
+
+  --ring-glint: #35b9d6; /* dimmer glint — no white-hot flash on white */
+  --ring-deep: #2f6bdc;
+  --gloss-opacity: 0.5;
+  --gloss-opacity-hover: 0.75;
+  --aurora-1: rgba(22, 112, 214, 0.07);
+  --aurora-2: rgba(11, 147, 172, 0.05);
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px -16px rgba(15, 23, 42, 0.16);
+  --shadow-pop: 0 24px 64px -16px rgba(15, 23, 42, 0.25);
+}

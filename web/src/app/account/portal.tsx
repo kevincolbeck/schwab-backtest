@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/Button";
 
 export default function PortalButton() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <span>
-      <button
+      <Button
         onClick={async () => {
           setBusy(true);
           setError(null);
@@ -22,10 +23,9 @@ export default function PortalButton() {
           }
         }}
         disabled={busy}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-40"
       >
         {busy ? "Opening…" : "Manage billing"}
-      </button>
+      </Button>
       {error && <span className="ml-3 text-sm text-loss">{error}</span>}
     </span>
   );

@@ -20,7 +20,7 @@ export default function TradeTable({
   }
   const visible = trades.slice(0, shown);
   return (
-    <div className="overflow-x-auto rounded-lg border border-hairline">
+    <div className="overflow-x-auto rounded-(--radius-card) border border-hairline">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-hairline bg-panel text-left text-muted">
@@ -84,7 +84,7 @@ export default function TradeTable({
       {shown < trades.length && (
         <button
           onClick={() => setShown((s) => s + PAGE)}
-          className="w-full border-t border-hairline bg-panel py-2 text-xs text-muted hover:bg-panel-2 hover:text-ink"
+          className="focus-ring w-full border-t border-hairline bg-panel py-2 text-xs text-muted transition-colors duration-(--dur-micro) hover:bg-panel-2 hover:text-ink"
         >
           Show more ({trades.length - shown} remaining)
         </button>

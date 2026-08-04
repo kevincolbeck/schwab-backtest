@@ -63,7 +63,7 @@ export default function DocsSidebar() {
             )?.href ?? "/docs"
           }
           onChange={(e) => router.push(e.target.value)}
-          className="focus-ring w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-sm text-ink"
+          className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel px-3 py-2 text-sm text-ink"
         >
           {DOCS_SECTIONS.map((section) => (
             <optgroup key={section.title} label={section.title}>
@@ -81,7 +81,7 @@ export default function DocsSidebar() {
       <nav aria-label="Docs" className="hidden lg:block">
         {DOCS_SECTIONS.map((section) => (
           <div key={section.title} className="mb-6">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-faint">
+            <p className="mb-2 text-caption font-semibold uppercase tracking-widest text-faint">
               {section.title}
             </p>
             <ul className="space-y-0.5">
@@ -92,7 +92,7 @@ export default function DocsSidebar() {
                     <Link
                       href={l.href}
                       aria-current={active ? "page" : undefined}
-                      className={`focus-ring block rounded-lg border-l-2 py-1.5 pl-3 pr-2 text-sm transition-colors ${
+                      className={`focus-ring block rounded-(--radius-tag) border-l-2 py-1.5 pl-3 pr-2 text-sm transition-colors duration-(--dur-micro) ${
                         active
                           ? "border-accent bg-accent-soft font-medium text-ink"
                           : "border-transparent text-muted hover:text-ink"

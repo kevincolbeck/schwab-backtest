@@ -6,7 +6,7 @@ import type { SpecChange } from "@/lib/types";
 export default function DiffStrip({ changes }: { changes: SpecChange[] }) {
   if (!changes.length) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-accent-soft px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-(--radius-control) border border-hairline bg-accent-soft px-3 py-2">
       <span className="text-xs font-medium text-accent">Changes</span>
       {changes.map((c) => {
         const shortFrom = c.from.length > 24 ? c.from.slice(0, 24) + "…" : c.from;
@@ -14,7 +14,7 @@ export default function DiffStrip({ changes }: { changes: SpecChange[] }) {
         return (
           <span
             key={c.field}
-            className="rounded-full border border-hairline bg-panel px-2.5 py-0.5 text-xs"
+            className="rounded-(--radius-pill) border border-hairline bg-panel px-2.5 py-0.5 text-xs"
             title={`${c.field}: ${c.from} → ${c.to}`}
           >
             <span className="text-muted">{c.field}</span>{" "}

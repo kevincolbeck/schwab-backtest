@@ -43,19 +43,28 @@ export default function RootLayout({
           <div className="flex flex-1 flex-col">{children}</div>
           <CommandPalette />
           <footer className="border-t border-hairline">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mx-auto flex w-full max-w-(--container-max) flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="flex items-center gap-4 text-xs text-muted">
-                <Link href="/leaderboard" className="hover:text-ink">
+                <Link
+                  href="/leaderboard"
+                  className="focus-ring rounded-(--radius-tag) hover:text-ink"
+                >
                   Leaderboard
                 </Link>
-                <Link href="/pricing" className="hover:text-ink">
+                <Link
+                  href="/pricing"
+                  className="focus-ring rounded-(--radius-tag) hover:text-ink"
+                >
                   Pricing
                 </Link>
-                <Link href="/playground" className="hover:text-ink">
+                <Link
+                  href="/playground"
+                  className="focus-ring rounded-(--radius-tag) hover:text-ink"
+                >
                   The Lab
                 </Link>
               </div>
-              <p className="max-w-xl text-[11px] leading-relaxed text-faint">
+              <p className="max-w-xl text-caption leading-relaxed text-faint">
                 {DISCLAIMER}
               </p>
             </div>
