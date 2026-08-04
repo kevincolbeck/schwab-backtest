@@ -42,7 +42,9 @@ export default function FirstBacktestPage() {
           <ul>
             <li>
               <strong>A template.</strong> The left rail lists ready-made
-              strategies with their category and long-run historical CAGR.
+              strategies with their category and historical result — CAGR when
+              a year-plus window backs it, the window&apos;s total return for
+              short intraday tests.
               They are working examples to take apart, not recommendations.
               Click one and its rules load instantly.
             </li>

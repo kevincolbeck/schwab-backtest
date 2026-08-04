@@ -41,7 +41,12 @@ export default function FrozenPanel({ entry }: { entry: LeaderboardEntry }) {
           </p>
         </div>
         <div className="pb-1.5">
-          <Sparkline values={entry.sparkline} baseline={100000} width={96} height={30} />
+          <Sparkline
+            values={entry.sparkline}
+            baseline={entry.starting_capital ?? 100000}
+            width={96}
+            height={30}
+          />
         </div>
       </div>
     </CardLink>

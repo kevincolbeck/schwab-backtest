@@ -10,7 +10,8 @@ Read this entire brief before writing any code.
 
 1. **Consistency beats coolness.** Every page must look like it came from the same design system. If a treatment can't be applied site-wide, it doesn't ship. No page may look 2024 while another looks 2010.
 2. **The UI must never overwhelm.** This is a complex product (strategy building, backtesting, forward ledgers). The design's job is to make it feel SIMPLE. Progressive disclosure everywhere: show the minimum first, reveal depth on demand.
-3. **Do not rewrite the copy.** The existing voice ("Build it. Test it. Prove it in public," "Every opinion this AI has is a backtest," the honesty sections, the FAQ) is the brand and is compliance-deliberate. You may re-set copy typographically and trim for layout, but do not change meaning, add performance claims, or remove disclaimers.
+3. **Do not rewrite the copy.** The existing voice ("Every opinion this AI has is a backtest," the honesty sections, the FAQ) is the brand and is compliance-deliberate. You may re-set copy typographically and trim for layout, but do not change meaning, add performance claims, or remove disclaimers.
+   *(Amended 2026-08-04: the homepage hero and landing copy were superseded by `docs/CHATBACKTEST-BUILD.md` P0-2 — winners-first homepage, spec-verbatim hero: "Test the setup you saw online — before you risk a dollar." Do NOT revert to "Build it. Test it. Prove it in public." The voice/compliance rules in this directive still govern everything else.)*
 4. **Take inspiration, never copy.** Reference sites inform techniques and quality bar. Do not replicate any competitor's layout, exact palette, or identity — especially LuxAlgo's.
 5. **Restraint.** One signature effect used deliberately beats ten effects scattered. When in doubt, remove one thing (Chanel rule).
 

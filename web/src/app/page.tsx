@@ -11,7 +11,9 @@ import TemplateCard from "@/components/TemplateCard";
 import Card from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Accordion, AccordionItem } from "@/components/ui/Accordion";
+import { sortRows } from "@/lib/leaderboard";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
+import { partitionTemplates, wallTemplates } from "@/lib/templates";
 import type { LeaderboardEntry, Template } from "@/lib/types";
 
 async function getTemplates(): Promise<Template[]> {
@@ -25,81 +27,37 @@ async function getTemplates(): Promise<Template[]> {
   }
 }
 
-/** Full leaderboard — sections slice what they need. Truth rule: counts in
- *  EvidenceStrip must reflect the REAL ledger, so no teaser-slicing here. */
-async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+/** Full leaderboard — verified entries AND warming deployments, mirroring the
+ *  leaderboard page's payload handling. Truth rule: counts in EvidenceStrip
+ *  must reflect the REAL ledger, so no teaser-slicing here. */
+async function getLeaderboard(): Promise<{
+  entries: LeaderboardEntry[];
+  qualifying: LeaderboardEntry[];
+  minDays: number;
+}> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
-    if (!res.ok) return [];
-    const body = (await res.json()) as { entries?: LeaderboardEntry[] };
-    return body.entries ?? [];
+    if (!res.ok) return { entries: [], qualifying: [], minDays: 20 };
+    const body = (await res.json()) as {
+      entries?: LeaderboardEntry[];
+      qualifying?: LeaderboardEntry[];
+      min_days?: number;
+    };
+    return {
+      entries: body.entries ?? [],
+      qualifying: body.qualifying ?? [],
+      minDays: body.min_days ?? 20,
+    };
   } catch {
-    return [];
+    return { entries: [], qualifying: [], minDays: 20 };
   }
-}
-
-/** The template's hero metric, mirroring TemplateCard: CAGR, falling back to
- *  total return. Null when the template has no cached result. */
-function heroMetric(t: Template): number | null {
-  const s = t.cached_stats?.stats;
-  return s?.cagr ?? s?.total_return_pct ?? null;
-}
-
-/** Curate exactly 6 templates for the homepage wall (brief §4): a
- *  deterministic round-robin across categories (representative spread), best
- *  cached result first within each, and a guaranteed negative-return pick
- *  when one exists — losers on the wall are the brand's honesty. */
-function curateTemplates(templates: Template[]): Template[] {
-  const withStats = templates.filter((t) => heroMetric(t) !== null);
-  const pool = withStats.length >= 6 ? withStats : templates;
-
-  const byCategory = new Map<string, Template[]>();
-  for (const t of [...pool].sort((a, b) => a.id.localeCompare(b.id))) {
-    const cat = t.meta?.category || "Other";
-    const list = byCategory.get(cat) ?? [];
-    list.push(t);
-    byCategory.set(cat, list);
-  }
-  const categories = [...byCategory.keys()].sort((a, b) => a.localeCompare(b));
-  for (const cat of categories) {
-    byCategory.get(cat)!.sort((a, b) => {
-      const ha = heroMetric(a);
-      const hb = heroMetric(b);
-      if (ha === null && hb === null) return a.id.localeCompare(b.id);
-      if (ha === null) return 1;
-      if (hb === null) return -1;
-      return hb - ha || a.id.localeCompare(b.id);
-    });
-  }
-
-  const picked: Template[] = [];
-  for (let round = 0; picked.length < 6; round++) {
-    let added = false;
-    for (const cat of categories) {
-      const list = byCategory.get(cat)!;
-      if (round < list.length && picked.length < 6) {
-        picked.push(list[round]);
-        added = true;
-      }
-    }
-    if (!added) break;
-  }
-
-  const isNegative = (t: Template) => (heroMetric(t) ?? 0) < 0;
-  if (picked.length && !picked.some(isNegative)) {
-    const negatives = pool
-      .filter(isNegative)
-      .sort((a, b) => heroMetric(a)! - heroMetric(b)! || a.id.localeCompare(b.id));
-    if (negatives.length) picked[picked.length - 1] = negatives[0];
-  }
-  return picked.slice(0, 6);
 }
 
 const PILLARS = [
   {
     eyebrow: "The Lab",
     title: "Build anything",
-    body: "Describe a strategy in plain English — any symbols, famous templates, or from scratch. The AI writes the rules, runs a decade of data in seconds, and teaches as it edits.",
+    body: "Describe a strategy in plain English — any symbols, famous templates, or from scratch. The AI writes the rules, runs two decades of data in seconds, and teaches as it edits.",
   },
   {
     eyebrow: "The Proof",
@@ -143,14 +101,20 @@ const HONESTY = [
   },
 ];
 
+/* Ordered confident-first (P0-2): the honesty answers all stay, verbatim —
+   they're supporting texture now, not the opener. */
 const FAQ = [
   {
-    q: "Will this make me money?",
-    a: "No. This is a research and education tool. It shows how ideas would have performed historically — and history does not predict the future. Nothing here is financial advice or a recommendation to trade.",
+    q: "How is this different from indicator platforms?",
+    a: "Indicator platforms sell black-box signals and pre-computed lookup tables. Here every strategy is a readable rule you can inspect, every “what if” actually re-runs the simulation, and every claim carries receipts.",
   },
   {
     q: "Where does the data come from?",
-    a: "Daily US equity prices, split-adjusted, going back roughly a decade, with a slippage assumption on every simulated fill. Full-universe tests note their survivorship bias right on the result.",
+    a: "Daily US equity prices, split-adjusted, going back two decades, with a slippage assumption on every simulated fill. Full-universe tests note their survivorship bias right on the result.",
+  },
+  {
+    q: "Will this make me money?",
+    a: "No. This is a research and education tool. It shows how ideas would have performed historically — and history does not predict the future. Nothing here is financial advice or a recommendation to trade.",
   },
   {
     q: "What makes the forward ledger trustworthy?",
@@ -161,33 +125,42 @@ const FAQ = [
     a: "No, and it won't pretend to. Ask it to predict prices and it politely refuses and offers a historical test instead. That's a feature.",
   },
   {
-    q: "How is this different from indicator platforms?",
-    a: "Indicator platforms sell black-box signals and pre-computed lookup tables. Here every strategy is a readable rule you can inspect, every “what if” actually re-runs the simulation, and every claim carries receipts.",
-  },
-  {
     q: "Is your AI “trained on market data”?",
     a: "We won't hide the ball: the strategist is a frontier AI model wired into our research engine — two decades of price history across 5,000+ US symbols. The intelligence you feel is that loop: it never hands you an unvalidated opinion, because everything it proposes gets simulated before you see a number. Platforms claiming their AI was “built to understand markets” are describing the same architecture with less honesty.",
   },
 ];
 
 export default async function Home() {
-  const [templates, entries] = await Promise.all([getTemplates(), getLeaderboard()]);
+  const [templates, { entries, qualifying, minDays }] = await Promise.all([
+    getTemplates(),
+    getLeaderboard(),
+  ]);
 
-  const curated = curateTemplates(templates);
+  /* Winners-first wall (CHATBACKTEST-BUILD.md P0-2): flagship top 6 above the
+     fold; failed strategies get their own transparency section below. */
+  const partition = partitionTemplates(templates);
+  const wall = wallTemplates(partition);
   /* The Lab's proof object: buy-the-dip (the strategy the closing CTA dares
-     you to test), else the first curated template with a cached result. */
+     you to test), else the first wall template with a cached result. */
   const labTemplate =
     templates.find((t) => t.id === "buy-the-dip") ??
-    curated.find((t) => t.cached_stats) ??
+    wall.find((t) => t.cached_stats) ??
     null;
+  /* Ledger sections read verified + warming rows so the board is alive from
+     deployment day one (same semantics as the unified leaderboard page). */
+  const merged = [...entries, ...qualifying];
+  const verifiedSlugs = new Set(entries.map((e) => e.slug));
   /* The Proof's evidence object: the longest-running deployment (most days
      of append-only history), deterministic tie-break by slug. */
-  const frozen = entries.length
-    ? [...entries].sort(
+  const frozen = merged.length
+    ? [...merged].sort(
         (a, b) => b.days_live - a.days_live || a.slug.localeCompare(b.slug),
       )[0]
     : null;
-  const teaser = entries.slice(0, 5);
+  /* The Board's pillar copy promises ranking by LIVE forward performance, so
+     the teaser always sorts by forward return — even while warming, those are
+     real out-of-sample numbers. The full leaderboard offers labeled sorts. */
+  const teaser = sortRows(merged, "forward_return").slice(0, 5);
 
   return (
     <main className="w-full">
@@ -198,24 +171,24 @@ export default async function Home() {
         <div className="relative mx-auto grid w-full max-w-(--container-max) items-center gap-10 px-4 pb-(--space-section) pt-(--space-section-sm) sm:px-6 lg:grid-cols-2">
           <Reveal>
             <p className="mb-4 w-fit rounded-(--radius-pill) border border-hairline bg-panel px-3 py-1 text-xs text-muted">
-              A strategy lab, not a signal service
+              The AI strategy lab for momentum &amp; swing traders
             </p>
             <h1 className="max-w-xl text-display-xl font-semibold text-balance text-ink">
-              Build it. Test it.{" "}
-              <span className={styles.kineticSweep}>Prove it in public.</span>
+              Test the setup you saw online —{" "}
+              <span className={styles.kineticSweep}>before you risk a dollar.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted">
-              Tell the AI strategist your idea in plain English. It writes the exact
-              rules, stress-tests them against two decades of market data in seconds,
-              and warns you where they&apos;ll break — then the survivors prove
-              themselves on a public forward-test ledger, one honest day at a time.
+              Describe any strategy in plain English. Our AI writes the exact rules,
+              backtests 20 years in seconds, and tells you where it breaks. Then
+              prove the survivors on a public, independently verifiable track
+              record.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/playground" variant="ring" size="lg">
-                Open the lab
+                Run a backtest free →
               </ButtonLink>
               <ButtonLink href="/leaderboard" variant="secondary" size="lg">
-                See the receipts
+                See the live records →
               </ButtonLink>
             </div>
             <p className="mt-4 text-caption text-faint">
@@ -228,7 +201,9 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── Template wall: exactly 6 curated, 3×2, honesty included ── */}
+      {/* ── Template wall: flagship top 6, winners-first (P0-2). The honesty
+         now lives in its own transparency section further down — no forced
+         loser above the fold. ── */}
       <SectionShell
         id="templates"
         className="border-t border-hairline"
@@ -243,14 +218,19 @@ export default async function Home() {
           )
         }
       >
-        {curated.length ? (
+        {wall.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {curated.map((t, i) => (
+            {wall.map((t, i) => (
               <Reveal key={t.id} index={i} className="h-full">
                 <TemplateCard template={t} />
               </Reveal>
             ))}
           </div>
+        ) : templates.length > 0 ? (
+          <Card pad="sm" className="text-sm text-muted">
+            Nothing currently passes the bar — every strategy that failed is
+            published below.
+          </Card>
         ) : (
           <Card pad="sm" className="text-sm text-muted">
             The backtest service isn&apos;t reachable right now — refresh in a moment.
@@ -304,7 +284,9 @@ export default async function Home() {
           )
         }
       >
-        {teaser.length > 0 && <LedgerRows entries={teaser} />}
+        {teaser.length > 0 && (
+          <LedgerRows entries={teaser} minDays={minDays} verifiedSlugs={verifiedSlugs} />
+        )}
       </SectionShell>
 
       {/* ── The Strategist — proof element: real house-ledger aggregates ── */}
@@ -325,7 +307,7 @@ export default async function Home() {
           ))}
         </div>
         <Reveal className="mt-4">
-          <EvidenceStrip templateCount={templates.length} entries={entries} />
+          <EvidenceStrip templateCount={templates.length} entries={merged} />
         </Reveal>
         <Reveal className="mt-6">
           <p className="max-w-2xl text-sm leading-relaxed text-muted">
@@ -341,6 +323,30 @@ export default async function Home() {
           </p>
         </Reveal>
       </SectionShell>
+
+      {/* ── Transparency — the failed strategies, published on purpose (P0-2).
+         The proof-object for the Strategist's "Warns you first" claim. ── */}
+      {partition.failed.length > 0 && (
+        <SectionShell
+          className="border-t border-hairline"
+          eyebrow="Transparency · Losers stay published"
+          title="Strategies that failed the test (we leave them up on purpose)"
+          sub="These strategies went through the same engine as the winners above — and lost money in simulation. Most sites would quietly delete them; we publish them, because a test you can trust has to be allowed to fail. Each card shows the real simulated result over the window it was tested on — published as-is, never quietly deleted."
+          cta={
+            <ButtonLink href="/library" variant="secondary">
+              See every result in the library →
+            </ButtonLink>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {partition.failed.map((t, i) => (
+              <Reveal key={t.id} index={i} className="h-full">
+                <TemplateCard template={t} />
+              </Reveal>
+            ))}
+          </div>
+        </SectionShell>
+      )}
 
       {/* ── Honesty — evidence-styled trust builders ── */}
       <SectionShell

@@ -29,7 +29,8 @@ import { diffSpecs } from "@/lib/diff";
 import { englishRules } from "@/lib/englishRules";
 import { pineExport } from "@/lib/exportPine";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
-import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
+import { fmtDate, fmtMoney, fmtPct, fmtSignedPct } from "@/lib/format";
+import { templateHero } from "@/lib/templates";
 import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type {
@@ -850,7 +851,9 @@ function PlaygroundInner() {
           <div className="space-y-1">
             {templates.map((t) => {
               const active = t.id === templateId;
-              const cagr = t.cached_stats?.stats?.cagr;
+              /* Same hero rule as TemplateCard: never annualize a sub-year
+                 window — the rail must agree with the card that linked here. */
+              const hero = templateHero(t);
               return (
                 <button
                   key={t.id}
@@ -871,8 +874,12 @@ function PlaygroundInner() {
                   </p>
                   <p className="mt-0.5 flex items-center justify-between text-caption text-faint">
                     <span className="uppercase tracking-wide">{t.meta.category}</span>
-                    {typeof cagr === "number" && (
-                      <span className="tnum">{fmtPct(cagr, 1)} cagr</span>
+                    {hero && (
+                      <span className="tnum">
+                        {hero.kind === "cagr"
+                          ? `${fmtPct(hero.value, 1)} cagr`
+                          : `${fmtSignedPct(hero.value, 1)} total`}
+                      </span>
                     )}
                   </p>
                 </button>

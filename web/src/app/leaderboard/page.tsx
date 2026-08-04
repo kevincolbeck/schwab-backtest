@@ -380,6 +380,7 @@ export default async function LeaderboardPage({
                               title={`${minDays - e.days_live} trading days until this record is verified`}
                             >
                               day {e.days_live} of {minDays}
+                              <span className="sr-only"> — not yet verified</span>
                             </span>
                           )}
                         </td>

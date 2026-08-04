@@ -6,11 +6,22 @@ import { fmtSignedPct } from "@/lib/format";
 import type { LeaderboardEntry } from "@/lib/types";
 
 /** The Board section's proof object: mini append-only ledger rows from the
- *  REAL leaderboard fetch — rank, name, spec-hash mark, days live, equity
- *  sparkline, signed forward return (sign is the non-color valence cue).
- *  Rows enter with the single site-wide reveal stagger. Truth rule: every
- *  mark below is live system data. */
-export default function LedgerRows({ entries }: { entries: LeaderboardEntry[] }) {
+ *  REAL leaderboard fetch — rank, name, spec-hash mark, verified/warming
+ *  record pill (matching the leaderboard table), equity sparkline, signed
+ *  forward return (sign is the non-color valence cue). Rows enter with the
+ *  single site-wide reveal stagger. Truth rule: every mark below is live
+ *  system data. */
+export default function LedgerRows({
+  entries,
+  minDays,
+  verifiedSlugs,
+}: {
+  entries: LeaderboardEntry[];
+  /** Trading days required before a record is verified (service min_days). */
+  minDays: number;
+  /** Slugs the service ranked as verified (days_live >= minDays). */
+  verifiedSlugs: ReadonlySet<string>;
+}) {
   return (
     <div className="card overflow-hidden">
       {entries.map((e, i) => {
@@ -26,10 +37,32 @@ export default function LedgerRows({ entries }: { entries: LeaderboardEntry[] })
                 <span className="block truncate text-sm font-medium text-ink">{e.name}</span>
                 <HashMark hash={e.spec_hash_short} className="hidden sm:inline" />
               </span>
-              <span className="tnum hidden shrink-0 text-caption text-muted md:block">
-                {e.days_live} days live
+              <span className="hidden shrink-0 md:block">
+                {verifiedSlugs.has(e.slug) ? (
+                  <span
+                    className="tnum inline-flex items-center gap-1 rounded-(--radius-pill) border border-hairline px-2.5 py-1 text-caption text-muted"
+                    title={`${e.days_live} trading days of live out-of-sample record`}
+                  >
+                    <span aria-hidden>✓</span>
+                    {e.days_live} days
+                    <span className="sr-only">verified record</span>
+                  </span>
+                ) : (
+                  <span
+                    className="tnum inline-flex items-center rounded-(--radius-pill) border border-hairline px-2.5 py-1 text-caption text-muted"
+                    title={`${minDays - e.days_live} trading days until this record is verified`}
+                  >
+                    day {e.days_live} of {minDays}
+                    <span className="sr-only"> — not yet verified</span>
+                  </span>
+                )}
               </span>
-              <Sparkline values={e.sparkline} baseline={100000} width={90} height={22} />
+              <Sparkline
+                values={e.sparkline}
+                baseline={e.starting_capital ?? 100000}
+                width={90}
+                height={22}
+              />
               <span
                 className={`tnum w-20 shrink-0 text-right text-sm ${
                   ret > 0 ? "text-gain" : ret < 0 ? "text-loss" : "text-muted"

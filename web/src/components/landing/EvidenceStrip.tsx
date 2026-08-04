@@ -1,9 +1,10 @@
 import type { LeaderboardEntry } from "@/lib/types";
 
 /** The Strategist section's proof element: real aggregates computed from the
- *  live fetches — house-template count, how many are proving themselves on
- *  the ledger, and how many are negative right now (losers stay on the
- *  board; the honesty is the brand). Renders nothing when either fetch is
+ *  live fetches — house-template count, how many are live on the ledger
+ *  (verified + warming; every deployment accrues out-of-sample records from
+ *  day one), and how many are negative right now (losers stay on the board;
+ *  the honesty is the brand). Renders nothing when either fetch is
  *  unavailable — a fabricated zero would break the truth rule. */
 export default function EvidenceStrip({
   templateCount,
@@ -16,7 +17,7 @@ export default function EvidenceStrip({
   const negative = entries.filter((e) => e.forward_return_pct < 0).length;
   const items = [
     { value: templateCount, label: "house strategies, drafted with the AI" },
-    { value: entries.length, label: "proving themselves on the public ledger" },
+    { value: entries.length, label: "live on the public ledger, accruing out-of-sample records" },
     { value: negative, label: "negative right now — and staying on the board" },
   ];
   return (

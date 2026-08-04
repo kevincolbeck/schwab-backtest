@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat·Backtest — build it, test it, prove it in public",
+  title: "Chat·Backtest — AI backtesting for momentum & swing traders",
   description:
-    "The AI trading-strategy lab: build any strategy in plain English, backtest a decade in seconds, and prove it on a public, immutable forward-test ledger. Research and education — no signals, no live trading.",
+    "Describe any trading strategy in plain English. The AI writes the exact rules, backtests up to 20 years of data in seconds, and shows you where it breaks — then survivors prove themselves on a public, independently verifiable forward-test ledger. Research and education — no signals, no live trading.",
 };
 
 const THEME_INIT = `(function(){try{if(localStorage.getItem('ctb-theme')==='light'){document.documentElement.dataset.theme='light'}}catch(e){}})();`;
