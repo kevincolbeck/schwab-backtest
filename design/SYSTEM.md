@@ -26,13 +26,14 @@ Candidates were electric cyan, cold amber, ice blue. Ice blue wins:
   amber/red/teal are the strongest distinguishable pairings we could pick.
 - **It reads "instrument."** Cold, precise, HD — Mercury-class fintech trust rather
   than Linear-clone SaaS or LuxAlgo mystique. With the glacial-cyan partner, the
-  material spectrum (ring, hero sweep) feels like ice and glass: a research
-  instrument, not a dream machine.
+  hero sweep feels like ice and glass: a research instrument, not a dream machine.
+  (The gloss ring is the ONE sanctioned full-spectrum exception — §5.)
 - **Contrast works both ways:** 6.6:1 as text/links on the canvas; dark canvas ink on
   an accent-filled button clears 6:1. Light variants tuned to ≥4.5:1 on white.
 
-`--accent-2` is the **gradient partner only**. It exists in exactly two places: the
-gloss-ring spectrum and (Phase 3) one hero gradient sweep. Never text, never fills,
+`--accent-2` is the **gradient partner only**. It exists in exactly one place: the
+single hero gradient sweep (plus its aurora wash `--aurora-2`). It left the ring when
+the ring went full-spectrum (owner directive — §5). Never text, never fills,
 never charts, never a third brand color.
 
 ### Accent restraint rules
@@ -118,19 +119,46 @@ Geist (display + body), Geist Mono (all numbers/code/hashes) — via
 
 ## 5. Gloss ring + glow (the special material)
 
-The ring is a **material, not a color**: conic spectrum `accent → --ring-glint (12%) →
-accent (26%) → --ring-deep (58%) → accent`, rotating via `--gloss-angle`.
+> **DECISION (owner directive, 2026-08-04):** the ring is upgraded to a LuxAlgo-grade
+> **full-spectrum** material. This supersedes this section's earlier cold two-color
+> rule and the "rainbow is LuxAlgo's identity" ban — **for the ring material only**.
+> The spectrum still never appears anywhere else: no rainbow text, fills, icons,
+> charts, or gradients outside `.gloss-ring` / `.gloss-ring-hover`.
+
+The ring is a **material, not a color**: two conic layers on one element, rotating
+together via the registered `--gloss-angle`:
+
+1. **Core** (`::after`) — the 4K-sharp part: a crisp `--ring-core-width` (1.5px) line
+   in the fully saturated `--ring-spectrum` loop (violet → blue → cyan → green →
+   yellow → orange → magenta → violet, first stop repeated for a seamless join).
+   Zero blur.
+2. **Bloom** (`::before`) — the same spectrum beneath at `--ring-bloom-width`, with a
+   **static** `blur(--ring-bloom-blur)` at `--ring-bloom-opacity`. Only the angle
+   animates — never box-shadow or filter in the loop (§9); the blur is set once.
+
+Both layers are masked border rings with `border-radius: inherit` — no clipped
+corners on any radius.
 
 - **One idle ring per viewport, ever.** Only the page's primary hero CTA may use
   `.gloss-ring` (idle rotation, `--dur-ring-idle` = 9s). Everything else uses
   `.gloss-ring-hover` (visible on hover/focus-visible only). The current double-idle
   in the homepage hero (CTA + LivePreview) must drop to one in Phase 3.
+- **Hover/focus-visible = brighter + faster**: core steps to `--gloss-opacity-hover`,
+  bloom to `--ring-bloom-opacity-hover`, and the clock shortens to `--dur-ring-hover`
+  (3.5s). Hover rings run on the fast clock from birth so duration never changes
+  mid-rotation.
+- **Light theme**: the spectrum stops are overridden darker (the dark set's cyan and
+  yellow vanish at 1.5px on white) and bloom opacity drops hard (0.18/0.32) so the
+  glow never washes light surfaces.
 - Ring + glow (`.btn-glow`) may combine on the hero CTA only. Elsewhere: pick neither
   or hover-ring.
 - Featured cards (one per section max) may use `.gloss-ring-hover`.
-- `prefers-reduced-motion`: rotation stops, static gradient remains (already wired).
+- `prefers-reduced-motion`: rotation stops on both layers; the static spectrum +
+  bloom remain (already wired).
 - Never: rings on resting secondary buttons, more than one glowing element in view,
-  a full-rainbow spectrum (that's LuxAlgo's identity).
+  the spectrum leaking outside this material.
+- Retired with this upgrade: `--ring-glint` and `--ring-deep` (the old cold stops)
+  are deleted from tokens.css; `--accent-2` is no longer part of the ring.
 
 ## 6. Ambient effects budget
 
@@ -191,6 +219,7 @@ and transition (ambient loops use `linear`/`ease-in-out` on their own clocks).
 | `--dur-reveal` 500ms | scroll-in reveals (`--reveal-shift` 16px, `--reveal-stagger` 60ms, once, IntersectionObserver) |
 | `--dur-slow` 700ms | chart live-draw, biggest reveals |
 | `--dur-ring-idle` 9s | the one idle ring |
+| `--dur-ring-hover` 3.5s | ring hover/focus clock (brighter + faster, §5) |
 | `--dur-aurora-a/b` 44/56s | ambient drift |
 
 Rules: animate only `transform` and `opacity` (blur layers pre-composited, never
@@ -225,7 +254,8 @@ Reveal.tsx must consume the reveal tokens (currently 450ms/14px — normalize).
 - No second idle animation in a viewport; no per-section auroras.
 - No bold-everything; nothing below 11px; no new radii, durations, or easings.
 - No drop shadows for decoration; no borders heavier than 1px.
-- No fake urgency, fake numbers, decorative "live" indicators, rainbow rings.
+- No fake urgency, fake numbers, decorative "live" indicators; the full spectrum
+  lives in the ring material ONLY (owner directive, §5) — never text/fills/charts.
 - Never merge forward and backtest curves; never trim disclaimers for layout.
 
 ## 12. Sanctioned exceptions (documented hardcodes)

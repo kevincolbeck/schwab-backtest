@@ -44,8 +44,9 @@
   --accent-soft: rgba(77, 162, 255, 0.13); /* selected fills, selection */
   --accent-glow: rgba(77, 162, 255, 0.35); /* CTA halo only */
   /* Gradient partner (accent #2) — glacial cyan. Materials ONLY: the
-     gloss ring spectrum and the single hero gradient sweep. Never text,
-     never fills, never data. */
+     single hero gradient sweep + aurora partner wash. (Left the ring when
+     the ring went full-spectrum — SYSTEM.md §5.) Never text, never fills,
+     never data. */
   --accent-2: #3edbf0;
 
   /* ── Semantic colors — never decorative ─────────────────────────────────
@@ -67,12 +68,35 @@
      label) — never color alone. Never text, never badges.                */
   --prev-run: #37b7ce;
 
+  /* ── Categorical chart ramp — indicator lines ONLY ──────────────────────
+     Series colors for spec-driven indicator overlays/panes on price charts
+     (CandleChart via chartTokens.ts). Assigned in fixed order, cycled past
+     four. Validated (dataviz six-checks) against both surfaces: lightness
+     band, chroma floor, CVD adjacency, ≥3:1 contrast. Hues deliberately
+     avoid the semantic set — accent azure, prev-run glacial, gain teal,
+     loss red, warn amber. Never text, never fills, never UI states; a
+     labeled legend chip always accompanies the color (never color alone). */
+  --chart-1: #8b5cf6; /* violet */
+  --chart-2: #e0559d; /* magenta */
+  --chart-3: #d0742a; /* ochre */
+  --chart-4: #2aa3c9; /* deep cyan */
+
   /* ── Materials — gloss ring, glow, glass, ambient ───────────────────────
-     The ring is a SPECIAL MATERIAL, not palette: a 3-stop cold spectrum
-     of our accent (ice blue → glacial glint → deep cobalt). Usage rules:
-     SYSTEM.md §5 (one idle ring per viewport, hover elsewhere).          */
-  --ring-glint: #9fe9fa; /* bright icy flash stop */
-  --ring-deep: #2f6bdc; /* deep cobalt anchor stop */
+     The ring is a SPECIAL MATERIAL, not palette: a FULL-SPECTRUM conic
+     loop (owner directive 2026-08-04 — supersedes the old cold 3-stop
+     rule; decision + layer anatomy recorded in SYSTEM.md §5). Two layers
+     share the stops: a crisp core line + a blurred low-opacity bloom.
+     The spectrum exists ONLY as this ring material — never text, fills,
+     icons, or charts. Usage: one idle ring per viewport, hover elsewhere. */
+  --ring-spectrum:
+    #8b3dff, #2f6bff, #00d5ff, #00e585, #ffd60a, #ff7a1a, #ff2fb9, #8b3dff;
+  /* violet→blue→cyan→green→yellow→orange→magenta→violet; first stop
+     repeated for a seamless loop */
+  --ring-core-width: 1.5px; /* the 4K-sharp conic line */
+  --ring-bloom-width: 3px; /* fatter light source feeding the blur */
+  --ring-bloom-blur: 16px; /* STATIC blur — set once, never animated (§9) */
+  --ring-bloom-opacity: 0.4;
+  --ring-bloom-opacity-hover: 0.65;
   --gloss-opacity: 0.75;
   --gloss-opacity-hover: 1;
   --gloss-warm: var(--warn); /* DEPRECATED alias — docs Callout(warn) still
@@ -155,6 +179,7 @@
   --reveal-shift: 16px; /* scroll-reveal fade-up distance */
   --reveal-stagger: 60ms; /* sibling stagger */
   --dur-ring-idle: 9s; /* idle gloss ring — brief: ≥8s, hero CTA only */
+  --dur-ring-hover: 3.5s; /* hover/focus ring clock — brighter AND faster */
   --dur-aurora-a: 44s;
   --dur-aurora-b: 56s;
 
@@ -195,8 +220,18 @@
   --warn-soft: rgba(154, 106, 16, 0.1);
   --prev-run: #0e7e93;
 
-  --ring-glint: #35b9d6; /* dimmer glint — no white-hot flash on white */
-  --ring-deep: #2f6bdc;
+  /* Categorical chart ramp — darkened for ≥3:1 on white card surfaces. */
+  --chart-1: #7c3aed;
+  --chart-2: #d1367f;
+  --chart-3: #c25510;
+  --chart-4: #0f7fa3;
+
+  /* Same spectrum loop, every stop darkened so the line holds on white
+     (the dark set's cyan/yellow vanish at 1.5px on light surfaces). */
+  --ring-spectrum:
+    #6d28d9, #2453d6, #0090c2, #009c50, #c98806, #dd5a00, #d6199a, #6d28d9;
+  --ring-bloom-opacity: 0.18; /* bloom dimmed hard — must never wash white */
+  --ring-bloom-opacity-hover: 0.32;
   --gloss-opacity: 0.5;
   --gloss-opacity-hover: 0.75;
   --aurora-1: rgba(22, 112, 214, 0.07);

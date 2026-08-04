@@ -106,14 +106,20 @@ body {
 }
 
 /* ── Gloss ring ─────────────────────────────────────────────────────────────
-   Animated conic-gradient border in OUR cold accent spectrum: ice blue →
-   glacial glint → ice blue → deep cobalt → ice blue (a 3-stop spectrum, not
-   a rainbow — the rainbow is LuxAlgo's material). Drawn by a masked pseudo-
-   element (padding-box/border-box double background) so it hugs rounded
-   corners over any element background.
-   .gloss-ring       — always on (slow idle); brightens on hover. ONE per
-                       viewport, hero CTA only (SYSTEM.md §5).
-   .gloss-ring-hover — invisible until hover/focus-visible.                  */
+   FULL-SPECTRUM conic border material (owner directive 2026-08-04, recorded
+   in SYSTEM.md §5 — supersedes the old cold 3-stop spectrum). Two layers on
+   the same element, both masked border rings (padding-box/border-box double
+   background) hugging any corner via border-radius: inherit:
+     ::after  — the 4K-sharp part: crisp --ring-core-width conic line in the
+                fully saturated --ring-spectrum loop. Zero blur.
+     ::before — same spectrum beneath at --ring-bloom-width with a STATIC
+                blur(--ring-bloom-blur) + low opacity = the bloom. Only
+                --gloss-angle animates in the loop — never box-shadow or
+                filter (SYSTEM.md §9).
+   Hover/focus-visible = brighter (opacity up) + faster (--dur-ring-hover).
+   .gloss-ring       — always on (slow idle). ONE per viewport, hero CTA
+                       only (SYSTEM.md §5).
+   .gloss-ring-hover — invisible + clock paused until hover/focus-visible.  */
 @property --gloss-angle {
   syntax: "<angle>";
   inherits: false;
@@ -124,22 +130,16 @@ body {
 .gloss-ring-hover {
   position: relative;
 }
+.gloss-ring::before,
 .gloss-ring::after,
+.gloss-ring-hover::before,
 .gloss-ring-hover::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid transparent;
-  background: conic-gradient(
-      from var(--gloss-angle),
-      var(--accent),
-      var(--ring-glint) 12%,
-      var(--accent) 26%,
-      var(--ring-deep) 58%,
-      var(--accent)
-    )
-    border-box;
+  border: var(--ring-core-width) solid transparent;
+  background: conic-gradient(from var(--gloss-angle), var(--ring-spectrum)) border-box;
   -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
@@ -147,13 +147,39 @@ body {
   opacity: var(--gloss-opacity);
   pointer-events: none;
   transition: opacity var(--dur-micro) var(--ease-out);
-  animation: gloss-spin var(--dur-ring-idle) linear infinite;
+  animation: gloss-spin var(--gloss-speed, var(--dur-ring-idle)) linear infinite;
 }
-.gloss-ring:hover::after {
+/* Bloom layer — the blur is applied ONCE here and never animated; the loop
+   only spins --gloss-angle on the pre-blurred layer. */
+.gloss-ring::before,
+.gloss-ring-hover::before {
+  border-width: var(--ring-bloom-width);
+  filter: blur(var(--ring-bloom-blur));
+  opacity: var(--ring-bloom-opacity);
+}
+/* Hero CTA hover/focus: brighten both layers + shorten the clock. (Duration
+   swap remaps elapsed time — the angle steps once on entry; the simultaneous
+   brighten covers it, and idle rings are one-per-viewport anyway.) */
+.gloss-ring:hover,
+.gloss-ring:focus-visible {
+  --gloss-speed: var(--dur-ring-hover);
+}
+.gloss-ring:hover::after,
+.gloss-ring:focus-visible::after {
   opacity: var(--gloss-opacity-hover);
 }
+.gloss-ring:hover::before,
+.gloss-ring:focus-visible::before {
+  opacity: var(--ring-bloom-opacity-hover);
+}
 /* Brief §3.2 usage rule: only the hero CTA idle-animates. Hover rings keep
-   their rotation clock PAUSED until hover/focus — no hidden idle animation. */
+   their rotation clock PAUSED until hover/focus — no hidden idle animation.
+   They live on the fast clock permanently, so the duration never changes
+   mid-flight (no angle jump on hover). */
+.gloss-ring-hover {
+  --gloss-speed: var(--dur-ring-hover);
+}
+.gloss-ring-hover::before,
 .gloss-ring-hover::after {
   opacity: 0;
   animation-play-state: paused;
@@ -161,6 +187,11 @@ body {
 .gloss-ring-hover:hover::after,
 .gloss-ring-hover:focus-visible::after {
   opacity: var(--gloss-opacity-hover);
+  animation-play-state: running;
+}
+.gloss-ring-hover:hover::before,
+.gloss-ring-hover:focus-visible::before {
+  opacity: var(--ring-bloom-opacity-hover);
   animation-play-state: running;
 }
 
@@ -239,8 +270,11 @@ body {
   html {
     scroll-behavior: auto;
   }
-  /* Gloss rings and auroras degrade to static gradients. */
+  /* Gloss rings (both layers) and auroras degrade to static gradients —
+     the full spectrum + bloom remain, rotation stops. */
+  .gloss-ring::before,
   .gloss-ring::after,
+  .gloss-ring-hover::before,
   .gloss-ring-hover::after,
   .aurora::before,
   .aurora::after {
