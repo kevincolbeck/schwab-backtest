@@ -60,6 +60,26 @@ export function TimestampMark({
   );
 }
 
+/** Hypothetical-result badge — the counterpart to FrozenBadge for numbers
+ *  derived from backtests rather than the live ledger. ≈ glyph + text so the
+ *  distinction never rests on color alone (WCAG 1.4.1). */
+export function HypotheticalBadge({
+  label = "Hypothetical",
+  className = "",
+}: {
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-(--radius-pill) border border-hairline bg-panel-2 px-2 py-0.5 font-mono text-caption text-muted ${className}`}
+    >
+      <span aria-hidden>≈</span>
+      {label}
+    </span>
+  );
+}
+
 /** Frozen/verified badge for deployed strategies — quiet hairline pill,
  *  never glowing, never accent (SYSTEM.md §3). */
 export function FrozenBadge({

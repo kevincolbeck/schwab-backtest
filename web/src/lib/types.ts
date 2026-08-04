@@ -190,6 +190,13 @@ export interface LeaderboardEntry extends ForwardSummary {
   owner: string;
   deployed_at: string;
   spec_hash_short: string;
+  /** Headline stats frozen at deploy time (hypothetical, in-sample).
+   *  Optional so the page renders against a service that predates the field;
+   *  null for deployments without a stored snapshot. */
+  backtest_stats?: Stats | null;
+  /** Paper-account baseline for this deployment's equity/sparkline. Optional
+   *  for the same deploy-order reason. */
+  starting_capital?: number | null;
 }
 
 export interface StrategyPagePayload {

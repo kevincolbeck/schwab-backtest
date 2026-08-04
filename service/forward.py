@@ -594,6 +594,8 @@ def leaderboard(min_days: Optional[int] = None) -> list:
             "deployed_at": dep["deployed_at"],
             "spec_hash_short": dep["spec_hash"][:12],
             "timeframe": deployment_timeframe(dep),  # UI badge (1d vs intraday)
+            "backtest_stats": dep["backtest_stats"],  # hypothetical snapshot; None for pre-snapshot rows
+            "starting_capital": dep["starting_capital"],  # sparkline baseline (not always 100k)
             **summary,
         })
     entries.sort(key=lambda e: e["forward_return_pct"], reverse=True)

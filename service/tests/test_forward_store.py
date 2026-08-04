@@ -120,3 +120,16 @@ def test_leaderboard_filters_and_ranks():
     assert slugs == [b["slug"], a["slug"]]  # ranked by forward return
     assert board[0]["forward_return_pct"] == 11.0
     assert forward.leaderboard(min_days=30) == []  # min-days gate
+
+
+def test_leaderboard_entries_carry_backtest_stats():
+    stats = {"sharpe": 1.32, "cagr": 29.42, "max_drawdown": 23.97}
+    forward.create_deployment(SPEC, deployed_at="2026-06-01", backtest_stats=stats)
+    entries = forward.leaderboard(min_days=0)
+    assert entries[0]["backtest_stats"] == stats
+    assert entries[0]["starting_capital"] == 100_000
+
+
+def test_leaderboard_backtest_stats_null_when_absent():
+    forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    assert forward.leaderboard(min_days=0)[0]["backtest_stats"] is None

@@ -3,7 +3,7 @@ import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
 export const metadata = {
   title: "Forward testing",
   description:
-    "How the ledger works: frozen specs, the same engine replaying closed candles, append-only records, and the 20-day qualifying window.",
+    "How the ledger works: frozen specs, the same engine replaying closed candles, append-only records, and the 20-day verification window.",
 };
 
 export default function ForwardTestingPage() {
@@ -110,13 +110,16 @@ export default function ForwardTestingPage() {
         </p>
       </Callout>
 
-      <h2>The 20-day qualifying window</h2>
+      <h2>The 20-day verification window</h2>
       <p>
-        A deployment appears on the public leaderboard only after it has 20
-        days of forward equity history. Until then it is warming up: its
-        strategy page is live and its record is accruing, but it is not ranked.
+        Every deployment appears on the public leaderboard from day one, its
+        original backtest shown beside its forward record and clearly marked
+        hypothetical. The forward record earns its verified mark only after 20
+        trading days of forward equity history — until then the row shows its
+        progress (&ldquo;day 4 of 20&rdquo;) and never claims a shareable rank.
         Twenty days is still a small sample — the threshold exists to keep
-        two-day wonders off the board, not to certify anything.
+        two-day wonders from claiming a verified record, not to certify
+        anything.
       </p>
 
       <h2>Intraday deployments</h2>
