@@ -13,6 +13,7 @@ export default function Tabs({
   active,
   onChange,
   baseId: baseIdProp,
+  ariaLabel = "Workspace views",
   className = "",
 }: {
   tabs: TabDef[];
@@ -20,6 +21,8 @@ export default function Tabs({
   onChange: (id: string) => void;
   /** Stable id prefix so parents can wire aria-labelledby on tabpanels. */
   baseId?: string;
+  /** Accessible tablist name — default keeps the playground's label. */
+  ariaLabel?: string;
   className?: string;
 }) {
   const autoId = useId();
@@ -32,7 +35,7 @@ export default function Tabs({
   return (
     <div
       role="tablist"
-      aria-label="Workspace views"
+      aria-label={ariaLabel}
       className={`flex items-center gap-1 rounded-(--radius-control) border border-hairline bg-panel-2 p-1 ${className}`}
     >
       {tabs.map((tab) => {
