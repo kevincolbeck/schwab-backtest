@@ -9,16 +9,22 @@ Endpoints:
     GET  /templates       template gallery specs (+ cached headline stats when built)
     GET  /markets/overview   public EOD sector heatmap + movers (cache-only)
     GET  /markets/calendar   public earnings/IPO week (Finnhub, graceful)
+    GET  /markets/calendar-month   full-month earnings/IPO calendar (cached 6h)
+    GET  /markets/day        one day's calendar rows + profile enrichment
+    GET  /markets/news       general market headlines (10 min cache)
+    GET  /stocks/{ticker}    informational company bundle (never errors)
 
 Env: ANTHROPIC_API_KEY, CHAT_MODEL, POLYGON_API_KEY, BACKTEST_CACHE_DB,
 SERVICE_DATA_DIR, ALLOWED_ORIGINS, MAX_SYMBOLS_PER_RUN, TEMPLATES_DIR,
 FINNHUB_API_KEY.
 """
 
+import copy
 import json
 import logging
+import math
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -30,7 +36,8 @@ from service import env  # noqa: F401  (loads .env before anything reads os.envi
 from service import auth, credits
 from service import chat as chat_brain
 from service import backtest_runner, forward, identity, markets, runs_store
-from ai.strategist import clamp_spec, validate_spec  # engine path set by backtest_runner
+from ai.strategist import clamp_spec, ensure_indicators, validate_spec  # engine path set by backtest_runner
+from backtest.rule_based_engine import RuleBasedBacktestEngine, _sorted_indicators
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -337,9 +344,131 @@ def backtest(
     }
 
 
+# ── Indicator display plan (spec-driven; reuses the engine's math) ───────────
+
+_OVERLAY_INDICATORS = {"sma", "ema", "rolling_max", "max", "rolling_min", "min",
+                       "vwap", "vwap_proxy"}
+_PANE_INDICATORS = {"rsi", "zscore", "atr", "roc", "stddev", "rolling_std"}
+_PRICE_SOURCES = {"open", "high", "low", "close"}
+_MAX_PLAN_INDICATORS = 12
+
+# _apply_indicator's body is instance-independent — an __init__-skipping shell
+# reuses the engine's exact indicator math without constructing a backtest.
+_indicator_shell = RuleBasedBacktestEngine.__new__(RuleBasedBacktestEngine)
+
+
+def _plan_indicators(spec: dict) -> list:
+    """Declared indicators + the same auto-registrations the strategist applies
+    to rule references (rsi_14, sma_50, ...), in engine dependency order."""
+    probe = {"indicators": copy.deepcopy(spec.get("indicators") or [])}
+    if not isinstance(probe["indicators"], list):
+        probe["indicators"] = []
+    for rule_field in ("entry_rule", "entry_rule_long", "entry_rule_short", "exit_rule"):
+        rule = spec.get(rule_field)
+        if isinstance(rule, str) and rule.strip():
+            try:
+                ensure_indicators(probe, rule)
+            except Exception:
+                logger.warning("auto-indicator scan failed", exc_info=True)
+    return _sorted_indicators([i for i in probe["indicators"] if isinstance(i, dict)])
+
+
+def _indicator_meta(ind: dict) -> Optional[tuple]:
+    """(column_name, label, kind) for one spec indicator; None -> not plannable.
+
+    Kind is derived purely from the indicator type: price-scale types render as
+    chart overlays, everything else (oscillators, volatility, customs) gets its
+    own pane. Zero per-strategy code.
+    """
+    ind_type = str(ind.get("type", "")).strip().lower()
+    if not ind_type or ind_type == "external":
+        # Externals need merged reference frames this endpoint doesn't serve.
+        return None
+    name = str(ind.get("name", "")).strip().lower()
+    try:
+        length = int(ind.get("length", 20))
+    except (TypeError, ValueError):
+        length = 20
+    if not name:
+        if ind_type == "custom":
+            return None  # the engine requires customs to be named
+        name = f"{ind_type}_{length}"  # the engine's default column name
+    if ind_type == "custom":
+        label = name
+    elif ind_type in {"vwap", "vwap_proxy"}:
+        label = "VWAP"
+    elif ind_type == "lag":
+        label = f"LAG {ind.get('periods', length)}"
+    else:
+        label = f"{ind_type.upper()} {length}"
+    if ind_type in _OVERLAY_INDICATORS:
+        kind = "overlay"
+    elif ind_type in _PANE_INDICATORS:
+        kind = "pane"
+    elif ind_type == "lag":
+        source = str(ind.get("source", "close")).strip().lower()
+        kind = "overlay" if source in _PRICE_SOURCES else "pane"
+    else:
+        kind = "pane"  # customs / unknowns: scale unknown -> own pane
+    return name, label, kind
+
+
+def _indicator_display_plan(spec: dict, frame) -> list:
+    """[{name, label, kind, series}] computed on the served bars window with the
+    engine's own indicator implementations. Failures skip the indicator, never
+    the response; NaN warm-up rows serialize as nulls."""
+    import pandas as pd
+
+    if not isinstance(spec, dict) or frame is None or frame.empty:
+        return []
+    indicators = _plan_indicators(spec)
+    if not indicators:
+        return []
+    work = frame.copy().sort_values("datetime").reset_index(drop=True)
+    # Calendar columns for parity with the engine's frames (custom formulas).
+    work["month"] = work["datetime"].dt.month
+    work["year"] = work["datetime"].dt.year
+    work["day_of_week"] = work["datetime"].dt.dayofweek
+    base_columns = set(work.columns)
+    times = [str(t)[:10] for t in work["datetime"]]
+
+    plan: list = []
+    seen: set = set()
+    for ind in indicators:
+        meta = _indicator_meta(ind)
+        if meta is None:
+            continue
+        name, label, kind = meta
+        if name in seen or name in base_columns:
+            continue
+        try:
+            _indicator_shell._apply_indicator(work, ind)
+        except Exception:
+            logger.warning("display-plan indicator skipped (%s)", name, exc_info=True)
+            continue
+        if name not in work.columns:
+            continue
+        seen.add(name)
+        series = []
+        for t, v in zip(times, work[name]):
+            try:
+                value = float(v)
+            except (TypeError, ValueError):
+                value = float("nan")
+            series.append({
+                "time": t,
+                "value": round(value, 6) if (pd.notna(v) and math.isfinite(value)) else None,
+            })
+        plan.append({"name": name, "label": label, "kind": kind, "series": series})
+        if len(plan) >= _MAX_PLAN_INDICATORS:
+            break
+    return plan
+
+
 @app.get("/runs/{run_id}/bars")
 def run_bars(run_id: str, symbol: str):
-    """OHLCV candles for one symbol of a run (trade inspector / chart tab).
+    """OHLCV candles for one symbol of a run (trade inspector / chart tab),
+    plus a spec-driven indicator display plan computed on the same window.
 
     Serves straight from the local cache over the run's own date window —
     the data is guaranteed warm because the run already fetched it.
@@ -384,7 +513,14 @@ def run_bars(run_id: str, symbol: str):
         }
         for row in frame.itertuples()
     ]
-    return {"symbol": symbol, "bars": bars}
+    # Indicator overlays/panes are a bonus layer — a failure there must never
+    # take down the candles the trade inspector depends on.
+    try:
+        indicators = _indicator_display_plan(run.get("spec") or {}, frame)
+    except Exception:
+        logger.warning("indicator display plan failed for run %s", run_id, exc_info=True)
+        indicators = []
+    return {"symbol": symbol, "bars": bars, "indicators": indicators}
 
 
 class ExplainRequest(BaseModel):
@@ -878,6 +1014,76 @@ def markets_calendar():
     """This week's earnings + IPO calendars (Finnhub, 6h cache). Degrades to
     configured=false when the key is absent — the page renders regardless."""
     return {**markets.calendars(), "disclaimer": DISCLAIMER}
+
+
+_CALENDAR_KINDS = {"earnings", "ipo"}
+
+
+@app.get("/markets/calendar-month")
+def markets_calendar_month(kind: str = "earnings", year: int = 0, month: int = 0):
+    """One full month of the earnings or IPO calendar (cached 6h per month).
+    Degrades to configured=false / empty rows — never errors the page."""
+    if kind not in _CALENDAR_KINDS:
+        raise HTTPException(status_code=422, detail="kind must be 'earnings' or 'ipo'")
+    today = date.today()
+    year = year or today.year
+    month = month or today.month
+    if not (2000 <= year <= 2100) or not (1 <= month <= 12):
+        raise HTTPException(status_code=422, detail="year/month out of range")
+    return {**markets.calendar_month(kind, year, month), "disclaimer": DISCLAIMER}
+
+
+@app.get("/markets/day")
+def markets_day(date: str, kind: str = "earnings"):
+    """One day's calendar rows. Earnings rows carry on-demand profile
+    enrichment (name/logo/mcap) and sort by market cap descending."""
+    if kind not in _CALENDAR_KINDS:
+        raise HTTPException(status_code=422, detail="kind must be 'earnings' or 'ipo'")
+    try:
+        day = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="date must be YYYY-MM-DD")
+    month_payload = markets.calendar_month(kind, day.year, day.month)
+    rows = [dict(r) for r in month_payload.get("rows", []) if r.get("date") == date]
+    if kind == "earnings" and rows:
+        symbols = [r["symbol"] for r in rows if r.get("symbol")]
+        try:
+            profiles = markets.day_enrichment(symbols)
+        except Exception:
+            logger.warning("day enrichment failed", exc_info=True)
+            profiles = {}
+        for row in rows:
+            row["profile"] = profiles.get(str(row.get("symbol", "")).strip().upper())
+
+        def _mcap(row: dict) -> float:
+            profile = row.get("profile") or {}
+            try:
+                return float(profile.get("marketCapitalization") or 0.0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        rows.sort(key=lambda r: (-_mcap(r), r.get("symbol") or ""))
+    return {
+        "date": date,
+        "kind": kind,
+        "configured": month_payload.get("configured", False),
+        "rows": rows,
+        "disclaimer": DISCLAIMER,
+    }
+
+
+@app.get("/markets/news")
+def markets_news():
+    """General market headlines (10 min cache). Degrades to configured=false."""
+    return {**markets.market_news(), "disclaimer": DISCLAIMER}
+
+
+@app.get("/stocks/{ticker}")
+def stock_bundle(ticker: str):
+    """Informational company bundle for the stock page — research/education
+    only, no recommendations or predictions. Unknown ticker -> found:false,
+    NEVER an exception (the page must render regardless)."""
+    return {**markets.company_bundle(ticker), "disclaimer": DISCLAIMER}
 
 
 # ── Admin ops (remote seeding/worker runs; guarded by ADMIN_TOKEN) ───────────
