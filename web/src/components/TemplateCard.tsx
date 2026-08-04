@@ -1,11 +1,16 @@
 import Link from "next/link";
 import Sparkline from "@/components/Sparkline";
+import StrategyPreview from "@/components/StrategyPreview";
 import type { Template } from "@/lib/types";
 import { fmtPct, fmtSignedPct } from "@/lib/format";
 
 /** Template/strategy card, redesigned per brief §4: name, one-liner, THE
  *  number (CAGR — total return when CAGR is absent) as the mono hero stat,
  *  tiny sparkline, category tag. Everything else lives on the detail view.
+ *
+ *  Above the stats sits a StrategyPreview — a deterministic illustration of
+ *  the strategy's MECHANIC derived from its spec (labeled "illustration",
+ *  never data).
  *
  *  Truth rule: the sparkline renders ONLY when real equity values are passed
  *  via `spark` — it is never fabricated from the stats. Negative heroes stay
@@ -52,6 +57,7 @@ export default function TemplateCard({
       <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
         {template.meta.one_liner}
       </p>
+      <StrategyPreview spec={template.spec} meta={template.meta} className="mt-4" />
       {hero ? (
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-hairline pt-4">
           <div>
