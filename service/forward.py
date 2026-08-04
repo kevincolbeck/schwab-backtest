@@ -10,7 +10,7 @@ existing signal row (the Supabase mirror additionally revokes UPDATE/DELETE).
 
 Execution model (stated on every strategy page): signals come from closed bars
 at the frozen spec's timeframe — EOD bars for 1d strategies, closed intraday
-candles (15m/30m/60m) for intraday deployments, all evaluated after the fact by
+candles (down to 1m) for intraday deployments, all evaluated after the fact by
 the daily worker (never live/streaming). Fills use the spec's entry_price_field
 and the same slippage assumption as backtests. Warm-up trades entered before
 the deployment date are discarded — only out-of-sample signals reach the
@@ -350,8 +350,8 @@ def process_deployment(deployment: dict, as_of: str, intraday_cache: Optional[di
     # Full history for indicator warm-up, but trading starts FLAT at the
     # deployment date (engine-enforced) — no warm-up positions can bleed in.
     # NOTE: no 60-day intraday span cap here — that cap is a /backtest request
-    # guard; forward records legitimately grow past it (1m/5m are blocked at
-    # deploy time instead, where data volume compounds fastest).
+    # guard; forward records legitimately grow past it (1m/5m carry a premium
+    # deploy fee instead, since their data volume compounds fastest).
     results, _bt = run_backtest(
         spec=spec,
         start_date=warmup_start,

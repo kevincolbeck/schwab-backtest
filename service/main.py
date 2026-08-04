@@ -450,11 +450,24 @@ def explain_spec(
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="explanations not configured")
 
-    # Every cache miss is a paid model call — meter it like custom backtests.
-    identity = user["id"] if user else f"ip:{_client_ip(request)}"
-    limit = EXPLAIN_PER_DAY_USER if user else EXPLAIN_PER_DAY_ANON
-    if not auth.check_and_count_run(f"explain:{identity}", limit):
-        raise HTTPException(status_code=429, detail="daily explanation limit reached")
+    # Every cache miss is a paid model call — charge credits (cache hits above
+    # stay free, as documented), with the per-day cap as the fallback meter.
+    explain_cost = credits.COSTS["explain"]
+    charged = False
+    if user is not None and credits.enabled_for(user):
+        allowed, bal = credits.spend(user["id"], explain_cost, "explain")
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "out_of_credits", "balance": bal, "needed": explain_cost,
+                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            )
+        charged = bal is not None
+    if not charged:
+        identity = user["id"] if user else f"ip:{_client_ip(request)}"
+        limit = EXPLAIN_PER_DAY_USER if user else EXPLAIN_PER_DAY_ANON
+        if not auth.check_and_count_run(f"explain:{identity}", limit):
+            raise HTTPException(status_code=429, detail="daily explanation limit reached")
 
     prompt = (
         "Rewrite the trading strategy described by the JSON below as plain-English "
@@ -477,6 +490,8 @@ def explain_spec(
         )
     except Exception:
         logger.error("explain call failed", exc_info=True)
+        if charged:
+            credits.refund(user["id"], explain_cost, "explain_failed")
         raise HTTPException(status_code=502, detail="explanation generation failed")
 
     with _explain_lock:
@@ -686,7 +701,7 @@ def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
             raise HTTPException(
                 status_code=403,
                 detail="intraday forward testing is a Pro feature — upgrade to deploy "
-                "15m/30m/60m strategies to the ledger",
+                "intraday strategies to the ledger",
             )
         if credits.enabled_for(user):
             deploy_fee = credits.intraday_deploy_cost(timeframe)

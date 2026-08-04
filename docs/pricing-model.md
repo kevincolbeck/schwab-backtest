@@ -68,7 +68,7 @@ math below assumes it.)
 | Backtest, 1m/5m | 50 × symbol multiplier | ≥ $0.395 | ≈ $0 | ≈ 100% |
 | AI chat message | max(12, ⌈est. tokens ÷ 800⌉) | ≥ $0.0948 | ≤ $0.0611 (adversarial worst point, math below) | ≥ 36% adversarial worst; ~78% typical |
 | AI explanation, cache miss | 5 | $0.0395 | ≤ $0.0135 (≤2K in + 500 out) | ≥ 66% |
-| AI explanation, cache hit (behavior-hash) | 5 | $0.0395 | ≈ $0 | ≈ 100% |
+| AI explanation, cache hit (behavior-hash) | 0 — returns before billing | $0 | ≈ $0 | — (free by design) |
 | Intraday forward deployment 15m/30m/60m (Pro/Max only) | 100, one-time | $0.79 | ≈ $0 (daily worker pass over cached bars) | ≈ 100% |
 | Intraday forward deployment 1m/5m (Pro/Max only) | 250, one-time | $1.98 | ≈ $0 (largest replay windows — hence the premium) | ≈ 100% |
 
