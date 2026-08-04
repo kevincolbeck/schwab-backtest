@@ -11,7 +11,7 @@ const TIERS = [
     tagline: "Starter credits to build your first strategy",
     features: [
       "250 starter credits on signup",
-      "All 8 strategy templates",
+      "The full strategy library",
       "AI chat editing + explanations",
       "Trade-by-trade candle forensics",
       "1 public forward-test deployment",
