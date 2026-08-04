@@ -1,4 +1,11 @@
-import type { ChatResponse, ChatTurn, RunResult, Spec, Template } from "./types";
+import type {
+  ChatResponse,
+  ChatTurn,
+  IndicatorSeries,
+  RunResult,
+  Spec,
+  Template,
+} from "./types";
 
 interface ErrorDetail {
   message?: string;
@@ -110,7 +117,12 @@ export function createShare(runId: string): Promise<{ share_slug: string }> {
 export function fetchBars(
   runId: string,
   symbol: string,
-): Promise<{ symbol: string; bars: Array<{ time: string; open: number; high: number; low: number; close: number }> }> {
+): Promise<{
+  symbol: string;
+  bars: Array<{ time: string; open: number; high: number; low: number; close: number }>;
+  /** Optional: absent on older cached payloads — consumers must degrade. */
+  indicators?: IndicatorSeries[];
+}> {
   return request(
     `/api/runs/${encodeURIComponent(runId)}/bars?symbol=${encodeURIComponent(symbol)}`,
   );

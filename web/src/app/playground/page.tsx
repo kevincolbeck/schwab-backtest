@@ -32,7 +32,15 @@ import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
 import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import type { ChatTurn, RunResult, Spec, SpecChange, Template, Trade } from "@/lib/types";
+import type {
+  ChatTurn,
+  IndicatorSeries,
+  RunResult,
+  Spec,
+  SpecChange,
+  Template,
+  Trade,
+} from "@/lib/types";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -111,9 +119,12 @@ function PlaygroundInner() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<string>("results");
 
-  // Trade forensics (Phase B): candle bars per symbol, keyed by the run they
-  // belong to; the inspector and Chart tab share this cache.
-  const [barsCache, setBarsCache] = useState<Record<string, Bar[]>>({});
+  // Trade forensics (Phase B): candle bars + spec-driven indicator series per
+  // symbol, keyed by the run they belong to; the inspector and Chart tab
+  // share this cache and consume indicators automatically (WS5).
+  const [barsCache, setBarsCache] = useState<
+    Record<string, { bars: Bar[]; indicators: IndicatorSeries[] }>
+  >({});
   const [loadingSymbols, setLoadingSymbols] = useState<Record<string, true>>({});
   const [inspectTrade, setInspectTrade] = useState<Trade | null>(null);
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
@@ -129,10 +140,14 @@ function PlaygroundInner() {
         // Bars belong to a specific run — drop responses that arrive after a
         // rerun or template switch replaced the run they were fetched for.
         if (runRef.current?.run_id !== runId) return;
-        setBarsCache((cache) => ({ ...cache, [symbol]: out.bars }));
+        setBarsCache((cache) => ({
+          ...cache,
+          // indicators may be absent on older cached payloads — degrade to [].
+          [symbol]: { bars: out.bars, indicators: out.indicators ?? [] },
+        }));
       } catch {
         if (runRef.current?.run_id === runId) {
-          setBarsCache((cache) => ({ ...cache, [symbol]: [] }));
+          setBarsCache((cache) => ({ ...cache, [symbol]: { bars: [], indicators: [] } }));
         }
       } finally {
         setLoadingSymbols((s) => {
@@ -637,7 +652,7 @@ function PlaygroundInner() {
               Pine export: {pineOut.warnings.length} part
               {pineOut.warnings.length === 1 ? "" : "s"} of this strategy need
               manual attention on TradingView (marked{" "}
-              <span className="font-mono">// TODO</span> in the file):{" "}
+              <span className="font-mono">{"// TODO"}</span> in the file):{" "}
               {pineOut.warnings.join("; ")}. TradingView results will differ —
               different fill models and data.
             </p>
@@ -1030,10 +1045,11 @@ function PlaygroundInner() {
                         ))}
                       </div>
                       <div className="card p-3">
-                        {activeChartSymbol && barsCache[activeChartSymbol]?.length ? (
+                        {activeChartSymbol && barsCache[activeChartSymbol]?.bars.length ? (
                           <CandleChart
-                            bars={barsCache[activeChartSymbol]}
+                            bars={barsCache[activeChartSymbol].bars}
                             markers={chartMarkers}
+                            indicators={barsCache[activeChartSymbol].indicators}
                             height={420}
                           />
                         ) : (
@@ -1139,7 +1155,8 @@ function PlaygroundInner() {
       {inspectTrade && (
         <TradeInspector
           trade={inspectTrade}
-          bars={barsCache[inspectTrade.symbol] ?? null}
+          bars={barsCache[inspectTrade.symbol]?.bars ?? null}
+          indicators={barsCache[inspectTrade.symbol]?.indicators ?? null}
           loading={Boolean(loadingSymbols[inspectTrade.symbol]) && !barsCache[inspectTrade.symbol]}
           onClose={() => setInspectTrade(null)}
         />

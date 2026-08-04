@@ -13,6 +13,9 @@ export interface ChartTokens {
   hairline: string;
   muted: string;
   mono: string;
+  /** Categorical ramp for indicator lines (--chart-1..4): fixed assignment
+   *  order, cycle past the end via seriesColor(). Data lines ONLY. */
+  series: string[];
 }
 
 /* Sanctioned fallbacks (SYSTEM.md §12 pattern): used only before first paint
@@ -26,7 +29,14 @@ const FALLBACK: ChartTokens = {
   hairline: "rgba(148, 163, 184, 0.1)",
   muted: "#98a2b3",
   mono: "ui-monospace, monospace",
+  series: ["#8b5cf6", "#e0559d", "#d0742a", "#2aa3c9"],
 };
+
+/** Fixed-order categorical assignment: series i keeps its color for life;
+ *  past the ramp the colors cycle (legend chips keep identity readable). */
+export function seriesColor(tokens: ChartTokens, index: number): string {
+  return tokens.series[((index % tokens.series.length) + tokens.series.length) % tokens.series.length];
+}
 
 /** One-shot token read (for imperative chart APIs like lightweight-charts). */
 export function readChartTokens(): ChartTokens {
@@ -42,6 +52,7 @@ export function readChartTokens(): ChartTokens {
     hairline: get("--hairline", FALLBACK.hairline),
     muted: get("--muted", FALLBACK.muted),
     mono: get("--font-stack-mono", FALLBACK.mono),
+    series: FALLBACK.series.map((fb, i) => get(`--chart-${i + 1}`, fb)),
   };
 }
 

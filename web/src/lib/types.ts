@@ -8,6 +8,22 @@ export interface Indicator {
   field?: string;
 }
 
+/** One point of a computed indicator series; null = warm-up gap (renders as
+ *  whitespace, not zero). Times align with the bars of the same payload. */
+export interface IndicatorPoint {
+  time: string; // YYYY-MM-DD
+  value: number | null;
+}
+
+/** Spec-driven indicator display plan from GET /runs/{id}/bars — overlays
+ *  render on the price scale, panes in a sub-pane below the candles. */
+export interface IndicatorSeries {
+  name: string;
+  label: string;
+  kind: "overlay" | "pane";
+  series: IndicatorPoint[];
+}
+
 export interface Spec {
   name: string;
   description?: string;

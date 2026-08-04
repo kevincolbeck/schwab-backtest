@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import CandleChart, { type Bar, type TradeMarker } from "@/components/CandleChart";
 import Modal from "@/components/ui/Modal";
 import { fmtDate, fmtMoney, fmtNum } from "@/lib/format";
-import type { Trade } from "@/lib/types";
+import type { IndicatorSeries, Trade } from "@/lib/types";
 
 const CONTEXT_BARS = 30; // bars of context on each side of the trade
 
@@ -12,11 +12,13 @@ const CONTEXT_BARS = 30; // bars of context on each side of the trade
 export default function TradeInspector({
   trade,
   bars,
+  indicators = null,
   loading,
   onClose,
 }: {
   trade: Trade | null;
   bars: Bar[] | null;
+  indicators?: IndicatorSeries[] | null;
   loading: boolean;
   onClose: () => void;
 }) {
@@ -30,6 +32,17 @@ export default function TradeInspector({
     if (hi < 0) hi = bars.length - 1;
     return bars.slice(Math.max(0, lo - CONTEXT_BARS), Math.min(bars.length, hi + CONTEXT_BARS + 1));
   }, [trade, bars]);
+
+  // Indicators ride along on the same context window as the candles.
+  const slicedIndicators = useMemo(() => {
+    if (!sliced.length || !indicators?.length) return [];
+    const lo = sliced[0].time;
+    const hi = sliced[sliced.length - 1].time;
+    return indicators.map((ind) => ({
+      ...ind,
+      series: ind.series.filter((p) => p.time >= lo && p.time <= hi),
+    }));
+  }, [sliced, indicators]);
 
   const markers: TradeMarker[] = useMemo(() => {
     if (!trade) return [];
@@ -88,6 +101,7 @@ export default function TradeInspector({
           bars={sliced}
           markers={markers}
           stopPrice={Number.isFinite(stop) && stop > 0 ? stop : null}
+          indicators={slicedIndicators}
           height={340}
         />
       )}
