@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import {
   MONTHLY_CREDITS,
   getProfile,
@@ -5,6 +6,7 @@ import {
   updateProfile,
   verifyStripeSignature,
 } from "@/lib/server/stripe";
+import { captureServer, eventUuid } from "@/lib/server/analytics";
 
 interface StripeEvent {
   type: string;
@@ -53,6 +55,21 @@ export async function POST(request: Request) {
       // Top-up pack purchase (mode=payment). Ref = session id → idempotent.
       const ok = await grantCredits(userId, packCredits, "pack_purchase", obj.id ?? "unknown");
       if (!ok) return retry();
+      // P0-5: a pack purchase IS a free→paid conversion — without this, pack
+      // buyers read as "never converted" in Section 1 metric #4.
+      const uid = userId;
+      try {
+        after(() =>
+          captureServer(
+            "upgrade_completed",
+            uid,
+            { plan: "pack", credits: packCredits },
+            eventUuid(`pack:${obj.id ?? uid}`),
+          ),
+        );
+      } catch {
+        /* after() unavailable (non-Vercel self-host) — never 500 a webhook */
+      }
     }
     if (userId && (plan === "pro" || plan === "max")) {
       const ok = await updateProfile(
@@ -62,6 +79,24 @@ export async function POST(request: Request) {
       if (!ok) return retry();
       // Monthly allowance is NOT granted here: invoice.payment_succeeded fires
       // for the first payment too, and granting in both would double it.
+      // P0-5 `upgrade_completed`: after the profile write succeeded, so the
+      // event mirrors reality. Stripe delivery is at-least-once (it can
+      // redeliver even after our 200 on a timeout), so the event carries a
+      // deterministic uuid — PostHog dedupes same-day repeats.
+      const uid = userId;
+      const chosenPlan = plan;
+      try {
+        after(() =>
+          captureServer(
+            "upgrade_completed",
+            uid,
+            { plan: chosenPlan },
+            eventUuid(`plan:${obj.id ?? uid}`),
+          ),
+        );
+      } catch {
+        /* after() unavailable — never 500 a webhook over analytics */
+      }
     }
   } else if (event.type === "invoice.payment_succeeded") {
     // Monthly renewals refresh the allowance. Ref = invoice id → idempotent.

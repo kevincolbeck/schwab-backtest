@@ -74,6 +74,7 @@ def record_backtest_run(
     run_type: str,
     base_dir: str = ".",
     parent_run_id: Optional[str] = None,
+    owner: Optional[str] = None,
 ) -> Optional[dict]:
     """Persist run summary plus immutable replay snapshot. Returns paths + run_id."""
     if not bt_config or "error" in results:
@@ -123,6 +124,10 @@ def record_backtest_run(
         "timestamp_utc": timestamp.isoformat(),
         "run_id": run_id,
         "run_type": run_type,
+        # Owner in the manifest lets cohort metrics stream ONE file instead of
+        # opening every multi-hundred-KB run payload (P0-5 review). Legacy
+        # rows lack the key — metrics falls back to the payload for those.
+        "owner": owner,
         "parent_run_id": parent_run_id,
         "start_date": bt_config.start_date,
         "end_date": bt_config.end_date,

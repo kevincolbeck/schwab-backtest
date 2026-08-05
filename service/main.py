@@ -37,7 +37,7 @@ from pydantic import BaseModel, Field, model_validator
 from service import env  # noqa: F401  (loads .env before anything reads os.environ)
 from service import auth, credits
 from service import chat as chat_brain
-from service import backtest_runner, forward, identity, markets, runs_store
+from service import analytics, backtest_runner, forward, identity, markets, metrics, runs_store
 from ai.strategist import clamp_spec, ensure_indicators, validate_spec  # engine path set by backtest_runner
 from backtest.rule_based_engine import RuleBasedBacktestEngine, _sorted_indicators
 
@@ -179,6 +179,24 @@ def _client_ip(request: Request) -> str:
         if ip:
             return ip
     return request.client.host if request.client else "unknown"
+
+
+def _analytics_id(request: Request, user: Optional[dict]) -> str:
+    """Distinct id for product analytics (P0-5). Signed-in → the user id (the
+    same id the web tier uses, so funnels line up). Anonymous → the browser's
+    first-party aid forwarded by the Next proxy, falling back to a hashed IP.
+    The aid is an analytics LABEL, not a security input — no proxy-secret gate;
+    spoofing it only pollutes analytics, never rate limits (those key off
+    _client_ip)."""
+    if user is not None:
+        return user["id"]
+    aid = (request.headers.get("x-cb-aid") or "").strip()
+    if aid and len(aid) <= 64 and aid.replace("-", "").isalnum():
+        # "anon:" namespace so a client-chosen label can never collide with a
+        # real user UUID (owner ids are public on the leaderboard — without
+        # the prefix, forged events would be attributable to named accounts).
+        return f"anon:{aid}"
+    return analytics.anon_distinct_id(_client_ip(request))
 
 
 @app.get("/healthz")
@@ -436,6 +454,14 @@ def backtest(
         )
     logger.info("Backtest %s finished in %.1fs (%s trades)",
                 run_id, elapsed, (serialized["stats"] or {}).get("total_trades"))
+    analytics.capture("backtest_run", _analytics_id(request, user), {
+        "timeframe": timeframe,
+        "template": is_template_run,
+        "quiet": quiet_run,
+        "credits_charged": run_cost if charged else 0,
+        "anon": user is None,
+        "elapsed_seconds": round(elapsed, 2),
+    })
     return {
         "run_id": run_id,
         "parent_run_id": req.parent_run_id,
@@ -935,6 +961,12 @@ def chat(
         else:
             parsed["updated_spec"] = spec
 
+    analytics.capture("ai_message_sent", _analytics_id(request, user), {
+        "anon": user is None,
+        "credits_charged": chat_fee if charged else 0,
+        "scratch": req.current_spec is None,
+        "produced_spec": parsed["updated_spec"] is not None,
+    })
     return {
         "reply": parsed["reply"],
         "updated_spec": parsed["updated_spec"],
@@ -947,7 +979,7 @@ def chat(
 
 
 @app.post("/deploy")
-def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
+def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(current_user)):
     """Deploy a completed run's spec to forward testing (freezes the spec)."""
     if auth.auth_configured() and user is None:
         raise HTTPException(status_code=401, detail="sign in to deploy to the forward ledger")
@@ -1037,6 +1069,12 @@ def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
             detail="deploy failed — credits refunded" if fee_charged
             else "deploy failed — nothing was charged",
         )
+    analytics.capture("deploy_completed", _analytics_id(request, user), {
+        "timeframe": timeframe,
+        "visibility": req.visibility,
+        "credits_charged": deploy_fee if fee_charged else 0,
+        "house": user is None,
+    })
     return {
         "deployment": _public_deployment(deployment),
         "credits_charged": deploy_fee if fee_charged else 0,
@@ -1050,7 +1088,7 @@ class ShareRequest(BaseModel):
 
 
 @app.post("/share")
-def create_share(req: ShareRequest, user: Optional[dict] = Depends(current_user)):
+def create_share(req: ShareRequest, request: Request, user: Optional[dict] = Depends(current_user)):
     """Mint a public share slug for a run. Free/anonymous shares carry a watermark."""
     run = runs_store.get_run(req.run_id)
     if run is None:
@@ -1059,6 +1097,10 @@ def create_share(req: ShareRequest, user: Optional[dict] = Depends(current_user)
     slug = runs_store.create_share(req.run_id, watermarked=plan not in ("pro", "max"))
     if slug is None:
         raise HTTPException(status_code=404, detail="run not found")
+    analytics.capture("share_link_created", _analytics_id(request, user), {
+        "watermarked": plan not in ("pro", "max"),
+        "anon": user is None,
+    })
     return {"share_slug": slug}
 
 
@@ -1256,7 +1298,12 @@ def _require_admin(request: Request) -> None:
     if not token:
         raise HTTPException(status_code=404, detail="not found")  # endpoint hidden
     supplied = request.headers.get("x-admin-token", "")
-    if not supplied or supplied != token:
+    # Constant-time compare (as bytes — compare_digest raises on non-ASCII str):
+    # /admin/metrics made this reachable as a cheap GET via the public web
+    # proxy, so don't hand out a timing oracle, however impractical.
+    if not supplied or not hmac.compare_digest(
+        supplied.encode("utf-8", "ignore"), token.encode("utf-8")
+    ):
         raise HTTPException(status_code=403, detail="bad admin token")
 
 
@@ -1274,6 +1321,14 @@ def admin_run_worker(request: Request, as_of: Optional[str] = None):
     """Manual/backfill worker pass (same as the cron; idempotent)."""
     _require_admin(request)
     return forward.run_worker(as_of=as_of)
+
+
+@app.get("/admin/metrics")
+def admin_metrics(request: Request, force: bool = False):
+    """P0-5 dashboard data: activation + deployment rate by weekly signup
+    cohort, computed from first-party data (works without PostHog)."""
+    _require_admin(request)
+    return metrics.dashboard(force=force)
 
 
 @app.get("/templates")

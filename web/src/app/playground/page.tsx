@@ -30,6 +30,7 @@ import { englishRules } from "@/lib/englishRules";
 import { pineExport } from "@/lib/exportPine";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct, fmtSignedPct } from "@/lib/format";
+import { track } from "@/lib/analytics";
 import { checkFirstSession } from "@/lib/firstSession";
 import { templateHero } from "@/lib/templates";
 import { useAuthModal } from "@/components/AuthModal";
@@ -169,6 +170,14 @@ function PlaygroundInner() {
   useEffect(() => {
     setFirstSession(checkFirstSession());
   }, []);
+
+  // P0-5 `result_viewed`: a real run landed in the workspace (the lab opens
+  // the Results tab on completion; the baked demo never enters `run` state).
+  // Keyed by run_id so reruns count once each and re-renders don't refire.
+  const runId = run?.run_id;
+  useEffect(() => {
+    if (runId) track("result_viewed", { run_id: runId });
+  }, [runId]);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -565,6 +574,10 @@ function PlaygroundInner() {
 
   const onDeploy = async () => {
     if (!run?.run_id || deploying) return;
+    // P0-5 `deploy_started`: intent, fired before the auth gate so the funnel
+    // shows how many deploys die at the signup prompt. deploy_completed is
+    // emitted server-side by the service when the ledger row exists.
+    track("deploy_started", { gated: signedIn === false });
     if (
       gateAnon(
         "Create a free account to put this strategy on the public forward-test ledger — no card required.",

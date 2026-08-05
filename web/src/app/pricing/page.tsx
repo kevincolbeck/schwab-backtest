@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SectionShell from "@/components/SectionShell";
 import Card from "@/components/ui/Card";
 import Button, { ButtonLink } from "@/components/ui/Button";
+import { track } from "@/lib/analytics";
 
 const TIERS = [
   {
@@ -69,6 +70,10 @@ function Price({ price }: { price: string }) {
 export default function PricingPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    track("upgrade_viewed");
+  }, []);
 
   const checkout = async (body: { plan?: string; pack?: string }) => {
     const key = body.plan ?? body.pack ?? "";

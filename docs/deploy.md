@@ -24,6 +24,9 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
    | `ALLOWED_ORIGINS` | `https://<your-vercel-domain>` |
    | `MAX_SYMBOLS_PER_RUN` | `200` (raise later for Max-plan universe runs) |
    | `CHAT_MODEL` | optional override, defaults to `claude-sonnet-4-6` |
+   | `POSTHOG_KEY` | P0-5 analytics — service events (backtest_run, ai_message_sent, deploy_completed, share_link_created) stay dormant no-ops until set |
+   | `POSTHOG_HOST` | optional, defaults to `https://us.i.posthog.com` |
+   | `ANALYTICS_SALT` | optional — salts the anonymous IP-hash distinct ids; falls back to `PROXY_SHARED_SECRET` (already set), so only needed if you want a dedicated salt |
 
 5. Warm the cache after first deploy (Railway shell):
    `python engine/import_market_data.py --source polygon` for the template symbols,
@@ -44,9 +47,15 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
    | Variable | Value |
    |---|---|
    | `BACKTEST_API_URL` | the Railway service URL (server-side only) |
+   | `POSTHOG_KEY` | P0-5 analytics — web events (signup, upgrade_viewed/completed, result_viewed, deploy_started) stay dormant no-ops until set. Same project key as Railway. Server-side env, NOT `NEXT_PUBLIC_` |
+   | `POSTHOG_HOST` | optional, defaults to `https://us.i.posthog.com` |
 
    Later (Phase 5): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+
+   **Operator dashboard (P0-5):** `/admin` (unlinked, noindex) renders weekly
+   cohort activation/deployment computed by the service's `/admin/metrics` —
+   authenticate with the service's `ADMIN_TOKEN`. Works with no PostHog key.
 3. Deploy. The browser only ever calls the Next.js `/api/*` proxy — the Railway URL
    stays server-side.
 

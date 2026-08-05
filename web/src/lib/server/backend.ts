@@ -15,6 +15,10 @@ export async function proxyJSON(
   // it never trusts a raw XFF (spoofable by direct callers).
   const ip = sourceRequest?.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (ip) headers["X-Client-IP"] = ip;
+  // First-party analytics id (P0-5) — a label for event continuity, not a
+  // security input; the service validates its shape and never rate-limits on it.
+  const aid = sourceRequest?.headers.get("x-cb-aid");
+  if (aid) headers["x-cb-aid"] = aid;
   if (process.env.PROXY_SHARED_SECRET) {
     headers["X-Proxy-Secret"] = process.env.PROXY_SHARED_SECRET;
   }

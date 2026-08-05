@@ -66,6 +66,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     /* auth not configured */
   }
+  try {
+    // P0-5: the first-party analytics id rides along so service-side events
+    // (backtest_run, ai_message_sent) share the browser's distinct id — the
+    // proxy forwards it, and signup later aliases it onto the account.
+    const { anonymousId } = await import("./analytics");
+    const aid = anonymousId();
+    if (aid) headers["x-cb-aid"] = aid;
+  } catch {
+    /* analytics unavailable — never blocks the call */
+  }
   const res = await fetch(path, {
     ...init,
     headers: { ...headers, ...init?.headers },

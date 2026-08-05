@@ -41,6 +41,7 @@ def save_run(
         run_type=run_type,
         base_dir=str(DATA_DIR),
         parent_run_id=parent_run_id,
+        owner=owner,
     )
     if record is None:
         return None
