@@ -5,6 +5,7 @@ export const NAV_LINKS: ReadonlyArray<{ label: string; href: string }> = [
   { label: "Library", href: "/library" },
   { label: "Markets", href: "/markets" },
   { label: "Leaderboard", href: "/leaderboard" },
+  { label: "Blog", href: "/blog" },
   { label: "Docs", href: "/docs" },
   { label: "Pricing", href: "/pricing" },
 ];

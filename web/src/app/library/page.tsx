@@ -3,6 +3,7 @@ import Reveal from "@/components/Reveal";
 import SectionShell from "@/components/SectionShell";
 import TemplateCard from "@/components/TemplateCard";
 import Card from "@/components/ui/Card";
+import { postForTemplate } from "@/lib/blog";
 import { DISCLAIMER } from "@/lib/constants";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { Template } from "@/lib/types";
@@ -172,9 +173,29 @@ export default async function LibraryPage({
                   </Reveal>
                   <Reveal>
                     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {list.map((t) => (
-                        <TemplateCard key={t.id} template={t} />
-                      ))}
+                      {list.map((t) => {
+                        // P1-1 backlink rule: templates with a published
+                        // write-up link back to it. Sibling of the card —
+                        // TemplateCard is itself one big anchor; anchors
+                        // don't nest.
+                        const article = postForTemplate(t.id);
+                        return (
+                          // [&>a.card]:flex-1 keeps row heights equal: the
+                          // wrapper stretches with the grid, and the card
+                          // (not the backlink anchor) absorbs the slack.
+                          <div key={t.id} className="flex flex-col gap-2 [&>a.card]:flex-1">
+                            <TemplateCard template={t} />
+                            {article && (
+                              <Link
+                                href={`/blog/${article.slug}`}
+                                className="focus-ring self-start rounded-(--radius-tag) px-1 text-caption text-muted hover:text-accent"
+                              >
+                                Read the full test → {article.title}
+                              </Link>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </Reveal>
                 </section>

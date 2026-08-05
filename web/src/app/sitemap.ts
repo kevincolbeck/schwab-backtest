@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { BLOG_CATEGORIES, BLOG_POSTS } from "@/lib/blog";
 import { STOCK_UNIVERSE } from "@/lib/server/stocks";
 
 /** Sitemap for the public, indexable surfaces.
@@ -37,6 +38,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITE_URL}${r.path}`,
       changeFrequency: r.changeFrequency,
       priority: r.priority,
+    })),
+    // Blog (P1-1): index + category hubs + every article in the registry.
+    { url: `${SITE_URL}/blog`, changeFrequency: "weekly" as const, priority: 0.8 },
+    ...BLOG_CATEGORIES.map((c) => ({
+      url: `${SITE_URL}/blog/category/${c.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    })),
+    ...BLOG_POSTS.map((p) => ({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
     })),
     // Stock pages refresh once per trading day (settled closes, 6h ISR).
     ...STOCK_UNIVERSE.map((symbol) => ({

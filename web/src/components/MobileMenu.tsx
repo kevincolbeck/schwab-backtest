@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,7 +30,7 @@ export default function MobileMenu() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
 
-  // A followed link changed the route — close the panel (state adjustment
+  // A followed link changed the route â€” close the panel (state adjustment
   // during render, per react.dev "adjusting state when props change").
   const [lastPath, setLastPath] = useState(pathname);
   if (lastPath !== pathname) {
@@ -55,7 +55,7 @@ export default function MobileMenu() {
   }, [open]);
 
   return (
-    <div className="sm:hidden">
+    <div className="md:hidden">
       <button
         ref={btnRef}
         type="button"
@@ -73,11 +73,11 @@ export default function MobileMenu() {
             role="presentation"
             aria-hidden="true"
             onClick={() => setOpen(false)}
-            className="fixed inset-x-0 bottom-0 top-(--nav-h) z-40 bg-overlay sm:hidden"
+            className="fixed inset-x-0 bottom-0 top-(--nav-h) z-40 bg-overlay md:hidden"
           />
           <div
             id="mobile-nav-panel"
-            className="menu-pop glass absolute inset-x-0 top-full z-50 border-b border-hairline sm:hidden"
+            className="menu-pop glass absolute inset-x-0 top-full z-50 border-b border-hairline md:hidden"
           >
             <nav aria-label="Site" className="mx-auto w-full max-w-(--container-max) px-4 py-3">
               <ul className="flex flex-col gap-0.5">
