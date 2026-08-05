@@ -1,5 +1,11 @@
 # CLAUDE.md — Product V2: "The Anything Trading-Strategy Lab"
 
+> **RESUMING A BUILD SESSION? Read `docs/HANDOFF.md` FIRST** — it holds the
+> exact resume point (what shipped, what's next, the per-item loop, hazards,
+> and owner blockers), updated at the end of every session. This file is the
+> standing product direction; `docs/CHATBACKTEST-BUILD.md` is the execution
+> spec being worked top-to-bottom.
+
 > V2 supersedes the V1 plan (2026-08-02) after launch. V1 shipped and its DoD passed on
 > production (schwab-backtest.vercel.app). This doc is the standing product direction —
 > refer to it every session; refine it here, never in chat-memory alone.
