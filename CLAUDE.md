@@ -33,7 +33,7 @@ per-trade candlestick forensics, forward ledger, social leaderboard.
 | V1 | V2 |
 |---|---|
 | EOD-only, US stocks/ETFs | **Any timeframe** (1m→1d) and **any market Polygon serves** (all US stocks/ETFs + crypto), gated by plan/credits, editable via chat AND UI controls |
-| Templates run logged-out; anonymous runs | **Login required for the lab.** Landing hosts a live read-only preview; interacting/fullscreen prompts signup |
+| Templates run logged-out; anonymous runs | ~~**Login required for the lab.**~~ *(Superseded 2026-08-05 by docs/CHATBACKTEST-BUILD.md P0-3: the first backtest is signup-free again — anonymous visitors get daily-timeframe template runs incl. chat-edited variants (IP-limited via trusted proxy header, `PROXY_SHARED_SECRET`), 3 AI chat messages/day, and explanations. Accounts gate custom specs, intraday, deploy, save, export. Pin: service/tests/test_anon_access.py.)* |
 | Magic-link only | **Google, Discord, X/Twitter OAuth + email/password** (Supabase providers) |
 | Runs/day plan limits | **Credit system** (Claude-style): subscriptions include monthly credits; top-ups cost extra; free signup grant that runs out fast |
 | Utilitarian dark UI | **100× UI**: 2026-standard, clean/sleek/sharp/HD, exceeds LuxAlgo (see UI Bible below) |
@@ -59,8 +59,10 @@ says "this looks a generation ahead." Clean, simple, sleek — but sharp and HD.
   TradingView green/red strictly for P&L. Light mode ships too.
 - Typography: Geist/Inter, tabular-nums mono for every number, big confident metrics.
 - Product-as-hero landing (LuxAlgo's best trick): a LIVE embedded lab preview above the
-  fold — real SPY data, scrubbing crosshair — with a "Go fullscreen" affordance that
-  opens the signup modal when logged out.
+  fold — real SPY data, scrubbing crosshair — with a "Go fullscreen" affordance.
+  *(Superseded 2026-08-05 by P0-3: fullscreen now navigates to the lab for everyone —
+  the first backtest is signup-free; it no longer opens the signup modal. See
+  design/AUDIT.md §5.)*
 - Section rhythm with eyebrow labels: "The Lab · Build anything" / "The Proof · The
   ledger" / "The Board · Public receipts".
 - Command palette (⌘K): jump to template, symbol, run, deployment.
@@ -122,8 +124,9 @@ says "this looks a generation ahead." Clean, simple, sleek — but sharp and HD.
 
 - Supabase providers: **Google, Discord, X/Twitter, email+password** (keep magic link as
   secondary). Login/signup modal (not a separate page) matching the new UI.
-- **The lab requires login.** Landing preview is read-only; any interaction beyond
-  scrubbing the demo chart raises the signup modal.
+- ~~**The lab requires login.**~~ *(Superseded by P0-3 — see the V2 table note. The
+  account prompt moved to the SECOND action: deploy, export, chat beyond the free
+  taste, custom/intraday specs.)*
 - Profile: username (unique handle), avatar (from OAuth), linked X handle.
 - Session-aware nav everywhere; dashboard becomes "My Lab" home.
 
@@ -160,7 +163,8 @@ says "this looks a generation ahead." Clean, simple, sleek — but sharp and HD.
 
 1. **A. UI rebuild** — the WOW pass (landing + lab shell + restyled results).
 2. **B. Trade forensics + export + plain-English** (deepens the lab inside new shell).
-3. **E. Auth v2 + login-gating** (providers, modal, landing preview gate).
+3. **E. Auth v2 + login-gating** (providers, modal, ~~landing preview gate~~ — the
+   preview/lab gate was reversed by P0-3; the account prompt is the second action now).
 4. **F. Credits + billing v2** (replaces per-day limits; Stripe packs).
 5. **C. Any market/timeframe** (unlock + gate + crypto engine work).
 6. **D. Scratch-builder + proactive AI**.
@@ -179,5 +183,5 @@ the expensive features (intraday/crypto burn real money), social last (needs use
 - ADMIN_TOKEN guards /admin/* (seeding, worker runs).
 - Deploy checklist: docs/deploy.md. Competitive teardown: docs/competitive-luxalgo.md.
 - Regression treasures: AST security tests, clamp-hash-identity tests, template
-  exemption tests (V2 removes anonymous exemption when login-gating lands — replace
-  with credit-debit tests, don't just delete).
+  exemption tests (LIVE AGAIN under P0-3 — the anonymous template path is back;
+  service/tests/test_anon_access.py pins it), credit-debit tests.

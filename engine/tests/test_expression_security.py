@@ -41,12 +41,29 @@ MALICIOUS_RULES = [
     "{'a': 1}['a'] > 0",
 ]
 
+# Computational-DoS payloads: no RCE, but they pin a core / exhaust memory on a
+# single unauthenticated request (P0-3 reopened /backtest to anonymous callers).
+DOS_RULES = [
+    "9 ** 9 ** 9 > 0",              # ~369M-digit int, minutes of CPU
+    "3 ** 20000000 > 0",            # ~20M-bit int, seconds + MB
+    '("a" * 999999999) > ""',       # gigabyte string allocation
+    "close ** 999999 > 0",          # exponent on a series
+    "99999999999999 > 0",           # constant past the magnitude bound
+]
 
-@pytest.mark.parametrize("rule", MALICIOUS_RULES)
+
+@pytest.mark.parametrize("rule", MALICIOUS_RULES + DOS_RULES)
 def test_malicious_rules_rejected(rule):
     with pytest.raises(ValueError):
         _evaluate_rule_series(rule, _frame())
     assert validate_rule_syntax(rule) is not None
+
+
+@pytest.mark.parametrize("formula", DOS_RULES)
+def test_dos_formulas_rejected(formula):
+    with pytest.raises(ValueError):
+        _evaluate_custom_formula(formula, _frame())
+    assert validate_formula_syntax(formula) is not None
 
 
 @pytest.mark.parametrize("formula", [

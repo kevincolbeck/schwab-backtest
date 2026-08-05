@@ -19,6 +19,12 @@ export default function CreditsPage() {
       <h2>The short version</h2>
       <ul>
         <li>
+          No account yet? Daily-bar templates run <strong>free</strong> — up to
+          10 a day per visitor — with 3 AI messages and plain-English
+          explanations. An account unlocks custom strategies, intraday
+          timeframes, exports, and deploys.
+        </li>
+        <li>
           New accounts get <strong>250 credits</strong> free — no card
           required.
         </li>

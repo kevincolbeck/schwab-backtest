@@ -3,7 +3,7 @@ import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits"
 export const metadata = {
   title: "Your first backtest",
   description:
-    "From creating an account to a finished results report: templates, the scratch builder, editing by chat, and the four tabs of the lab.",
+    "From your first free template run to a finished results report — no account until you want to keep it: templates, the scratch builder, editing by chat, and the four tabs of the lab.",
 };
 
 export default function FirstBacktestPage() {
@@ -11,33 +11,26 @@ export default function FirstBacktestPage() {
     <>
       <h1>Your first backtest</h1>
       <p>
-        The whole loop, once, end to end: sign in, pick or describe a strategy,
-        refine it in chat, run it against history, and read the report.
+        The whole loop, once, end to end: open the lab, pick or describe a
+        strategy, refine it in chat, run it against history, and read the
+        report. Your first backtest needs no account at all.
       </p>
 
       <Steps>
-        <Step n={1} title="Create a free account">
+        <Step n={1} title="Open the lab">
           <p>
-            The lab is members-only. Continue with Google or Discord, or enter
-            your email and we send a sign-in link — no password to invent. New
-            accounts start with <strong>250 credits</strong>, no card required.
-            That is enough to run and rework a handful of strategies; the{" "}
-            <a href="/docs/credits">Credits</a> page has the exact prices.
+            Head to <a href="/playground">the lab</a> — no sign-in needed. It
+            has three zones: a left rail with strategy templates and a
+            &ldquo;New from scratch&rdquo; button, a center workspace with four
+            tabs, and the AI chat docked on the right. The toolbar on top holds
+            the date range, the bar-timeframe selector, and the Run button
+            (signed-in members also see their credit meter, the ◈ number).
+            Daily-bar templates run free without an account — up to 10 a day
+            per visitor — with 3 free AI messages to edit them.
           </p>
         </Step>
 
-        <Step n={2} title="Open the lab">
-          <p>
-            Head to <a href="/playground">the lab</a>. It has three zones: a
-            left rail with strategy templates and a &ldquo;New from
-            scratch&rdquo; button, a center workspace with four tabs, and the
-            AI chat docked on the right. The toolbar on top holds the date
-            range, the bar-timeframe selector, your credit meter (the ◈
-            number), and the Run button.
-          </p>
-        </Step>
-
-        <Step n={3} title="Pick a starting point">
+        <Step n={2} title="Pick a starting point">
           <p>Two ways in:</p>
           <ul>
             <li>
@@ -59,7 +52,7 @@ export default function FirstBacktestPage() {
           </ul>
         </Step>
 
-        <Step n={4} title="Edit by chat">
+        <Step n={3} title="Edit by chat">
           <p>
             Ask for changes in plain English — the more specific, the better:
             &ldquo;tighten the stop from 8% to 5%&rdquo; beats &ldquo;make it
@@ -68,10 +61,12 @@ export default function FirstBacktestPage() {
             is validated server-side before it can run. As you build, the AI
             flags known failure patterns — look-ahead bias, overtight stops,
             unrealistic sizing — as short teaching notes rather than blocks.
+            Without an account you get <strong>3 free messages a day</strong> —
+            enough to feel an edit-and-rerun loop.
           </p>
         </Step>
 
-        <Step n={5} title="Run it">
+        <Step n={4} title="Run it">
           <p>
             Hit <strong>Run backtest</strong>. The default window is January
             2016 to today on daily bars — about ten years of data, usually
@@ -81,12 +76,23 @@ export default function FirstBacktestPage() {
           </p>
         </Step>
 
-        <Step n={6} title="Read the report">
+        <Step n={5} title="Read the report">
           <p>
             Results land in the four tabs of the center workspace — toured
             below. Rerun after an edit and the tiles show deltas against the
             previous run, with the old equity curve kept on the chart for
             comparison.
+          </p>
+        </Step>
+
+        <Step n={6} title="Create a free account when you're ready to keep it">
+          <p>
+            Deploying to the public ledger, exporting the code, chatting past
+            the free taste, and running custom or intraday strategies all take
+            a free account — continue with Google or Discord, or enter your
+            email for a sign-in link, no password to invent. New accounts start
+            with <strong>250 credits</strong>, no card required; the{" "}
+            <a href="/docs/credits">Credits</a> page has the exact prices.
           </p>
         </Step>
       </Steps>
@@ -140,19 +146,22 @@ export default function FirstBacktestPage() {
       <h2>After the run</h2>
       <p>
         Two buttons appear next to the tabs once a run exists:{" "}
-        <strong>Share</strong> copies a link to this exact result, and{" "}
+        <strong>Share</strong> copies a link to this exact result (works
+        without an account — anonymous shares carry a watermark), and{" "}
         <strong>Deploy to forward test</strong> freezes the strategy on the
         public ledger, where it accrues a track record on data nobody had when
-        it was built. That step deserves its own page —{" "}
+        it was built. Deploying needs a free account — it puts a name on a
+        public record. That step deserves its own page —{" "}
         <a href="/docs/forward-testing">Forward testing</a>.
       </p>
 
       <Callout kind="note" title="What this costs">
         <p>
-          Runs and chat messages spend credits: a daily-bar run on a template
-          is 10, a typical chat message 12. The ◈ meter in the toolbar is your
-          live balance. Full price list on the{" "}
-          <a href="/docs/credits">Credits</a> page.
+          Your first template runs are free without an account. Signed in, runs
+          and chat messages spend credits: a daily-bar run on a template is 10,
+          a typical chat message 12. The ◈ meter in the toolbar is your live
+          balance. Full price list on the <a href="/docs/credits">Credits</a>{" "}
+          page.
         </p>
       </Callout>
 

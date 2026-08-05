@@ -1,11 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import EquityChart from "@/components/EquityChart";
 import Button from "@/components/ui/Button";
-import { useAuthModal } from "@/components/AuthModal";
-import { supabaseBrowser } from "@/lib/supabase/client";
 import { fmtPct, fmtSignedPct } from "@/lib/format";
 import demo from "@/data/demo-run.json";
 
@@ -31,24 +28,13 @@ const STATS: Array<{ label: string; value: string; pnl: number | null }> = [
 ];
 
 /** Real, interactive lab preview — baked from an actual Golden Cross run.
- *  Fullscreen requires an account (the lab is members-only). */
+ *  Fullscreen opens the lab for everyone (P0-3): the first backtest is
+ *  signup-free; accounts gate deploy, export, and chat beyond the taste. */
 export default function LivePreview() {
   const router = useRouter();
-  const { openAuth } = useAuthModal();
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const supabase = supabaseBrowser();
-    if (!supabase) return; // signedIn stays at its initial null
-    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
-  }, []);
 
   const goFullscreen = () => {
-    if (signedIn) {
-      router.push("/playground?template=golden-cross");
-    } else {
-      openAuth("Create a free account to open the full lab — no card required.");
-    }
+    router.push("/playground?template=golden-cross");
   };
 
   return (

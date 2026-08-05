@@ -66,6 +66,8 @@ Template grid:
 
 **Acceptance criteria:** a logged-out user clicks any template and sees a full result in <10s with no signup wall; account prompt appears only at deploy/save/export.
 
+> **Owner deviation (shipped 2026-08-05):** "any template" means "any **daily** template" (12 of 14). The two 15-minute templates require a free account because intraday market data has real per-run cost (CLAUDE.md Phase C: "price it, don't ban it"). This is surfaced up front — the lab shows an inline "intraday backtests need a free account" notice when a logged-out visitor has an intraday spec loaded, so the modal is never a surprise. Custom (non-template) specs and AI chat beyond 3 messages also prompt for an account; the "only at deploy/save/export" line is the spirit (no wall before first value), not the exhaustive list.
+
 ### P0-4. Remove credit anxiety from the free experience (interim)
 - Reframe free tier copy from "250 starter credits" to: `Free: unlimited backtests on daily data · full library · 1 live deployment`. Meter quietly on the backend.
 - Hide the draining credit counter during a new user's first session; remove per-message cost labels from the first AI conversation.

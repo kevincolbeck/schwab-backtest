@@ -150,7 +150,7 @@ Literal characters doing UI work, each a one-off: `▸` active template marker (
 
 ## 5. What already works — preserve through the redesign
 
-- **LivePreview** (landing/LivePreview.tsx): real baked Golden Cross run, real stats, interactive crosshair, fullscreen→auth gate. The hero proof object. Re-skin only.
+- **LivePreview** (landing/LivePreview.tsx): real baked Golden Cross run, real stats, interactive crosshair, ~~fullscreen→auth gate~~ *(P0-3 2026-08-05: fullscreen now navigates for everyone — the first backtest is signup-free)*. The hero proof object. Re-skin only.
 - **EquityChart** dual-curve (current vs ghost previous) + drawdown sub-panel — Kevin explicitly likes these; restyle via tokens, do not replace (CLAUDE.md Phase A).
 - **StatTiles** delta system: valence-correct coloring (▲ on Max DD = worse), "better/worse" words for WCAG 1.4.1, aria-labels, plain-English hints on every metric. Keep all of it.
 - **Honest-FAQ + honesty section + DISCLAIMER** on every results surface (playground:976, library:181, markets:327, leaderboard:235, strategy:265–272, s/:69, runs:68, docs layout:24, footer). Copy meaning is compliance-locked.

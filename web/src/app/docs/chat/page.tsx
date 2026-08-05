@@ -210,12 +210,14 @@ export default function DocsChatPage() {
 
       <h2>What chat costs</h2>
       <p>
-        Each message debits credits based on an estimate of what is actually
-        sent to the model: the system context (which embeds your current spec
-        and latest results) plus your recent conversation — the last 12
-        messages, each capped at 2,000 characters. What is billed is what is
-        sent, and if the model call fails the charge is refunded. Details and
-        current rates live in <Link href="/docs/credits">Credits</Link>.
+        Without an account you get <strong>3 AI messages a day</strong> —
+        enough to test-drive an edit before signing up. Signed in, each message
+        debits credits based on an estimate of what is actually sent to the
+        model: the system context (which embeds your current spec and latest
+        results) plus your recent conversation — the last 12 messages, each
+        capped at 2,000 characters. What is billed is what is sent, and if the
+        model call fails the charge is refunded. Details and current rates live
+        in <Link href="/docs/credits">Credits</Link>.
       </p>
 
       <DocsFooterNav

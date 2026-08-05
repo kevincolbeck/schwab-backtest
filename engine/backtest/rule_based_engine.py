@@ -1491,14 +1491,25 @@ _ALLOWED_CALL_NAMES = frozenset({
 # Method names produced by the ThinkScript slice translations only.
 _ALLOWED_METHOD_NAMES = frozenset({"rolling", "shift", "mean", "sum", "std", "max", "min"})
 _BANNED_ENV_NAMES = frozenset({"pd", "np"})
+# Pow (**) is deliberately EXCLUDED: no trading rule needs exponentiation, and
+# it is a computational-DoS vector on an unauthenticated endpoint — `9**9**9`
+# builds a ~369-million-digit integer and pins a core (P0-3 anon-POST threat
+# model). String constants stay allowed for `position_side == 'LONG'`-style
+# compares but are barred from multiplication below (`"a" * n` = allocation DoS).
 _ALLOWED_NODE_TYPES = (
     ast.Expression, ast.BoolOp, ast.BinOp, ast.UnaryOp, ast.Compare,
     ast.Call, ast.Name, ast.Constant, ast.Load, ast.keyword,
     ast.And, ast.Or, ast.Not, ast.Invert, ast.UAdd, ast.USub,
-    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod,
     ast.BitAnd, ast.BitOr, ast.BitXor,
     ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
 )
+# Numeric literals in rules are thresholds/periods/multipliers — a trillion is
+# already absurd. Bounding magnitude closes the door on pathological bignum
+# arithmetic even without Pow.
+_MAX_CONSTANT_MAGNITUDE = 1e12
+# String literals ('LONG'/'SHORT') are tiny; anything longer is a repetition seed.
+_MAX_STRING_CONSTANT_LEN = 64
 
 
 def _validate_expression_ast(expression: str) -> None:
@@ -1520,8 +1531,26 @@ def _validate_expression_ast(expression: str) -> None:
         elif isinstance(node, ast.Name):
             if node.id in _BANNED_ENV_NAMES:
                 raise ValueError(f"Disallowed name in expression: {node.id}")
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+            # `str * n` allocates n copies — a small literal can request gigabytes.
+            # No numeric rule multiplies a string, so any string under a Mult is
+            # an allocation-DoS attempt (covers "a"*n and ("a"+"b")*n).
+            if any(
+                isinstance(sub, ast.Constant) and isinstance(sub.value, str)
+                for sub in ast.walk(node)
+            ):
+                raise ValueError("String multiplication is not allowed in expression")
         elif isinstance(node, ast.Constant):
-            if not isinstance(node.value, (int, float, bool, str)):
+            # bool is an int subclass — allowed as-is.
+            if isinstance(node.value, bool):
+                continue
+            if isinstance(node.value, str):
+                if len(node.value) > _MAX_STRING_CONSTANT_LEN:
+                    raise ValueError("String constant too long in expression")
+            elif isinstance(node.value, (int, float)):
+                if abs(node.value) > _MAX_CONSTANT_MAGNITUDE:
+                    raise ValueError("Numeric constant out of range in expression")
+            else:
                 raise ValueError("Disallowed constant in expression")
         elif not isinstance(node, _ALLOWED_NODE_TYPES):
             raise ValueError(f"Disallowed syntax in expression: {type(node).__name__}")

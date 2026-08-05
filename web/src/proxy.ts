@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Keeps Supabase sessions fresh (rotates auth cookies on expiry).
-export async function middleware(request: NextRequest) {
+// Next 16: the "middleware" file convention is now "proxy" — same behavior.
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   let response = NextResponse.next({ request });

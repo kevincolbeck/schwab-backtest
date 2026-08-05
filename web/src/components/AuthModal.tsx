@@ -79,7 +79,7 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
   return (
     <AuthModalContext.Provider value={{ openAuth }}>
       {children}
-      <Modal open={open} onClose={() => setOpen(false)} title="Sign in to the lab">
+      <Modal open={open} onClose={() => setOpen(false)} title="Sign in or create a free account">
         {reason && <p className="mb-4 text-sm text-muted">{reason}</p>}
         {OAUTH_PROVIDERS.length > 0 && (
           <div className="mb-4 space-y-2">

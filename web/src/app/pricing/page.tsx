@@ -29,7 +29,7 @@ const TIERS = [
     features: [
       "2,500 credits every month",
       "Up to 100 symbols per run",
-      "Intraday timeframes (60m → 1m)",
+      "Intraday forward-test deployments",
       "5 forward-test deployments",
       "Private deployments",
       "Clean share links + exports",

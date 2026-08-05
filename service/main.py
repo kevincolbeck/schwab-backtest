@@ -16,10 +16,12 @@ Endpoints:
 
 Env: ANTHROPIC_API_KEY, CHAT_MODEL, POLYGON_API_KEY, BACKTEST_CACHE_DB,
 SERVICE_DATA_DIR, ALLOWED_ORIGINS, MAX_SYMBOLS_PER_RUN, TEMPLATES_DIR,
-FINNHUB_API_KEY.
+FINNHUB_API_KEY, PROXY_SHARED_SECRET, ANON_RUNS_PER_DAY, ANON_CHAT_PER_DAY,
+EXPLAIN_PER_DAY_ANON.
 """
 
 import copy
+import hmac
 import json
 import logging
 import math
@@ -45,6 +47,9 @@ logger = logging.getLogger(__name__)
 MAX_SYMBOLS_PER_RUN = int(os.getenv("MAX_SYMBOLS_PER_RUN", "200"))
 TEMPLATES_DIR = Path(os.getenv("TEMPLATES_DIR", Path(__file__).resolve().parent.parent / "templates"))
 ALLOWED_ORIGINS = [o for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o]
+# Shared secret the Next proxy sends so the service can trust its client-IP
+# assertion (P0-3 anon rate limiting). Unset locally — the socket peer is right.
+PROXY_SHARED_SECRET = os.getenv("PROXY_SHARED_SECRET", "")
 
 DISCLAIMER = chat_brain.DISCLAIMER
 
@@ -123,8 +128,11 @@ def _load_template_meta() -> None:
 
 
 def _template_hashes() -> set:
-    """Spec hashes of the shipped templates. Template runs are exempt from
-    custom-run limits — 'templates run logged-out' is a core product promise."""
+    """Spec hashes of the shipped templates. 'Templates run logged-out' is a
+    core product promise (restored by P0-3): signed-in template runs skip the
+    daily counter; anonymous ones count against the per-IP allowance. Loaded
+    once per process — fine while templates ship with the image; runtime
+    template mutation would need an invalidation hook here."""
     if _template_hash_cache is None:
         _load_template_meta()
     return _template_hash_cache or set()
@@ -146,9 +154,24 @@ def _within_template_universe(symbols: list) -> bool:
 
 
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
+    """Best-effort client IP for anon rate limiting.
+
+    Trust the proxy-asserted IP ONLY when the shared secret matches — a raw
+    x-forwarded-for header is spoofable by anyone who calls the public service
+    URL directly, minting unlimited fresh identities. Direct callers therefore
+    collapse into one bucket (their socket peer), which is stricter than
+    trusting them. No secret configured (local dev/tests) → socket peer,
+    which is the real client there.
+    """
+    if PROXY_SHARED_SECRET and hmac.compare_digest(
+        # Compare as bytes: compare_digest raises on non-ASCII str, so a crafted
+        # header byte would otherwise 500 the endpoint instead of just missing.
+        request.headers.get("x-proxy-secret", "").encode("utf-8", "ignore"),
+        PROXY_SHARED_SECRET.encode("utf-8"),
+    ):
+        ip = (request.headers.get("x-client-ip") or "").strip()
+        if ip:
+            return ip
     return request.client.host if request.client else "unknown"
 
 
@@ -194,20 +217,37 @@ def backtest(
     request: Request,
     user: Optional[dict] = Depends(current_user),
 ):
-    # The lab is members-only (V2): running strategies requires an account.
-    if auth.auth_configured() and user is None:
-        raise HTTPException(
-            status_code=401,
-            detail="sign in to run backtests — free starter credits included",
-        )
-
     spec = clamp_spec(req.spec)
     errors = validate_spec(spec)
     if errors:
         raise HTTPException(status_code=422, detail={"validation_errors": errors})
 
-    # Intraday history is capped while data plans are small (Phase C, honest cap).
     timeframe = str(spec.get("backtest_timeframe") or "1d")
+    # Match on the RAW request spec — clamping may not be byte-identical.
+    is_template_run = (
+        forward.spec_hash_of(req.spec) in _template_hashes()
+        or forward.spec_hash_of(spec) in _template_hashes()
+    )
+
+    # P0-3: the first backtest is signup-free — anonymous visitors may run
+    # daily-timeframe templates and chat-edited variants inside a template's
+    # universe (IP-rate-limited below). Custom universes and intraday still
+    # require an account.
+    if (
+        auth.auth_configured()
+        and user is None
+        and not (
+            timeframe == "1d"
+            and (is_template_run or _within_template_universe(spec.get("symbols", [])))
+        )
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Create a free account to run intraday and custom strategies — "
+            "daily templates are free to test, no card required.",
+        )
+
+    # Intraday history is capped while data plans are small (Phase C, honest cap).
     if timeframe != "1d":
         end_for_cap = req.end_date or datetime.now().strftime("%Y-%m-%d")
         try:
@@ -227,11 +267,6 @@ def backtest(
             )
 
     limits = auth.limits_for(user)
-    # Match on the RAW request spec — clamping may not be byte-identical.
-    is_template_run = (
-        forward.spec_hash_of(req.spec) in _template_hashes()
-        or forward.spec_hash_of(spec) in _template_hashes()
-    )
 
     # Plan gates run BEFORE any spend — a rejected run must never cost credits.
     symbols = spec.get("symbols", [])
@@ -279,14 +314,28 @@ def backtest(
                         "message": "You're out of credits — upgrade or grab a top-up pack."},
             )
         charged = bal is not None  # (True, None) = fail-open, nothing was debited
-    if not charged and not is_template_run:
+    if not charged and (
+        not is_template_run or (user is None and auth.auth_configured())
+    ):
         # Credits dormant or unreachable — the per-day limits still meter runs.
+        # Signed-in template runs stay uncounted (credits price them when live);
+        # anonymous runs ALWAYS count against the per-IP allowance (P0-3).
         identity = user["id"] if user else f"ip:{_client_ip(request)}"
         if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+            if user is None:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "error": "anon_run_limit",
+                        "message": f"You've hit today's free run limit "
+                        f"({limits['runs_per_day']}/day) — create a free account "
+                        f"to keep going. No card required.",
+                    },
+                )
             raise HTTPException(
                 status_code=429,
                 detail=f"daily custom-backtest limit reached ({limits['runs_per_day']}/day)"
-                + (" — sign in or upgrade for more" if user is None else " — upgrade for unlimited runs"),
+                " — upgrade for unlimited runs",
             )
 
     end_date = req.end_date or datetime.now().strftime("%Y-%m-%d")
@@ -538,6 +587,9 @@ _explain_lock = __import__("threading").Lock()
 
 EXPLAIN_PER_DAY_ANON = int(os.getenv("EXPLAIN_PER_DAY_ANON", "10"))
 EXPLAIN_PER_DAY_USER = int(os.getenv("EXPLAIN_PER_DAY_USER", "50"))
+# Serialized-spec ceiling for the uncredited anon path (a normal spec is a few
+# KB; validate_spec bounds values but not list lengths).
+ANON_EXPLAIN_MAX_CHARS = int(os.getenv("ANON_EXPLAIN_MAX_CHARS", "20000"))
 
 
 def _projected_spec(spec: dict) -> dict:
@@ -559,10 +611,11 @@ def explain_spec(
     request: Request,
     user: Optional[dict] = Depends(current_user),
 ):
-    """AI-polished plain-English rules for a spec, cached by behavior hash."""
-    if auth.auth_configured() and user is None:
-        raise HTTPException(status_code=401, detail="sign in for AI explanations")
+    """AI-polished plain-English rules for a spec, cached by behavior hash.
 
+    Anonymous callers are welcome (P0-3) — the per-IP daily meter below and
+    the behavior-hash cache keep model spend bounded.
+    """
     spec = clamp_spec(req.spec)
     errors = validate_spec(spec)
     if errors:
@@ -582,6 +635,16 @@ def explain_spec(
                 logger.warning("unreadable explanations cache", exc_info=True)
         if digest in cache:
             return {"english": cache[digest], "cached": True}
+
+    # A cache miss is a paid model call whose input is the serialized spec.
+    # validate_spec bounds field values but not list lengths, so cap the
+    # anon-path payload before spending (cache hits above are free regardless).
+    if user is None and len(json.dumps(projected)) > ANON_EXPLAIN_MAX_CHARS:
+        raise HTTPException(
+            status_code=413,
+            detail="This strategy is too large for anonymous explanations — "
+            "create a free account.",
+        )
 
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="explanations not configured")
@@ -669,17 +732,24 @@ def diff_runs(run_id: str, other_id: str):
 
 
 CHAT_PER_DAY = int(os.getenv("CHAT_PER_DAY", "50"))
+# P0-3: anonymous visitors get a taste of the strategist — enough to feel an
+# edit-and-rerun loop — before the account gate.
+ANON_CHAT_PER_DAY = int(os.getenv("ANON_CHAT_PER_DAY", "3"))
+# Anon requests are uncredited, so the per-message token size must be bounded
+# too (count alone doesn't stop a single near-context-window prompt). A normal
+# capped-history message is a few thousand tokens; this ceiling leaves generous
+# headroom while blocking bodies inflated to run a full-price call for free.
+ANON_CHAT_MAX_TOKENS = int(os.getenv("ANON_CHAT_MAX_TOKENS", "12000"))
 
 
 @app.post("/chat")
-def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
+def chat(
+    req: ChatRequest,
+    request: Request,
+    user: Optional[dict] = Depends(current_user),
+):
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="chat is not configured (ANTHROPIC_API_KEY)")
-    if auth.auth_configured() and user is None:
-        raise HTTPException(
-            status_code=401,
-            detail="sign in to chat with the AI strategist — free starter credits included",
-        )
 
     # Invalid requests must never cost credits — validate before any spend.
     messages = [m.model_dump() for m in req.messages if m.role in ("user", "assistant")]
@@ -706,6 +776,16 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
     request_chars = len(system_prompt) + sum(len(m["content"]) for m in messages)
     estimated_tokens = credits.estimate_chat_tokens(request_chars)
 
+    if user is None and estimated_tokens > ANON_CHAT_MAX_TOKENS:
+        # cap_history bounds the message array, but current_spec/bt_summary/
+        # last_run_stats flow into the system prompt uncapped — an anon could
+        # inflate one message to a full-price call. Signing in lifts this.
+        raise HTTPException(
+            status_code=413,
+            detail="This message is too large for the free tier — "
+            "create a free account for full-size AI context.",
+        )
+
     chat_fee = 0
     charged = False
     if user is not None and credits.enabled_for(user):
@@ -718,7 +798,22 @@ def chat(req: ChatRequest, user: Optional[dict] = Depends(current_user)):
                         "message": "You're out of credits — upgrade or grab a top-up pack."},
             )
         charged = bal is not None  # (True, None) = fail-open, nothing was debited
-    if user is not None and not charged:
+    if user is None:
+        # Anonymous taste (P0-3): N messages/day/IP, no credits involved
+        # (enabled_for is user-only). Dev-open (auth unconfigured) stays unmetered.
+        if auth.auth_configured() and not auth.check_and_count_run(
+            f"chat:ip:{_client_ip(request)}", ANON_CHAT_PER_DAY
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "anon_chat_limit",
+                    "message": "You've used your free AI messages for today — "
+                    "create a free account to keep the conversation going. "
+                    "No card required.",
+                },
+            )
+    elif not charged:
         # Credits dormant or unreachable — a per-day cap still meters model spend.
         if not auth.check_and_count_run(f"chat:{user['id']}", CHAT_PER_DAY):
             raise HTTPException(

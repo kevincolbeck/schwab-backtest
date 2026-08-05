@@ -33,6 +33,7 @@ import { fmtDate, fmtMoney, fmtPct, fmtSignedPct } from "@/lib/format";
 import { templateHero } from "@/lib/templates";
 import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import demo from "@/data/demo-run.json";
 import type {
   ChatTurn,
   IndicatorSeries,
@@ -66,39 +67,37 @@ const SCRATCH_SUGGESTIONS = [
 ];
 const SCRATCH_PLACEHOLDER = 'e.g. "buy oversold dips on QQQ with a 5% stop"';
 
-function LabGate() {
-  const { openAuth } = useAuthModal();
-  useEffect(() => {
-    openAuth("The lab is members-only. Create a free account — you get starter credits, no card required.");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return (
-    <div className="flex flex-1 items-center justify-center p-8">
-      <div className="card max-w-md p-8 text-center">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted">
-          <span aria-hidden className="mr-2 inline-block h-2 w-0.5 bg-accent" />
-          The Lab
-        </p>
-        <h1 className="mt-2 text-xl font-semibold">Sign in to start building</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          Free accounts come with starter credits — enough to run strategies, chat
-          with the AI, and see how the lab works. No card required.
-        </p>
-        <Button className="mt-6" onClick={() => openAuth()}>
-          Sign in / create account
-        </Button>
-        <p className="mt-4 text-caption text-faint">
-          Just browsing? The <Link href="/leaderboard" className="text-accent hover:underline">leaderboard</Link> and
-          shared results are open to everyone.
-        </p>
-      </div>
-    </div>
-  );
-}
+/* P0-3: the first backtest is signup-free — the lab opens for everyone, and
+   the account prompt moves to the SECOND action (deploy, export, chat beyond
+   the free taste). Server-side IP limits are the enforcement; these client
+   gates are the polite front door. */
+const ANON_FREE_CHAT_MESSAGES = 3;
+const EXPORT_GATE_COPY =
+  "Create a free account to keep this — Python, Pine Script, and spec exports are free with an account, no card required.";
+const INTRADAY_GATE_COPY =
+  "Create a free account to run intraday strategies — daily templates are free to test without one. No card required.";
+
+/* First-paint preview (P0-3): a REAL baked Golden Cross run (data/demo-run.json,
+   same recipe as the landing's LivePreview) so the cold open shows a chart, not
+   a spinner. Truth rule: every number is from an actual run and labeled as a
+   preview — never synthesized into `run` state. */
+const DEMO_RANGE_START = demo.equity_curve[0].date.slice(0, 10);
+const DEMO_RANGE_END = demo.equity_curve[demo.equity_curve.length - 1].date.slice(0, 10);
+const DEMO_STATS: Array<{ label: string; value: string; pnl: number | null }> = [
+  {
+    label: "Total return",
+    value: fmtSignedPct(demo.stats.total_return_pct, 0),
+    pnl: demo.stats.total_return_pct,
+  },
+  { label: "CAGR", value: fmtPct(demo.stats.cagr, 2), pnl: demo.stats.cagr },
+  { label: "Max drawdown", value: fmtPct(demo.stats.max_drawdown, 1), pnl: null },
+  { label: "Trades", value: String(demo.stats.total_trades), pnl: null },
+];
 
 function PlaygroundInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { openAuth } = useAuthModal();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState<string>("");
   // Phase D "New from scratch": no template, no spec yet — the chat runs a
@@ -169,15 +168,23 @@ function PlaygroundInner() {
       setSignedIn(null);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      const authed = Boolean(data.session);
+    const apply = (authed: boolean) => {
       setSignedIn(authed);
       if (authed) {
         fetchMe()
           .then((me) => setCreditBalance(me.credits))
           .catch(() => {});
       }
-    });
+    };
+    supabase.auth.getSession().then(({ data }) => apply(Boolean(data.session)));
+    // Keep signedIn live: a visitor who signs up via the gate modal (magic
+    // link completes in another tab; @supabase/ssr broadcasts the session
+    // across same-origin tabs) must stop being gated in THIS tab without a
+    // hard refresh — the whole point of the second-action prompt.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) =>
+      apply(Boolean(session)),
+    );
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   // Latest run without stale-closure risk (chat rerun can race a manual run),
@@ -327,6 +334,14 @@ function PlaygroundInner() {
         return result;
       } catch (e) {
         if (genRef.current === gen) {
+          // Anon tried something account-only (intraday toolbar switch, a
+          // chat edit that left the template universe): the server's 401 copy
+          // is the recruitment message — show it in the auth modal, not a
+          // red error bar.
+          if (signedIn === false && e instanceof ApiError && e.status === 401) {
+            openAuth(e.message);
+            return null;
+          }
           // Out-of-credits responses carry the authoritative balance — sync
           // the meter so it doesn't keep showing stale credits.
           if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
@@ -339,7 +354,7 @@ function PlaygroundInner() {
         if (genRef.current === gen) setRunning(false);
       }
     },
-    [startDate, endDate],
+    [startDate, endDate, signedIn, openAuth],
   );
 
   // Runs over different date windows or bar timeframes aren't comparable —
@@ -429,8 +444,28 @@ function PlaygroundInner() {
     }
   };
 
+  /* Gate a second action for a KNOWN-signed-out visitor (never on `null` —
+     dev-open or a session check in flight; the server backstops regardless).
+     Returns true when the auth modal was opened and the action should stop. */
+  const gateAnon = (reason: string): boolean => {
+    if (signedIn === false) {
+      openAuth(reason);
+      return true;
+    }
+    return false;
+  };
+
   const onChatSend = async (text: string) => {
     if ((!spec && !scratchMode) || busy) return;
+    if (
+      signedIn === false &&
+      messages.filter((m) => m.role === "user").length >= ANON_FREE_CHAT_MESSAGES
+    ) {
+      openAuth(
+        "You've used your 3 free AI messages — create a free account to keep the conversation going. No card required.",
+      );
+      return;
+    }
     const gen = genRef.current;
     const nextMessages: ChatTurn[] = [...messages, { role: "user", content: text }];
     setMessages(nextMessages);
@@ -464,6 +499,21 @@ function PlaygroundInner() {
       }
     } catch (e) {
       if (genRef.current === gen) {
+        // Anon hit the server's free-message cap (or a stale-session 401):
+        // withdraw the unanswered turn and open the account prompt — a raw
+        // error rendered as a fake assistant bubble would be worse than none.
+        if (
+          signedIn === false &&
+          e instanceof ApiError &&
+          (e.status === 401 ||
+            (e.status === 429 && e.detail?.error === "anon_chat_limit"))
+        ) {
+          setMessages((current) => current.slice(0, -1));
+          openAuth(
+            "You've used your free AI messages for today — create a free account to keep going. No card required.",
+          );
+          return;
+        }
         // Out-of-credits responses carry the authoritative balance — sync
         // the meter so it doesn't keep showing stale credits.
         if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
@@ -502,6 +552,12 @@ function PlaygroundInner() {
 
   const onDeploy = async () => {
     if (!run?.run_id || deploying) return;
+    if (
+      gateAnon(
+        "Create a free account to put this strategy on the public forward-test ledger — no card required.",
+      )
+    )
+      return;
     setDeploying(true);
     setError(null);
     try {
@@ -516,6 +572,25 @@ function PlaygroundInner() {
 
   const headerRange = runRange(run);
   const rules = spec ? englishRules(spec) : null;
+
+  /* Show the baked Golden Cross preview until a real run exists — but only
+     when the visitor is (or will be) looking at golden-cross, and never over
+     a ?run= deep link or a foreign ?template= (no wrong-chart flash). The
+     `templateId === ""` arm covers the window before the templates fetch
+     resolves, so the very first paint has a chart. */
+  const showPreview =
+    !run &&
+    !scratchMode &&
+    activeTab === "results" &&
+    !searchParams.get("run") &&
+    (templateId === "golden-cross" ||
+      (templateId === "" && (!wantedTemplate || wantedTemplate === "golden-cross")));
+
+  // A logged-out visitor viewing an intraday spec will hit the account gate on
+  // Run — surface it up front so the modal is never a surprise (the two 15m
+  // templates are linked straight from the homepage transparency section).
+  const anonIntraday =
+    signedIn === false && (spec?.backtest_timeframe ?? "1d") !== "1d";
 
   // Deploy disclosure: intraday deploys carry a one-time fee (Pro/Max), and
   // 1m/5m strategies can't be forward-deployed yet (docs/pricing-model.md).
@@ -579,14 +654,9 @@ function PlaygroundInner() {
     if (run?.run_id) loadBars(run.run_id, trade.symbol);
   };
 
-  // Members-only lab (V2): gate renders only once we KNOW the visitor is
-  // signed out. Placed after every hook — no conditional-hook hazards.
-  if (signedIn === false) {
-    return <LabGate />;
-  }
-
   const downloadSpec = () => {
     if (!spec) return;
+    if (gateAnon(EXPORT_GATE_COPY)) return;
     const blob = new Blob([JSON.stringify(spec, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -619,14 +689,14 @@ function PlaygroundInner() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() =>
-                  spec &&
+                onClick={() => {
+                  if (!spec || gateAnon(EXPORT_GATE_COPY)) return;
                   download(
                     `${slugifyName(spec.name)}.py`,
                     pythonExport(spec),
                     "text/x-python",
-                  )
-                }
+                  );
+                }}
                 title="A runnable Python file with your rules and the spec embedded"
               >
                 ↓ Python
@@ -634,11 +704,10 @@ function PlaygroundInner() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() =>
-                  pineOut &&
-                  spec &&
-                  download(`${slugifyName(spec.name)}.pine`, pineOut.code)
-                }
+                onClick={() => {
+                  if (!pineOut || !spec || gateAnon(EXPORT_GATE_COPY)) return;
+                  download(`${slugifyName(spec.name)}.pine`, pineOut.code);
+                }}
                 title="A Pine Script v6 strategy — run the same rules on TradingView"
               >
                 ↓ Pine Script (.pine)
@@ -831,6 +900,20 @@ function PlaygroundInner() {
         {intradayHint && !dateError && (
           <p role="status" className="border-t border-hairline px-4 py-1.5 text-xs text-muted">
             Intraday history is capped at ~60 days — start date adjusted.
+          </p>
+        )}
+        {anonIntraday && !dateError && (
+          <p role="status" className="border-t border-hairline px-4 py-1.5 text-xs text-muted">
+            Intraday backtests need a{" "}
+            <button
+              type="button"
+              onClick={() => openAuth(INTRADAY_GATE_COPY)}
+              className="focus-ring rounded-(--radius-tag) text-accent underline-offset-2 hover:underline"
+            >
+              free account
+            </button>
+            {" "}— daily templates are free to run. Ask the AI to switch this to
+            daily, or sign up.
           </p>
         )}
       </header>
@@ -1116,6 +1199,47 @@ function PlaygroundInner() {
                 )}
               </div>
             </div>
+          ) : showPreview ? (
+            <div className="card p-3">
+              <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
+                <div>
+                  <p className="font-mono text-caption uppercase tracking-widest text-faint">
+                    Preview · a real Golden Cross backtest
+                  </p>
+                  <p className="tnum mt-1 text-sm text-muted">
+                    {demo.name} · {DEMO_RANGE_START} → {DEMO_RANGE_END} · daily
+                    bars. Run it live — or ask the AI to change anything first.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => spec && executeRun(spec, [])}
+                  disabled={!spec || busy || Boolean(dateError)}
+                >
+                  Run it live
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-px border-y border-hairline bg-hairline sm:grid-cols-4">
+                {DEMO_STATS.map((s) => (
+                  <div key={s.label} className="bg-panel px-3 py-2">
+                    <p className="text-caption uppercase tracking-wide text-faint">
+                      {s.label}
+                    </p>
+                    <p
+                      className={`tnum text-sm ${
+                        s.pnl === null ? "text-ink" : s.pnl < 0 ? "text-loss" : "text-gain"
+                      }`}
+                    >
+                      {s.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="px-1 pt-3">
+                <EquityChart curve={demo.equity_curve} />
+              </div>
+              <p className="mt-2 px-1 text-caption text-faint">{DISCLAIMER}</p>
+            </div>
           ) : (
             <div className="card flex min-h-96 items-center justify-center border-dashed">
               <div className="max-w-sm text-center">
@@ -1172,11 +1296,46 @@ function PlaygroundInner() {
   );
 }
 
+/** Pre-hydration skeleton of the three-zone shell (P0-3): pulse blocks only —
+ *  no fake data, no spinner text. Screen readers get one status line. */
+function LabSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col" aria-busy="true">
+      <span role="status" className="sr-only">
+        Loading the lab…
+      </span>
+      <div aria-hidden className="flex flex-1 gap-3 p-3">
+        <div className="hidden w-56 shrink-0 space-y-1.5 md:block lg:w-64">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-(--radius-control) border border-hairline bg-panel-2"
+            />
+          ))}
+        </div>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="h-8 w-64 animate-pulse rounded-(--radius-control) bg-panel-2" />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div
+                key={i}
+                className="h-16 animate-pulse rounded-(--radius-card) border border-hairline bg-panel-2"
+              />
+            ))}
+          </div>
+          <div className="h-80 animate-pulse rounded-(--radius-card) border border-hairline bg-panel-2" />
+        </div>
+        <div className="hidden w-85 shrink-0 lg:block xl:w-95">
+          <div className="h-full animate-pulse rounded-(--radius-card) border border-hairline bg-panel-2" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PlaygroundPage() {
   return (
-    <Suspense
-      fallback={<div className="p-8 text-sm text-muted">Loading the lab…</div>}
-    >
+    <Suspense fallback={<LabSkeleton />}>
       <PlaygroundInner />
     </Suspense>
   );
