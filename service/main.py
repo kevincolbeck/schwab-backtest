@@ -45,6 +45,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger(__name__)
 
 MAX_SYMBOLS_PER_RUN = int(os.getenv("MAX_SYMBOLS_PER_RUN", "200"))
+# When a CREDIT-BILLED run can't charge (credits dormant or failing open), the
+# per-day backstop uses this tight cap — the free plan's generous quiet-run cap
+# must not widen intraday/model exposure during a credits outage (P0-4 review).
+BILLED_FALLBACK_RUNS_PER_DAY = int(os.getenv("BILLED_FALLBACK_RUNS_PER_DAY", "10"))
 TEMPLATES_DIR = Path(os.getenv("TEMPLATES_DIR", Path(__file__).resolve().parent.parent / "templates"))
 ALLOWED_ORIGINS = [o for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o]
 # Shared secret the Next proxy sends so the service can trust its client-IP
@@ -129,10 +133,12 @@ def _load_template_meta() -> None:
 
 def _template_hashes() -> set:
     """Spec hashes of the shipped templates. 'Templates run logged-out' is a
-    core product promise (restored by P0-3): signed-in template runs skip the
-    daily counter; anonymous ones count against the per-IP allowance. Loaded
-    once per process — fine while templates ship with the image; runtime
-    template mutation would need an invalidation hook here."""
+    core product promise (restored by P0-3). Post-P0-4, signed-in template
+    runs are credit-exempt quiet runs metered by the plan's per-day fair-use
+    cap (they skip the counter only while credits are dormant); anonymous
+    ones count against the per-IP allowance. Loaded once per process — fine
+    while templates ship with the image; runtime template mutation would need
+    an invalidation hook here."""
     if _template_hash_cache is None:
         _load_template_meta()
     return _template_hash_cache or set()
@@ -209,6 +215,31 @@ def my_deployments(user: Optional[dict] = Depends(current_user)):
             continue
         out.append({**_public_deployment(dep), "summary": forward.forward_summary(dep)})
     return {"deployments": out}
+
+
+def _usage_limit_message(user: Optional[dict], action: str,
+                         timeframe: Optional[str] = None) -> str:
+    """Limit-reached copy (P0-4): frame limits as capability boundaries, never
+    "you're out of credits". Free users only land on a 402 for advanced usage
+    (intraday runs, AI past the starter allowance) — every daily run a free
+    plan can express is exempted from spending before this can fire. The
+    timeframe branch is defense in depth: if a billed daily class ever becomes
+    reachable again, the copy must not blame intraday. Paid plans land here
+    when the monthly allowance is used up."""
+    plan = ((user or {}).get("plan") or "free").lower()
+    if plan in ("pro", "max"):
+        return ("You've used this month's included usage — grab a top-up pack, "
+                "or it refills with your next billing cycle.")
+    if action == "backtest":
+        if (timeframe or "1d") == "1d":
+            return ("Universes past 10 symbols draw on the free starter allowance, "
+                    "which is used up — daily runs up to 10 symbols (and every "
+                    "template) stay free, and Pro includes a monthly allowance.")
+        return ("Intraday backtests draw on the free starter allowance, which is "
+                "used up — Pro includes a monthly allowance that covers them. "
+                "Daily-data backtests stay free either way.")
+    return ("You've used the free plan's AI allowance — upgrade to Pro to keep "
+            "going. Daily-data backtests stay free either way.")
 
 
 @app.post("/backtest")
@@ -293,8 +324,8 @@ def backtest(
 
     run_cost = 0
     charged = False
+    quiet_run = False  # P0-4: capability run — day-metered, never credit-billed
     if user is not None and credits.enabled_for(user):
-        # Credits meter every run, templates included — compute costs money.
         # Price scales with the RESOLVED universe size (post-expansion, so
         # ALL_US prices at the multiplier cap); template runs stay at base.
         if is_template_run:
@@ -303,25 +334,52 @@ def backtest(
             resolved, _ = backtest_runner.resolve_symbols(
                 spec, max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0
             )
-            # The auto-appended benchmark rides along free.
-            billable_symbols = len([s for s in resolved if s != backtest_runner.BENCHMARK])
-        run_cost = credits.backtest_cost(timeframe, billable_symbols)
-        allowed, bal = credits.spend(user["id"], run_cost, "backtest")
-        if not allowed:
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
-                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+            # The auto-appended benchmark rides along free; duplicates count
+            # once — the engine dedupes before simulating, so billing must too
+            # (a doubled entry must never flip a free run into a billed one).
+            billable_symbols = len({s for s in resolved if s != backtest_runner.BENCHMARK})
+        # P0-4 (remove credit anxiety): a daily-data run inside one symbol
+        # block — or inside a TEMPLATE's universe, whatever its size — is a
+        # free capability on EVERY plan; the per-day cap below meters it
+        # quietly. Template universes matter because three shipped daily
+        # templates hold 11-19 symbols: a chat-edited variant must stay as
+        # free signed-in as it is anonymously. Only the genuinely expensive
+        # runs spend credits: intraday timeframes, multi-block custom
+        # universes, ALL_US.
+        quiet_run = (
+            timeframe == "1d"
+            and not is_all_us
+            and (
+                billable_symbols <= credits.SYMBOL_BLOCK
+                or _within_template_universe(symbols)
             )
-        charged = bal is not None  # (True, None) = fail-open, nothing was debited
+        )
+        if not quiet_run:
+            run_cost = credits.backtest_cost(timeframe, billable_symbols)
+            allowed, bal = credits.spend(user["id"], run_cost, "backtest")
+            if not allowed:
+                raise HTTPException(
+                    status_code=402,
+                    detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
+                            "message": _usage_limit_message(user, "backtest",
+                                                            timeframe=timeframe)},
+                )
+            charged = bal is not None  # (True, None) = fail-open, nothing was debited
     if not charged and (
-        not is_template_run or (user is None and auth.auth_configured())
+        quiet_run
+        or not is_template_run
+        or (user is None and auth.auth_configured())
     ):
-        # Credits dormant or unreachable — the per-day limits still meter runs.
-        # Signed-in template runs stay uncounted (credits price them when live);
-        # anonymous runs ALWAYS count against the per-IP allowance (P0-3).
+        # Credit-exempt, dormant, or unreachable — the per-day limits still
+        # meter runs (a quiet fair-use cap on the free plan, uncapped on paid).
+        # BILLED classes that failed open keep the old tight backstop: a
+        # credits outage must not widen intraday/model exposure to the quiet
+        # cap. Anonymous runs ALWAYS count against the per-IP allowance (P0-3).
+        day_limit = limits["runs_per_day"]
+        if user is not None and not quiet_run and day_limit is not None:
+            day_limit = min(day_limit, BILLED_FALLBACK_RUNS_PER_DAY)
         identity = user["id"] if user else f"ip:{_client_ip(request)}"
-        if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+        if not auth.check_and_count_run(identity, day_limit):
             if user is None:
                 raise HTTPException(
                     status_code=429,
@@ -334,8 +392,10 @@ def backtest(
                 )
             raise HTTPException(
                 status_code=429,
-                detail=f"daily custom-backtest limit reached ({limits['runs_per_day']}/day)"
-                " — upgrade for unlimited runs",
+                detail={
+                    "error": "free_run_limit",
+                    "message": "You've hit today's free run limit — Pro removes it.",
+                },
             )
 
     end_date = req.end_date or datetime.now().strftime("%Y-%m-%d")
@@ -369,7 +429,11 @@ def backtest(
         logger.error("backtest run failed", exc_info=True)
         if charged:
             credits.refund(user["id"], run_cost, "backtest_error")
-        raise HTTPException(status_code=500, detail="backtest failed — credits refunded")
+        raise HTTPException(
+            status_code=500,
+            detail="backtest failed — credits refunded" if charged
+            else "backtest failed — nothing was charged",
+        )
     logger.info("Backtest %s finished in %.1fs (%s trades)",
                 run_id, elapsed, (serialized["stats"] or {}).get("total_trades"))
     return {
@@ -659,7 +723,7 @@ def explain_spec(
             raise HTTPException(
                 status_code=402,
                 detail={"error": "out_of_credits", "balance": bal, "needed": explain_cost,
-                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+                        "message": _usage_limit_message(user, "explain")},
             )
         charged = bal is not None
     if not charged:
@@ -795,7 +859,7 @@ def chat(
             raise HTTPException(
                 status_code=402,
                 detail={"error": "out_of_credits", "balance": bal, "needed": chat_fee,
-                        "message": "You're out of credits — upgrade or grab a top-up pack."},
+                        "message": _usage_limit_message(user, "chat")},
             )
         charged = bal is not None  # (True, None) = fail-open, nothing was debited
     if user is None:
@@ -943,7 +1007,7 @@ def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
                 raise HTTPException(
                     status_code=402,
                     detail={"error": "out_of_credits", "balance": bal, "needed": deploy_fee,
-                            "message": "You're out of credits — upgrade or grab a top-up pack."},
+                            "message": _usage_limit_message(user, "deploy")},
                 )
             fee_charged = bal is not None  # (True, None) = fail-open, nothing debited
 
@@ -968,7 +1032,11 @@ def deploy(req: DeployRequest, user: Optional[dict] = Depends(current_user)):
         logger.error("deploy failed", exc_info=True)
         if fee_charged:
             credits.refund(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
-        raise HTTPException(status_code=500, detail="deploy failed — credits refunded")
+        raise HTTPException(
+            status_code=500,
+            detail="deploy failed — credits refunded" if fee_charged
+            else "deploy failed — nothing was charged",
+        )
     return {
         "deployment": _public_deployment(deployment),
         "credits_charged": deploy_fee if fee_charged else 0,

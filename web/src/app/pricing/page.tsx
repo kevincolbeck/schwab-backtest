@@ -11,13 +11,13 @@ const TIERS = [
     plan: null,
     name: "Free",
     price: "$0",
-    tagline: "Starter credits to build your first strategy",
+    tagline: "Everything you need to prove an idea",
     features: [
-      "250 starter credits on signup",
+      "Unlimited backtests on daily data",
       "The full strategy library",
-      "AI chat editing + explanations",
+      "1 live forward-test deployment (public)",
+      "AI chat editing + explanations (starter allowance)",
       "Trade-by-trade candle forensics",
-      "1 public forward-test deployment",
       "Share links (watermarked)",
     ],
   },
@@ -177,10 +177,14 @@ export default function PricingPage() {
         </Card>
 
         <p className="mt-8 max-w-prose text-caption leading-relaxed text-faint">
-          Credits are spent on backtest runs and AI messages — bigger timeframes,
-          bigger symbol lists, and longer conversations cost more, and intraday
-          forward deployments carry a one-time credit fee. Cancel anytime through
-          the billing portal. Payments handled by Stripe — we never see your card.
+          Daily-data backtests — every template and any universe up to 10
+          symbols — are free on every plan, with no meter attached.
+          &ldquo;Unlimited&rdquo; on Free means exactly that for a human: a
+          generous daily fair-use cap exists only to stop scripts. Included
+          usage covers the genuinely expensive things: intraday timeframes,
+          custom universes past 10 symbols, and AI conversations; intraday
+          forward deployments carry a one-time fee. Cancel anytime through the
+          billing portal. Payments handled by Stripe — we never see your card.
         </p>
       </SectionShell>
     </main>

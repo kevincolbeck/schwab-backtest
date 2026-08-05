@@ -30,6 +30,7 @@ import { englishRules } from "@/lib/englishRules";
 import { pineExport } from "@/lib/exportPine";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct, fmtSignedPct } from "@/lib/format";
+import { checkFirstSession } from "@/lib/firstSession";
 import { templateHero } from "@/lib/templates";
 import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -161,6 +162,13 @@ function PlaygroundInner() {
   );
 
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  // P0-4: no draining counter in a new user's first session — default true
+  // (hidden) so the meter never flashes before the localStorage check runs.
+  const [firstSession, setFirstSession] = useState(true);
+
+  useEffect(() => {
+    setFirstSession(checkFirstSession());
+  }, []);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -343,9 +351,12 @@ function PlaygroundInner() {
             return null;
           }
           // Out-of-credits responses carry the authoritative balance — sync
-          // the meter so it doesn't keep showing stale credits.
+          // the meter so it doesn't keep showing stale credits, and reveal it
+          // even in a first session: once an action is blocked on usage, the
+          // balance is information the user needs, not anxiety (P0-4 review).
           if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
             setCreditBalance(e.detail.balance);
+            setFirstSession(false);
           }
           setError(e instanceof Error ? e.message : "Backtest failed");
         }
@@ -515,9 +526,11 @@ function PlaygroundInner() {
           return;
         }
         // Out-of-credits responses carry the authoritative balance — sync
-        // the meter so it doesn't keep showing stale credits.
+        // the meter so it doesn't keep showing stale credits, and reveal it
+        // even in a first session (see the run handler's rationale).
         if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
           setCreditBalance(e.detail.balance);
+          setFirstSession(false);
         }
         setMessages((current) => [
           ...current,
@@ -861,10 +874,10 @@ function PlaygroundInner() {
               <option value="5m">5m</option>
               <option value="1m">1m</option>
             </select>
-            {signedIn && creditBalance !== null && (
+            {signedIn && creditBalance !== null && !firstSession && (
               <Link
                 href="/pricing"
-                title="Your credit balance — runs and chat messages spend credits"
+                title="Your usage balance — intraday runs, custom universes past 10 symbols, and AI chat draw on it; daily runs up to 10 symbols and templates don't"
                 className="focus-ring tnum hidden items-center gap-1 rounded-(--radius-control) border border-hairline bg-panel px-2.5 py-1.5 text-xs sm:flex"
               >
                 <span className="text-accent" aria-hidden="true">◈</span>

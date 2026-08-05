@@ -63,7 +63,8 @@ math below assumes it.)
 
 | Action | Credits | Revenue @Max | Worst-case marginal cost | Gross margin |
 | --- | --- | --- | --- | --- |
-| Backtest, 1d | 10 × symbol multiplier | ≥ $0.079 | ≈ $0 (cached bars, flat compute) | ≈ 100% |
+| Backtest, 1d, ≤ 10 resolved symbols | **0 — free capability on every plan (P0-4)** | $0 | ≈ $0 (cached bars, flat compute) | — (COGS ≈ $0 makes the giveaway safe) |
+| Backtest, 1d, 11+ symbols / ALL_US | 10 × symbol multiplier | ≥ $0.158 (×2 floor) | ≈ $0 (cached bars, flat compute) | ≈ 100% |
 | Backtest, 15m/30m/60m | 25 × symbol multiplier | ≥ $0.198 | ≈ $0 | ≈ 100% |
 | Backtest, 1m/5m | 50 × symbol multiplier | ≥ $0.395 | ≈ $0 | ≈ 100% |
 | AI chat message | max(12, ⌈est. tokens ÷ 800⌉) | ≥ $0.0948 | ≤ $0.0611 (adversarial worst point, math below) | ≥ 36% adversarial worst; ~78% typical |
@@ -77,6 +78,24 @@ math below assumes it.)
 **200 credits**). `SYMBOL_BLOCK` / `SYMBOL_MULTIPLIER_CAP` in
 `service/credits.py`. Because run marginal cost is ≈ $0, the multiplier exists
 for fairness/capacity, not COGS recovery — margin holds at any multiplier ≥ 1.
+
+**Daily-data exemption (P0-4, interim toward the §5 flat-tier model).** A 1d
+run inside one symbol block (≤ 10 resolved UNIQUE symbols — duplicates count
+once, matching what the engine simulates) — or inside any TEMPLATE's universe,
+whatever its size (three shipped daily templates hold 11–19 symbols; their
+chat-edited variants must stay as free signed-in as they are anonymously) —
+never spends credits, on any plan. It is metered quietly by per-day fair-use
+caps instead (`FREE_RUNS_PER_DAY`, default 50, for the free plan; Pro/Max
+uncapped; anon stays `ANON_RUNS_PER_DAY` = 10/IP). This is safe because 1d
+cached-bar runs are the ≈ $0-COGS action: the giveaway costs nothing
+measurable and removes credit anxiety from the free experience. Everything
+with real COGS or real capacity weight — chat, explain cache-misses, intraday
+timeframes, multi-block CUSTOM universes, ALL_US, intraday deploys — still
+bills as above. When a BILLED run can't charge (credits dormant/failing open),
+the per-day backstop tightens to `BILLED_FALLBACK_RUNS_PER_DAY` (default 10)
+so a credits outage never widens intraday exposure to the quiet cap. Per-run
+compute is structurally bounded too: `MAX_INDICATORS` = 30 in
+`engine/ai/strategist.py::validate_spec`.
 
 **Chat, in detail.** Billed BEFORE the call on the deterministic estimate above:
 charge = `max(12, ceil((chars/2.5 + 1500) / 800))` credits.
@@ -156,6 +175,7 @@ COGS ~90% on cache hits.)
 | Explain output cap | `max_tokens=500` | `service/main.py` explain endpoint |
 | Model + token prices | `claude-sonnet-4-6` · $3/$15 per MTok | `service/chat.py` (`CHAT_MODEL` env) — re-run the (c) invariants on any change |
 | Grants (`SIGNUP_GRANT`, `MONTHLY_GRANTS`) | 250 signup · Pro 2,500 · Max 10,000 | `service/credits.py` |
+| Free-plan quiet run cap | `FREE_RUNS_PER_DAY` env, default 50/day (1d runs, credit-exempt) | `service/auth.py` `PLAN_LIMITS` |
 | Packs (`PACKS`) | 500/$10 · 1,500/$25 | `service/credits.py` + `scripts/setup_stripe.py` |
 
 ## Mechanics (unchanged)

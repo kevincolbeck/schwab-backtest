@@ -3,7 +3,7 @@ import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
 export const metadata = {
   title: "Credits",
   description:
-    "How usage is metered: what every action costs, how chat pricing works, plans and top-up packs, and automatic refunds when something fails.",
+    "How usage is metered: daily-data backtests are free, what the genuinely expensive actions cost, how chat pricing works, plans and top-up packs, and automatic refunds when something fails.",
 };
 
 export default function CreditsPage() {
@@ -11,9 +11,12 @@ export default function CreditsPage() {
     <>
       <h1>Credits</h1>
       <p>
-        Credits are how usage is metered. They exist because two things here
-        cost us real money per use — AI model tokens and market data — and
-        credits let heavy usage pay its own way while light usage stays cheap.
+        Most of the lab is free to use — daily-data backtests on any template
+        (edited or not) or any universe up to 10 symbols never draw on a
+        balance, on any plan. Credits meter only the things that cost us real
+        money per use — AI model tokens, intraday market data, very large
+        universes — so heavy usage pays its own way while everyday testing
+        stays free.
       </p>
 
       <h2>The short version</h2>
@@ -25,8 +28,13 @@ export default function CreditsPage() {
           timeframes, exports, and deploys.
         </li>
         <li>
-          New accounts get <strong>250 credits</strong> free — no card
-          required.
+          Free accounts get <strong>unlimited backtests on daily data</strong>{" "}
+          (a fair-use cap of 50 runs a day exists to stop scripts, not
+          people), the full strategy library, and one live public forward-test
+          deployment — no card required. A one-time starter allowance of 250
+          credits covers advanced usage: AI conversations and intraday runs.
+          Bigger custom universes are a plan feature — Free runs up to 10
+          symbols, Pro up to 100.
         </li>
         <li>
           Every priced action debits <em>before</em> it runs; if the action
@@ -37,9 +45,10 @@ export default function CreditsPage() {
           between refills.
         </li>
         <li>
-          The ◈ meter in the lab toolbar is your live balance. It updates
-          with every run and chat reply, and turns red when you drop below
-          25.
+          The ◈ meter in the lab toolbar is your live balance. It stays out of
+          the way during your first session, then updates with every priced
+          action and turns red when you drop below 25. Template and
+          up-to-10-symbol daily backtests never move it.
         </li>
       </ul>
 
@@ -53,8 +62,12 @@ export default function CreditsPage() {
         </thead>
         <tbody>
           <tr>
-            <td>Backtest — daily (1d) bars</td>
-            <td>10 per block of 10 symbols</td>
+            <td>Backtest — daily bars: any template (edited or not) or up to 10 symbols</td>
+            <td>Free on every plan — never draws on your balance</td>
+          </tr>
+          <tr>
+            <td>Backtest — daily bars, custom universe of 11+ symbols or full-US</td>
+            <td>10 per block of 10 symbols, all blocks counted (11 symbols = 20; full-US caps at 200)</td>
           </tr>
           <tr>
             <td>Backtest — 15m / 30m / 60m bars</td>
@@ -89,12 +102,15 @@ export default function CreditsPage() {
 
       <h3>Symbol blocks</h3>
       <p>
-        Backtests price by the size of the universe they actually resolve: one
-        block per 10 symbols, capped at 20 blocks. So 1–10 symbols is the base
-        price, 11 symbols doubles it, and the full-US universe hits the cap —
-        a daily-bar run over everything is 10 × 20 = 200 credits, no matter
-        how large the market grows. The benchmark symbol is added free, and
-        running an unmodified template always prices at the base rate.
+        Priced backtests scale by the size of the universe they actually
+        resolve: one block per 10 symbols, capped at 20 blocks. Daily runs
+        inside one block — up to 10 symbols — are free, as is any daily run of
+        a template&rsquo;s universe; from 11 custom symbols the run is priced
+        on <em>all</em> of its blocks, so an 11-symbol daily run is 20
+        credits, and the full-US universe hits the cap: 10 × 20 = 200 credits,
+        no matter how large the market grows. Intraday runs price from the
+        first block. The benchmark symbol is added free, and duplicate symbols
+        count once — billing follows what the engine actually simulates.
       </p>
 
       <h3>How chat pricing works</h3>
@@ -122,7 +138,7 @@ export default function CreditsPage() {
           <tr>
             <td>Free</td>
             <td>$0</td>
-            <td>250, once at signup</td>
+            <td>Unlimited daily-data backtests + 250 for advanced usage, once at signup</td>
           </tr>
           <tr>
             <td>Pro</td>

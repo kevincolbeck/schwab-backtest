@@ -26,7 +26,12 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 PLAN_LIMITS = {
     "anon": {"runs_per_day": int(os.getenv("ANON_RUNS_PER_DAY", "10")), "max_symbols": 10,
              "deployments": 0, "private": False, "all_us": False},
-    "free": {"runs_per_day": 10, "max_symbols": 10, "deployments": 1, "private": False, "all_us": False},
+    # P0-4: the free plan's runs_per_day is a quiet fair-use cap, not an
+    # advertised quota — daily-data runs no longer spend credits, so this cap
+    # is what actually meters them. Generous on purpose: a human clicking
+    # around should never hit it in a normal day.
+    "free": {"runs_per_day": int(os.getenv("FREE_RUNS_PER_DAY", "50")), "max_symbols": 10,
+             "deployments": 1, "private": False, "all_us": False},
     "pro": {"runs_per_day": None, "max_symbols": 100, "deployments": 5, "private": True, "all_us": False},
     "max": {"runs_per_day": None, "max_symbols": 200, "deployments": 25, "private": True, "all_us": True},
 }

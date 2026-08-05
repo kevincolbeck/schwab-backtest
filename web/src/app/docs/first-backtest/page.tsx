@@ -24,7 +24,8 @@ export default function FirstBacktestPage() {
             &ldquo;New from scratch&rdquo; button, a center workspace with four
             tabs, and the AI chat docked on the right. The toolbar on top holds
             the date range, the bar-timeframe selector, and the Run button
-            (signed-in members also see their credit meter, the ◈ number).
+            (after your first session, signed-in members also see their usage
+            meter, the ◈ number).
             Daily-bar templates run free without an account — up to 10 a day
             per visitor — with 3 free AI messages to edit them.
           </p>
@@ -90,9 +91,11 @@ export default function FirstBacktestPage() {
             Deploying to the public ledger, exporting the code, chatting past
             the free taste, and running custom or intraday strategies all take
             a free account — continue with Google or Discord, or enter your
-            email for a sign-in link, no password to invent. New accounts start
-            with <strong>250 credits</strong>, no card required; the{" "}
-            <a href="/docs/credits">Credits</a> page has the exact prices.
+            email for a sign-in link, no password to invent. Free accounts run{" "}
+            <strong>unlimited backtests on daily data</strong> (a generous
+            fair-use cap exists to stop scripts, not people), no card
+            required; the <a href="/docs/credits">Credits</a> page explains how
+            advanced usage is metered.
           </p>
         </Step>
       </Steps>
@@ -157,11 +160,13 @@ export default function FirstBacktestPage() {
 
       <Callout kind="note" title="What this costs">
         <p>
-          Your first template runs are free without an account. Signed in, runs
-          and chat messages spend credits: a daily-bar run on a template is 10,
-          a typical chat message 12. The ◈ meter in the toolbar is your live
-          balance. Full price list on the <a href="/docs/credits">Credits</a>{" "}
-          page.
+          Daily-data backtests — every template, edited or not, and any
+          universe up to 10 symbols — are free: anonymously up to 10 a day,
+          and on every plan once signed in (a generous fair-use cap applies).
+          What&rsquo;s metered is the genuinely expensive stuff: AI
+          conversations (a typical message is 12 from your allowance),
+          intraday timeframes, and custom universes past 10 symbols. Full
+          price list on the <a href="/docs/credits">Credits</a> page.
         </p>
       </Callout>
 

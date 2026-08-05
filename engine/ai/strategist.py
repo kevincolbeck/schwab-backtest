@@ -56,6 +56,12 @@ ALLOWED_INDICATOR_TYPES = {
     "vwap", "vwap_proxy", "custom", "external",
 }
 
+# Per-run compute is otherwise unbounded (each indicator is a pandas pass per
+# symbol) — with daily runs now credit-free, this structural cap is what stops
+# a 50,000-indicator spec from tying up a request worker. Real strategies use
+# a handful; the biggest shipped template is far below this.
+MAX_INDICATORS = 30
+
 # Substring denylist for rule expressions (the engine evals them with empty
 # builtins and its own token denylist; this is the first line of defense).
 DANGEROUS_RULE_TOKENS = ("import", "exec", "eval", "open", "os.", "subprocess", "__")
@@ -138,6 +144,10 @@ def validate_spec(spec: dict) -> List[str]:
     if indicators is not None:
         if not isinstance(indicators, list):
             errors.append("indicators must be a list")
+        elif len(indicators) > MAX_INDICATORS:
+            errors.append(
+                f"too many indicators ({len(indicators)}) — max {MAX_INDICATORS} per strategy"
+            )
         else:
             for ind in indicators:
                 if not isinstance(ind, dict):
