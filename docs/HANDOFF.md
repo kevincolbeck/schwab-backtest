@@ -138,14 +138,15 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   /stocks/{sym} it had never heard of. Prod run after the fix: 66 sitemap
   URLs, 66 live, 29 unique titles, 0 problems.
 
-  **Open observation:** /stocks/T, /MCD, /NKE, /PG, /XOM were still 404ing at
-  the end of the session. The fix is deployed and unit-pinned; those specific
-  pages are served through Next's Data Cache (`STOCKS_REVALIDATE = 21600`),
-  which holds the PRE-fix `{found:false}` response — no `retryable` field, so
-  the web layer reads it as definitive. Those entries were written by the
-  diagnostic crawl around 13:05–13:20 on 2026-08-06 and expire ~6 h later.
-  **Confirm they return 200 before assuming anything else is wrong**; they are
-  no longer in the sitemap either way, so Search Console is unaffected.
+  **RESOLVED (`cd464a5`).** The remaining 404s were Next's Data Cache serving
+  the PRE-fix `{found:false}` body — it holds a response for
+  `STOCKS_REVALIDATE` (6 h) and survives redeploys, so one bad minute upstream
+  outlived the fix for it. `getStockBundle()` now re-asks the origin with
+  `cache: "no-store"` before ever returning not_found: deindexing a URL is the
+  most expensive thing that function can do, so it doesn't do it on hearsay.
+  One extra request on the negative path only. **Verified: all 112 sector
+  tickers return 200** (was 80 × 404), and `npm run seo` against prod reports
+  66/66 sitemap URLs live, 0 problems.
 
 ## NEXT UP (in spec order)
 
