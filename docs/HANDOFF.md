@@ -1,6 +1,6 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-06**, P1-2 shipped. Live on chatbacktest.com with
+> Last updated: **2026-08-06**, P1-3 + a Google-docs SEO pass shipped. Live on chatbacktest.com with
 > Stripe LIVE mode, Resend verified, analytics flowing, SEO complete.
 > Tree clean at `1ad99da`.
 > To resume: read this file top to bottom, then start the next item with the
@@ -66,6 +66,32 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   and return real 404s, so their metadata never renders (fixed anyway,
   defensively).
 
+- **P1-3 SHAREABLE RECORD CARDS: SHIPPED (`60d72ab`), prod-verified.** Landscape
+  card gained CAGR + Sharpe (spec-required, were missing), labelled "backtest
+  (hypothetical)" and kept subordinate to the verified forward number; the
+  forward figure now carries "verified · N days" only past the 20-day window,
+  otherwise "warming up · day N of 20". NEW square 1080x1080 card at
+  `/strategy/[slug]/card` + a "Share this record" button (copy link +
+  download). Both render from `web/src/lib/server/recordCard.ts` so claims
+  can't drift between them.
+  **BUG FOUND + FIXED: `/strategy/[slug]/opengraph-image` had been returning
+  HTTP 500 in production since Phase G** — every shared record link previewed
+  blank. Cause: Satori needs an explicit `display` on any element with >1
+  child (`spec {hash}`). `check_seo.mjs` now FETCHES each og:image and asserts
+  a 2xx image, which is why it missed this before.
+- **GOOGLE SEO DOCS PASS: SHIPPED (`323b90e`).** Real brand icon
+  (`app/icon.svg` + generated apple-icon) replacing the create-next-app Vercel
+  triangle that had shipped since the first frontend commit; `app/robots.ts`
+  (sitemap + param disallows, deliberately NOT blocking the noindex routes —
+  that would stop Google reading the directive); `max-image-preview:large` +
+  `max-snippet:-1` on indexable pages. Honest degraded states: the leaderboard
+  no longer renders a 200 with zero links when the service is unreachable (a
+  broken board must not look like an empty one), degraded `/stocks/[ticker]`
+  is noindex so a blip can't publish 112 thin pages, and the empty
+  market-data-deep-dives hub is out of the sitemap AND noindex (they must
+  agree). Two audit claims were WRONG and dropped after verification —
+  notably "/playground has no H1"; it has exactly one.
+
 ## NEXT UP (in spec order)
 
 1. ~~**P1-2 per-page SEO**~~ — **SHIPPED.** Every route sets its own
@@ -84,10 +110,7 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
    og:image/canonical. Remaining §P1-2 bullet: "Template pages: [Strategy]
    backtest — …" needs Section 4's `/backtest/[slug]` routes, which don't
    exist yet.
-2. **P1-3 shareable record cards** — dynamic OG image per strategy already
-   exists (`strategy/[slug]/opengraph-image.tsx`); what's missing is the
-   "Share this record" button that copies the link AND downloads a square
-   social image. Start there, not from scratch.
+2. ~~**P1-3 shareable record cards**~~ — **SHIPPED** (see above).
 3. **P1-4 email sequences** — **UNBLOCKED.** Resend account is live, domain
    `chatbacktest.com` VERIFIED (DKIM+SPF+MX green), key in gitignored `.env`
    as `RESEND_API_KEY`. Nine emails + triggers specified in spec §6; branch
@@ -159,6 +182,19 @@ file via `git commit -F`, end with the Claude co-author line) →
   (expand to 5k via service endpoint). 3 pre-existing eslint errors
   (pricing/strategy/ThemeToggle). Raw owner-id still in public payloads.
   Prompt caching on chat system prompt (~90% input COGS cut) untapped.
+
+## Owed by Kevin (owner DECISIONS, not clicks — these block real SEO work)
+
+- **An /about page.** Google holds financial ("Your Money or Your Life")
+  topics to a higher experience/expertise/trust bar than anything technical we
+  can ship. It needs the operating entity, who is behind it, why that person
+  can build a backtesting engine, the business model, and a real support
+  channel. I will not invent an identity — give me the facts and I'll write
+  and wire it, plus the Organization JSON-LD that depends on it.
+- **Blog bylines + AI-production disclosure.** The 6 articles have no author.
+  Adding one means deciding how to characterise authorship honestly, since
+  they were AI-drafted under your direction. That is a disclosure call, not an
+  implementation detail — tell me the framing you want and I'll implement it.
 
 ## Owed by Kevin (owner clicks)
 
