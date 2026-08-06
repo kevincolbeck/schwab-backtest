@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { BLOG_CATEGORIES, BLOG_POSTS, postsInCategory } from "@/lib/blog";
 import { COMPETITORS } from "@/lib/compare";
+import { STRATEGY_COPY } from "@/lib/strategyCopy";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { SITE_URL } from "@/lib/seo";
 
@@ -144,6 +145,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: COPY_LAST_CHANGED,
       changeFrequency: "weekly" as const,
       priority: 0.6,
+    })),
+    // Strategy pages (Section 4). One per template that has hand-written
+    // interpretation copy — the registry, not the template list, so a
+    // template shipped without copy never becomes a thin indexed page.
+    ...Object.keys(STRATEGY_COPY).map((slug) => ({
+      url: `${SITE_URL}/backtest/${slug}`,
+      lastModified: COPY_LAST_CHANGED,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
     })),
     // Comparison pages (P1-5). Commercial-intent surface; the copy changes
     // only when a vendor's own pricing or features do.

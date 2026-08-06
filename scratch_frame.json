@@ -1,0 +1,645 @@
+{
+ "axes": [
+  "What it is",
+  "Building a strategy",
+  "Backtesting",
+  "Markets & data",
+  "Forward testing",
+  "Public track record",
+  "Live trading",
+  "Export / portability",
+  "Free tier"
+ ],
+ "ledgerSection": "Every product on this page can produce a backtest, and a backtest is worth having \u2014 it kills bad ideas cheaply. But a backtest is graded on an exam whose answers already existed when the rules were written, and with enough attempts, noise produces a good-looking one.\n\nChat\u00b7Backtest adds one step. Deploying a strategy freezes its spec \u2014 the exact JSON the engine runs \u2014 and hashes it; the storage layer then rejects any edit to that spec. A daily worker replays the frozen spec on closed candles only, discards anything dated before deployment, and appends the result to a public ledger. The backtest and forward curves sit side by side and are never merged. Revising a strategy means a new deployment starting at zero; the old record stands, including the ones that lost.\n\nNone of that predicts anything. It makes a claim checkable after the fact \u2014 nothing more.",
+ "perCompetitor": [
+  {
+   "key": "composer",
+   "name": "Composer (by SoFi)",
+   "positioning": "Composer is a no-code automated-trading platform where users build rule-based strategies called symphonies, backtest them, and have Composer's own brokerage execute and rebalance them. It joined SoFi in an announcement dated June 23, 2026 and is now presented as Composer by SoFi.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "A no-code portfolio-automation platform. Their own framing: \"Build trading algorithms with AI, backtest them, then execute\u2014all in one platform. No coding skills required.\" Strategies are called symphonies, and the site banner reads \"Big news: Composer has joined SoFi!\"",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://www.composer.trade/whats-new"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "A visual no-code editor is the primary surface, with blocks like \"Apply weighting\", \"If this, then that\" and \"Sort, filter, select\". There is also an AI path \u2014 \"Bring your trading strategies to life by chatting with Composer\" \u2014 and no advertised user-facing scripting language.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://www.composer.trade/"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "Included with no subscription (\"Build and backtest automated trading strategies using our no-code editor\"), with \"Unlimited strategy backtesting\" listed on the paid tier. Backtests use \"daily adjusted closing prices\" that \"don't represent real quotes from any point during the trading day\", with a default slippage setting of 1 basis point; Composer describes results as \"hypothetical and benefit from hindsight\".",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://www.composer.trade/pricing"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "Stocks and ETFs for backtesting. Data comes from \"enterprise-level data sources, including Xignite and Polygon\", with \"data as far back as 1970 in some cases\" while the platform's date picker \"goes back 30 years\". Crypto was removed on January 31, 2026: \"Composer no longer supports crypto assets or crypto indicators.\"",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://www.composer.trade/whats-new"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "A \"Watch\" feature: \"This gives the symphony a simulated $1000 (just like paper trading) to let you monitor the symphony over time.\" No Composer page reviewed states whether the rules are locked once watching begins.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://help.composer.trade/"
+    },
+    {
+     "axis": "Public track record",
+     "them": "A Symphony Database is browsable without logging in, marked \"Updated Daily\", carrying an OOS Start Date column alongside out-of-sample cumulative and annualized return, Sharpe, max drawdown, standard deviation and Calmar. Individual symphonies are \"private by default\"; sharing is opt-in by link, and recipients can see the logic and copy it into their own account. Composer does not publish a definition of what sets the OOS start date.",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://www.composer.trade/symphony-database"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes \u2014 Composer is itself the broker. Composer Securities LLC is SEC-registered and a FINRA/SIPC member, clearing through Alpaca Securities and Apex Clearing. Trades are aggregated and executed during a set daily window (3:45\u20134:00 PM ET; 12:45\u20131:00 PM ET on early-close days) as \"not held\" orders. The minimum deposit is $50, and Composer recommends starting with at least $2,500.",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://help.composer.trade/article/65-how-does-composer-trade"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "Strategy logic is retrievable as EDN through the API score endpoints, and symphonies can be shared by link or copied between accounts. Transfer and order history export to CSV from the profile menu, though that export \"is not available for Composer accounts held at Apex\".",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://help.composer.trade/"
+    },
+    {
+     "axis": "Free tier",
+     "them": "\"Build and backtest\" is priced \"No subscription\": AI idea generation, API access to pull data and trade stocks and ETFs, no-code build and backtest, and save/watch/share. Direct Trading of individual stocks, ETFs and options is separately documented as not requiring the Trading Pass.",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://www.composer.trade/pricing"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Build and backtest (free)",
+     "price": "No subscription",
+     "sourceUrl": "https://www.composer.trade/pricing"
+    },
+    {
+     "tier": "Trading Pass (automated trading)",
+     "price": "$32/mo. \u2014 \"Billed annually ($384/yr.)\", \"Save 20%\", free 14-day trial, cancel any time",
+     "sourceUrl": "https://www.composer.trade/pricing"
+    },
+    {
+     "tier": "Business Account",
+     "price": "Contact us \u2014 no public price",
+     "sourceUrl": "https://www.composer.trade/pricing"
+    }
+   ],
+   "honestAdvantages": [
+    "Composer actually trades. It is a registered broker-dealer (Composer Securities LLC, FINRA/SIPC) that holds the account, rebalances toward target allocations, and opens retirement accounts \u2014 Roth, Traditional and Rollover. Chat\u00b7Backtest never touches a broker and never will.",
+    "Direct Trading covers individual stocks, ETFs and options, including covered calls and cash-secured puts. Chat\u00b7Backtest has no options support of any kind.",
+    "Backtesting is free with no subscription and no published run cap, and the paid tier advertises unlimited backtesting.",
+    "The public Symphony Database spans 115 pages of community strategies with out-of-sample columns, browsable without an account. Our ledger is far smaller.",
+    "Composer's daily-close execution window means a strategy you build there is actually running in a funded account by the next trading day. Nothing here does that."
+   ],
+   "cta": "If you are about to put money behind a symphony, the cheap first move is to freeze the rules before the scoring starts. Run one backtest here without signing up, then deploy the frozen spec to a public ledger and see how it does on data nobody had when you wrote it."
+  },
+  {
+   "key": "tradingview",
+   "name": "TradingView",
+   "positioning": "TradingView is a web-based charting and market-analysis platform with an attached trader social network, covering stocks, futures, forex, crypto and more. Strategies are written in its proprietary Pine Script language, backtested in the built-in Strategy Tester, and can route live orders through connected third-party brokers.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "A charting and market-analysis platform plus a trader social network. Its features page calls it \"the world's most popular financial analysis platform\", listing charting, six screeners, alerts, \"100+ trusted brokers\", and 3.5 million+ instruments.",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://www.tradingview.com/features/"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "Pine Script, TradingView's proprietary cloud-based language (currently v6). \"Any user can create a strategy if they know the Pine Script language\"; non-coders instead \"use pre-made strategies from a list of built-in indicators or from our Community Scripts\". No first-party natural-language or no-code strategy builder is advertised on their official pages.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://www.tradingview.com/pine-script-docs/welcome/"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "Built in via the Strategy Tester. A broker emulator \"fills a strategy's orders using only the available chart data by default\", infers intrabar movement from the open/high/low/close order, and \"assumes that no gaps exist inside each chart bar\"; Deep Backtesting pulls lower-timeframe OHLC to refine fills. Standard backtests cap at 9,000 orders (1,000,000 under Deep Backtesting).",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://www.tradingview.com/pine-script-docs/concepts/strategies/"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "Whatever symbol and interval the chart is set to, across 3.5 million+ instruments. History is plan-gated: 5,000 intraday bars on Basic, 10,000 on Essential and Plus, 20,000 on Premium, 40,000 on Ultimate, with \"all available data for daily-based intervals\". Deep Backtesting (Premium and higher) removes the chart bar limit up to 2 million bars per calculation. Real-time exchange data is billed separately: \"our paid plans don't cover those fees\".",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://www.tradingview.com/support/solutions/43000480679-historical-intraday-data-bars-and-limits-explained/"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "Strategies keep running on live bars \u2014 \"forward testing allows for the recreation of your strategy work in real-time\" \u2014 and the same Strategy Report shows historical and realtime results together. A Pine strategy is editable source in the Pine Editor; no frozen-rules or locked-strategy mechanism appears on the official pages reviewed.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://www.tradingview.com/support/solutions/43000562362-what-are-strategies-backtesting-and-forward-testing/"
+    },
+    {
+     "axis": "Public track record",
+     "them": "The one documented public ranked record is The Leap, a recurring Paper Trading competition using \"virtual funds instead of real money\", ranked on \"a public leaderboard\" with results \"determined at the end of the contest period\". Each edition runs \"usually, about a month\", every participant starts with the same amount, and eligibility is limited to users with an active subscription, a trial, or a past subscription.",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://www.tradingview.com/support/solutions/43000771594-what-is-the-leap/"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes, through connected third-party brokers straight from the chart. The brokers page lists integrations including Interactive Brokers, TradeStation, Alpaca, Tradier, Kraken, Coinbase Advanced, Webull, moomoo and tastytrade, and shows over 421 million real-money orders executed. Alerts can also POST to a webhook (2FA required, ports 80 and 443 only, three-second response limit).",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://www.tradingview.com/brokers/"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "The Strategy Report exports to CSV one tab at a time \u2014 \"if you click on the 'Download' button from the 'List of Trades' tab, you will only export the trade information\". Pine source is copyable text, but Pine \"is cloud-based\" and scripts \"run on our servers\", so it is not a runnable artifact off-platform.",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://www.tradingview.com/support/solutions/43000613680-how-to-export-strategy-data/"
+    },
+    {
+     "axis": "Free tier",
+     "them": "Basic is \"$0 forever\", no credit card needed: 1 chart per tab, 2 indicators per chart, 3 active price alerts, 20 technical alerts, 1 watchlist, 5K historical bars, ads shown. Pine Script strategy backtesting and the Paper Trading simulator are both available without paying; Deep Backtesting requires Premium or higher.",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Basic",
+     "price": "$0 forever, no credit card needed",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Essential",
+     "price": "$12.95/mo billed annually (\"Save $24 a year\") \u2014 page brands it a \"Special price\"",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Plus",
+     "price": "$29.95/mo billed annually (\"Save $60 a year\")",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Premium",
+     "price": "$59.95/mo billed annually (\"Save $120 a year\") \u2014 lowest tier with Deep Backtesting",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Ultimate",
+     "price": "$199.95/mo billed annually (\"Save $480 a year\")",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Enterprise",
+     "price": "Custom \u2014 \"Need 100+ subscriptions? Get in touch\"",
+     "sourceUrl": "https://www.tradingview.com/pricing/"
+    },
+    {
+     "tier": "Real-time exchange data",
+     "price": "Billed separately on top of a plan \u2014 \"our paid plans don't cover those fees\"",
+     "sourceUrl": "https://www.tradingview.com/support/solutions/43000471705-how-to-purchase-additional-market-data/"
+    }
+   ],
+   "honestAdvantages": [
+    "Charting. Nothing here is in the same category \u2014 3.5 million+ instruments, six screeners, alerts, Bar Replay, second-based intervals, and a chart-first workflow we do not have and are not trying to build.",
+    "Market coverage: futures, forex, crypto, bonds and non-US exchanges. We cover US stocks and ETFs, plus daily-bar crypto on the Max plan.",
+    "Pine Script is far more expressive than our JSON rule grammar, and Deep Backtesting reaches history our engine does not, up to 2 million bars per calculation with lower-timeframe fill refinement.",
+    "Free Paper Trading for every user with no subscription, and live order routing to 100+ brokers directly from the chart.",
+    "A published-scripts community and social layer, which means a large library of other people's strategies to read and adapt."
+   ],
+   "cta": "Our Pine Script export exists because of TradingView: build the rules here in plain English, download a v6 strategy(), and run it on your own chart in your own account. The one thing that does not travel is the frozen record \u2014 deploy the spec here first if you want the version you tested to stay on the books."
+  },
+  {
+   "key": "trendspider",
+   "name": "TrendSpider",
+   "positioning": "TrendSpider is a subscription platform for active traders combining automated technical charting, market scanning, a no-code Strategy Tester, machine-learning signal training, and cloud alerts and trading bots. A backtested strategy can be deployed as a bot that forward-tests on live data or routes real orders to a connected broker.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "An all-in-one technical analysis and trading platform. The homepage positions it as \"the AI-Powered Super Platform for Active Investors\", combining \"AI agents, deep research, machine learning, predictive signals, pattern recognition, and complete technical & fundamental analysis \u2014 all in one platform\", with \"Over 190 indicators built-in\".",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://trendspider.com/"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "\"Build strategies using natural language or simple point-and-click menus. Or, optionally, build custom indicators for your strategies using JavaScript.\" JavaScript is scoped to custom indicators rather than the strategy rules. Sidekick, \"an agentic AI assistant\" running on frontier models from Anthropic, Google and OpenAI, can review backtest results and suggest changes.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://trendspider.com/product/strategy-development-and-backtesting-tools/"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "The Strategy Tester runs entry/exit, take-profit, stop-loss and trailing-stop rules set point-and-click, with no code. Multi-symbol testing runs \"on up to 510 symbols at once with a single click\". Depth and minimum interval are plan-gated: roughly 2K/10K/20K/30K candles and 2-hour/5-minute/1-minute/1-minute across Standard, Premium, Enhanced and Advanced.",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "Backtestable markets are \"stocks, futures, crypto, forex, and OTC's\", and their help center states \"You can not backtest indices or options data.\" History is \"50+ years of historical market data, depending on the symbol\", testable from symbol inception, with \"10,000 candles are the maximum depth by default; additional backtest range expansion is available as an upgrade\". Timeframes run from 1-minute intraday up through yearly.",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://help.trendspider.com/kb/strategy-tester/understanding-strategy-tester-from-trendspider"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "\"No coding required to turn any backtest into a forward test that runs with real-time market data\", and the rules are frozen at deployment: creating a bot \"will clone and lock the particular strategy that has been used... You cannot edit this strategy and it will be in the read-only mode.\" Changing the logic requires a new bot. Alerts run in the cloud whether or not TrendSpider is open.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://help.trendspider.com/"
+    },
+    {
+     "axis": "Public track record",
+     "them": "No TrendSpider documentation reviewed describes publishing a bot's live track record, or any independent or third-party verification of forward-test results. The bot status view exposes \"Last 5 signals (if they exist)\" to the account owner. Strategies themselves can be shared by link, by email invite, or published to the moderated TrendSpider Store \u2014 that shares the rules, not an audited record.",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://help.trendspider.com/"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes. Strategies \"can function as fully autonomous strategy bots that can buy-and-sell on your behalf\", and TrendSpider says \"Connect all your brokerage accounts to TrendSpider and trade in any of them for free.\" Routing runs through SignalStack and webhooks; in-platform order entry is a Beta Trading Widget with typical routing of 0.3 seconds. TrendSpider describes itself as \"a broker-agnostic platform designed to compliment your trading no matter where you place your orders.\"",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://trendspider.com/brokers-directory/"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "Backtest results export to a flat file: \"Click the arrow button and select 'Download Test Results' to export your data via CSV or TSV file.\" Strategies are shared by public link, email invite, or Store publication; recipients see \"a special preview page\" and must import into a TrendSpider account, where they clone rather than edit. No standalone file export for use on another platform is documented.",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://help.trendspider.com/"
+    },
+    {
+     "axis": "Free tier",
+     "them": "None. There is no $0 subscription plan, and even the trial carries a one-time fee: \"Take TrendSpider on a 14-Day Test Drive. Start a low-cost trial (one-time fee) or buy now and save for life\", at $19, $29, $39 and $49. Trial fees are non-refundable. Free public tools \u2014 market exploration, daily emailed scanner results, and ten calculators \u2014 exclude charting, the Strategy Tester and the full scanner.",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Free plan",
+     "price": "None offered \u2014 every plan is paid, and the 14-day trial carries a one-time fee",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Standard",
+     "price": "$54 to $82 per month depending on billing term; 14-day trial $19, then $59 to $89 per month",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Premium",
+     "price": "$91 to $137 per month depending on billing term; 14-day trial $29, then $99 to $149 per month",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Enhanced",
+     "price": "$122 to $183 per month depending on billing term; 14-day trial $39, then $133 to $199 per month",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Advanced",
+     "price": "$214 to $321 per month depending on billing term; 14-day trial $49, then $233 to $349 per month",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Business / Teams",
+     "price": "From $399 per month; teams page publishes no price and offers a custom quote (2\u2013100 users)",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    },
+    {
+     "tier": "Sidekick AI add-on",
+     "price": "25 messages/mo included with all plans; $49/mo (100 messages), $129/mo (300), $349/mo (1,000)",
+     "sourceUrl": "https://trendspider.com/pricing/"
+    }
+   ],
+   "honestAdvantages": [
+    "TrendSpider freezes forward tests too \u2014 creating a bot \"will clone and lock\" the strategy in read-only mode. That is the same discipline this site is built around, applied to a much wider set of markets. The difference here is that the frozen record is public and append-only, not that the freezing exists.",
+    "Live bots that buy and sell in your own connected brokerage account, broker-agnostic, plus cloud alerts that run whether or not you are logged in.",
+    "Automated charting with 190+ indicators, real-time scanners, an ML Quant Lab for training bespoke signals, and coverage of futures, forex and OTC that we do not have.",
+    "Multi-symbol backtesting on up to 510 symbols at once, 1-minute intraday backtests on higher tiers, and 50+ years of history depending on the symbol.",
+    "CSV/TSV export of test results and a moderated strategy Store where other traders publish their rules."
+   ],
+   "cta": "TrendSpider already locks a strategy when you deploy a bot; what it does not do is publish the locked record. If you want the frozen rules, their hash, and the resulting track record visible to anyone with a link, the first backtest here takes no signup and the free plan includes one public deployment."
+  },
+  {
+   "key": "quantconnect",
+   "name": "QuantConnect",
+   "positioning": "QuantConnect is a cloud quantitative-research and algorithmic-trading platform built on LEAN, its Apache-2.0 open-source engine, where strategies are written in Python or C# and run against hosted historical datasets. It offers an AI assistant, a guided no-code strategy builder, paper trading, and live-trading connections to roughly twenty brokerages.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "A cloud quantitative-research and algorithmic-trading platform. Its own page title reads \"Open Source Algorithmic Trading Platform\", and the engine underneath is LEAN \u2014 \"the open-source algorithmic trading engine powering QuantConnect\", founded 2012, built by 180+ engineers, which QuantConnect says powers \"more than 300+ hedge funds today\" (their own unaudited figure).",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://www.quantconnect.com/lean"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "Python or C# against the LEAN API. An AI assistant named Mia writes QuantConnect code from high-level directions, and the Algorithm Lab includes what QuantConnect calls \"a guided, no-code, strategy builder\" with Transcribe, Wizard and Random prompt modes \u2014 but the artifact those paths produce is always QuantConnect API code.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://www.quantconnect.com/docs/v2/ai-assistance/getting-started"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "Cloud backtesting runs your code on QuantConnect's servers against hosted datasets, defined in their docs as \"the process of simulating a trading algorithm on historical data\". The free node is throttled: \"This node introduces a 20-second delay when launching backtests and caps usage to 200 backtests per day.\" Paid tiers add faster nodes, parameter optimization and larger log and order limits.",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "Asset Classes reads \"All\" on every tier \u2014 equities, forex, options, futures and cryptocurrencies \u2014 with documented support also for crypto futures, index options, CFDs and India equity. AlgoSeek US Equities data starts January 1998 at tick through daily resolution across roughly 27,500 symbols; US equity options from January 2012; US futures from May 2009. Tick and second resolution are paid-only.",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://www.quantconnect.com/datasets/algoseek-us-equities"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "Paper trading runs live data with fictional capital and simulated fills across equities, crypto, forex, CFDs, futures and future options, and orders under the default model \"do not experience slippage in backtests or paper trading\". It is not available on the Free Plan \u2014 the Live Trading Node Limit is 0 there, and \"You must have an available live trading node for each live trading algorithm you deploy.\" No locked-rules or version-pinning mechanism for a deployed algorithm appears in the documentation reviewed.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "axis": "Public track record",
+     "them": "Results are private by default and publishing is opt-in: you make a backtest public to generate a share link, and the docs warn that \"the project files are accessible to anyone who visits the link, even after you delete the project\". A public Strategy Explorer lists \"streaming live-trading strategies written by QuantConnect, and top highlights from the community\" with an \"OOS 3M Sharpe\" column. The Quant League competition is being retired \u2014 \"Q4-2025 will be the final Quant League.\"",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://www.quantconnect.com/league"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes, a core capability, with documented integrations including Interactive Brokers, TradeStation, tastytrade, Alpaca, Charles Schwab, Webull, Tradier, Binance, ByBit, Kraken, Coinbase, Bitfinex, Trading Technologies and Bloomberg EMSX. Every brokerage connection is unavailable on the Free Plan; fifteen are available from Quant Researcher upward, with Wolverine and Bloomberg EMSX requiring Institution.",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "Strong. LEAN is Apache-2.0 on GitHub, so code written against the LEAN API runs outside QuantConnect's cloud, and \"lean cloud pull\" will \"pull all your cloud projects to the current directory\" as ordinary source files plus a config.json. \"You Own Your IP\" applies on every tier including Free \u2014 but the LEAN CLI and API access are both unavailable on the Free Plan, and hosted datasets are licensed separately and do not travel with the code.",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://www.quantconnect.com/docs/v2/cloud-platform/organizations/tier-features"
+    },
+    {
+     "axis": "Free tier",
+     "them": "$0, with unlimited backtesting on one throttled B-MICRO node, one research node, and one assistant node capped at 100,000 tokens per month; 200 projects, 500MB workspace, 1 seat, minute-to-daily data. Excluded: paper trading, live trading, every brokerage connection, the LEAN CLI, API access, alternative data, tick and second resolution, and email or chat support.",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Free Plan",
+     "price": "$0 \u2014 unlimited backtesting on one throttled node; no paper trading, no brokerages, no CLI or API",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Researcher Pack",
+     "price": "$84/mo or $888/yr \u2014 limited to exactly 1 seat",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Team Pack",
+     "price": "$168 per user/mo or $1,728 per user/yr, 2-seat minimum (so $336/mo or $3,456/yr minimum), max 10 seats",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Trading Firm Pack",
+     "price": "$480 per user/mo or $4,992 per user/yr, 2-seat minimum (so $960/mo or $9,984/yr minimum)",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Institution Pack",
+     "price": "$1,272 per user/mo or $12,912 per user/yr, 5-seat minimum (so $6,360/mo or $64,560/yr minimum)",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Standalone seats",
+     "price": "Researcher $10/mo, Team $24/mo, Trading Firm $48/mo, Institution $96/mo (per seat, compute nodes extra)",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    },
+    {
+     "tier": "Compute node add-ons",
+     "price": "Backtest nodes from $14/mo, research from $12/mo, live-trading from $24/mo, assistant from $24/mo \u2014 per node",
+     "sourceUrl": "https://www.quantconnect.com/pricing"
+    }
+   ],
+   "honestAdvantages": [
+    "LEAN is Apache-2.0 open source and used off-platform, and \"lean cloud pull\" brings your projects down as ordinary source files. A strategy written to their API is genuinely portable in a way a spec export is not.",
+    "Data depth we do not approach: tick and second resolution, US equities back to January 1998, options to 2012, futures to 2009, across equities, options, futures, forex, crypto, CFDs and India equity.",
+    "Python and C# give unbounded expressiveness. Our JSON rule grammar deliberately does not \u2014 anything it cannot express, it cannot run.",
+    "Real live trading at roughly twenty brokerages and execution venues, plus paper trading with a documented fill model.",
+    "Documented walk-forward and parameter-optimization tooling, team seats, permissions, custom LEAN builds, and on-premises LEAN Enterprise for institutions.",
+    "Unlimited backtesting on the free plan (rate-limited to 200 per day) across all asset classes \u2014 more generous on data than our free tier."
+   ],
+   "cta": "If you write Python, QuantConnect will out-research this on nearly every axis. The exception is what happens after the research: take a strategy you would otherwise leave in a private project and put a frozen, hashed copy on a public record instead. The first backtest here needs no signup."
+  },
+  {
+   "key": "trade-ideas",
+   "name": "Trade Ideas",
+   "positioning": "Trade Ideas is a real-time stock scanning, charting and alerting platform for US and Canadian equities, operating since 2003, which also generates AI-produced entry and exit signals through its Holly engine. It includes an event-based backtester called OddsMaker, a real-time trade simulator, and broker-connected order entry through Brokerage Plus.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "A real-time equity scanner and charting platform with vendor-generated AI signals and broker-connected order entry. Tagline: \"AI-Driven Stock Scanning & Charting Platform\". Their guide describes it as \"the most feature-rich stock market intelligence platform available\", established 2003, serving \"investors, traders, and market professionals in over 65 countries\".",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://www.trade-ideas.com/guide/chapter/2/2Introduction_to_Trade_Ideas.html"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "Point-and-click scan construction plus a Formula Editor over bracketed data-point variables \u2014 their own example is [Vol_10]/[Float]*100, drawing on \"hundreds of data points from common metrics like [TV] (total volume)\". No general-purpose programming language is named. Holly is a vendor-built signal engine you consume rather than a strategy-authoring tool, and no natural-language strategy authoring appears on their AI pages.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://www.trade-ideas.com/"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "OddsMaker, an event-based backtester launched by right-clicking an alert, with \"zero coding required\". It is Premium-only \u2014 excluded from Basic and Free. Their manual states the constraints plainly: \"Typically, there are 64 days worth of history in the database\"; it \"does not look at any data for the current trading day\"; it runs on \"the open, high, low, and close data of 1-minute candles, not on tick-by-tick data\"; it \"does not backtest in the premarket or postmarket session\"; and it lists \"the first 100 trades per day\".",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://www.trade-ideas.com/guide/chapter/22/22Backtesting_Oddsmaker.html"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "Equities, scanned tick-by-tick across \"the NASDAQ, AMEX, NYSE, OTC, Pink Sheets, Penny Stocks, and Canadian markets\". No official page reviewed names options, futures, forex or crypto as scannable or backtestable instruments, though the homepage does reference routing equities and options orders through a broker integration.",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://www.trade-ideas.com/guide/chapter/2/2Introduction_to_Trade_Ideas.html"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "Paper Trading is included in Basic and Premium but not Free, offering \"Real-Time Market Simulation\" with \"live data feeds, realistic executions, and authentic trade mechanics\". Brokerage Plus adds an in-house real-time simulator. The paper-trading page does not state that strategy rules are frozen once a forward test begins.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://www.trade-ideas.com/"
+    },
+    {
+     "axis": "Public track record",
+     "them": "No public, complete, independently verified performance ledger appears on any official page reviewed. The public \"Holly Records\" page is explicitly curated \u2014 \"real examples of Holly AI's top performing signals\", organized under headings such as \"Holly's Biggest Hits\" \u2014 and carries the disclaimer \"Past performance is not indicative of future results. Trading involves risk.\" No third-party audit or complete win/loss accounting is stated.",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://www.trade-ideas.com/"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes. TradeStation, Interactive Brokers, E*TRADE and Alpaca are direct-connect integrations; Moomoo, Centerpoint Securities and Cobra Trading are listed as Partner Access. Brokerage Plus is \"the Trade Ideas Portfolio Manager... the control center for all your orders and positions\". Automated execution is narrower: \"Our Automated trading feature currently works with Interactive Brokers\", and \"you need a premium subscription to access this feature\".",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://www.trade-ideas.com/"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "Backtest results save to CSV via \"Save Detailed Results\" and a modified CSV can be re-imported \u2014 but \"the saved data only contains the trade data, not the configuration settings. To save the configuration settings, save your Alert Window to the Cloud.\" Scan contents also export to CSV. No official page reviewed describes exporting a strategy definition to a portable file that would run elsewhere.",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://www.trade-ideas.com/guide/chapter/22/22Backtesting_Oddsmaker.html"
+    },
+    {
+     "axis": "Free tier",
+     "them": "A free account gets \"15 minute delayed data on browser based TI Pro Market Dashboards\". In the plan comparison table the Free column's only positive entry is \"Charts on Screen: 1\" \u2014 Paper Trading, customizable scans and screeners, the Formula Editor, Holly, backtesting and auto trading are all excluded. Trade Ideas states: \"We do not give free fully functional trials of our application due to the requirements of the Exchanges regarding live real-time data.\"",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://www.trade-ideas.com/pricing/"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Free",
+     "price": "$0 \u2014 15-minute delayed data on browser-based TI Pro Market Dashboards; 1 chart on screen",
+     "sourceUrl": "https://www.trade-ideas.com/pricing/"
+    },
+    {
+     "tier": "TI Basic",
+     "price": "$127/mo billed monthly, or $1,068/yr billed annually (shown as $89/mo)",
+     "sourceUrl": "https://www.trade-ideas.com/pricing/"
+    },
+    {
+     "tier": "TI Premium",
+     "price": "$254/mo billed monthly, or $2,136/yr billed annually (shown as $178/mo) \u2014 the tier that includes Holly, backtesting and auto trading",
+     "sourceUrl": "https://www.trade-ideas.com/pricing/"
+    },
+    {
+     "tier": "AVWAP, GoNoGo, Weekly Swing Picks add-ons",
+     "price": "Listed on the pricing page with no published price",
+     "sourceUrl": "https://www.trade-ideas.com/pricing/"
+    },
+    {
+     "tier": "Test-Drive promo",
+     "price": "Quarterly event: \"one or two weeks of access to the Premium level functionality... with live data for a small fee\" \u2014 fee not published",
+     "sourceUrl": "https://www.trade-ideas.com/"
+    }
+   ],
+   "honestAdvantages": [
+    "Real-time scanning across every tick on the NASDAQ, AMEX, NYSE, OTC, Pink Sheets and Canadian markets. Chat\u00b7Backtest has no scanner and no real-time data at all \u2014 it only replays closed candles.",
+    "Holly generates entry and exit ideas for you every day, from a scan that rebuilds itself nightly. Nothing here generates ideas; you bring the idea and the lab tests it.",
+    "Broker-connected order entry through Brokerage Plus, and automated execution through Interactive Brokers.",
+    "Intraday charting, alerting, and a platform in continuous operation since 2003 \u2014 a far longer track record as a business than this site has.",
+    "Paper trading against live data feeds, plus an in-house real-time simulator for practising execution mechanics.",
+    "Their backtester runs on 1-minute candles for short-horizon intraday event strategies, a horizon our daily-and-intraday-bar engine is not tuned for."
+   ],
+   "cta": "Trade Ideas answers what is moving right now; this answers whether a rule would have held up, and whether it still does. Their own manual caps OddsMaker at about 64 days of history \u2014 if you want a rule tested over decades and then scored forward on a public record, the first backtest here takes no signup."
+  },
+  {
+   "key": "nexustrade",
+   "name": "NexusTrade",
+   "positioning": "NexusTrade is a no-code, AI-native algorithmic trading platform where users describe a strategy in plain English to an agent called Aurora, or assemble it in a visual condition/action builder, then backtest, optimize, paper trade, and deploy it to a connected brokerage. It also runs a marketplace where users publish, copy and monetize deployed portfolios, and it is not itself a brokerage.",
+   "rows": [
+    {
+     "axis": "What it is",
+     "them": "An AI-native, no-code algorithmic trading platform. Their FAQ is explicit about the boundary: \"Is NexusTrade a brokerage? No. NexusTrade is a strategy-building and automation platform. To trade with real money, you connect your own brokerage account through one of our supported brokerages.\"",
+     "us": "An AI trading-strategy lab: describe a strategy in plain English, get an exact inspectable rule spec, and run it on decades of historical data. No live trading, no broker connections, no order execution \u2014 by design.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Building a strategy",
+     "them": "Plain English to an AI agent called Aurora, in Chat Mode or a fully autonomous Agent Mode that runs a plan/think/act loop with parallel subagents \u2014 or a visual builder where a strategy is exactly one Action plus a boolean Condition tree evaluated as a syntax tree. Their homepage: \"Nothing to install, no formula language, no strategy syntax to learn.\" A REST API, an MCP server and Python/TypeScript SDKs exist for driving the platform.",
+     "us": "Plain English in chat, compiled to an explicit JSON spec you can read field by field, edit in the UI, and export. No scripting language to learn, and no rule hidden behind the model.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Backtesting",
+     "them": "Two modes: OHLC (daily) on all plans, and intraday (minute-by-minute) on paid plans. Reported metrics are total return, Sharpe, Sortino, max drawdown and a benchmark against SPY. Backtests are metered against a daily research-token budget granted at 0 / 1,000 / 3,000 / 6,000 by tier, with daily non-options backtests free and intraday priced at 0.125 tokens per calendar day. Optimizer leaderboards rank by validation performance and show training and validation statistics separately.",
+     "us": "The core of the product. Daily bars for everyone with unlimited runs; 1m\u201360m intraday on Pro and Max. Rules are evaluated on closed candles only.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Markets & data",
+     "them": "All US-listed equities (NYSE, NASDAQ), ETFs including leveraged, and major crypto pairs via supported brokerages. Options data is available for research and analysis, with options trading dependent on the connected brokerage. NexusTrade does not publish how far back its historical data goes for any asset class or timeframe.",
+     "us": "US-listed stocks and ETFs (5,000+ symbols), 10 symbols per run on Free, 100 on Pro, 200 on Max. Daily-bar crypto and the ALL_US universe scan are Max only. No futures, forex, options, or non-US exchanges.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Forward testing",
+     "them": "Paper trading is available on all plans including Free, using real-time market data with simulated execution, and their docs recommend it as the first step: \"Deploy it, let it run for a few weeks, and verify it behaves as expected before going live.\" Aurora's Update Portfolio tool can \"modify strategies... on an existing portfolio\" and visibility can be changed at any time; the documentation does not address whether such edits are restricted, versioned or disclosed once a portfolio has been shared or monetized.",
+     "us": "Deploying freezes the spec and hashes it; the storage layer then rejects any edit to it. A daily worker replays the frozen spec on closed candles, discards anything dated before deployment, and appends. Free includes one public deployment.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Public track record",
+     "them": "Portfolios are private by default with four share modes; public sharing is free, instant and needs no approval, and public cards show total return, Sharpe, Sortino, max drawdown and a performance chart, filterable by Live Trading or Paper Trading. Marketplace bots are labelled \"Forward test \u00b7 paper\" and footed \"Forward-deployed \u00b7 out of sample \u00b7 no capital at risk yet\", ranked by top 1-year out-of-sample returns. A \"Show strategy details\" toggle lets a creator publish performance, positions and trade history while hiding the strategy's conditions.",
+     "us": "A public append-only ledger. Backtest and forward curves sit side by side and are never merged; a revised strategy is a new record starting at zero, and losers stay on the board.",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "axis": "Live trading",
+     "them": "Yes, through four user-connected brokerages \u2014 Alpaca, TradeStation, Tradier and Public \u2014 each supporting paper and live. Orders are staged for review by default behind what they call a universal brokerage guard, though per-strategy automatic approval is available, and NexusTrade notes it \"does not imply a human reviewed an order when that setting is enabled\". \"Fully Automated Algorithmic Trading\" is a feature of the top tier only.",
+     "us": "None. No broker connections, no order execution, no signals or alerts. The exports exist so you can wire that up yourself on tools we do not control.",
+     "sourceUrl": "https://nexustrade.io/institutions"
+    },
+    {
+     "axis": "Export / portability",
+     "them": "Export is API- and institution-oriented: JSON and CSV export surfaces and a portfolio event ledger are described on the institutions page, with read-only SQL against lake.* through the SDKs returning bounded Parquet parts. In-platform, Fork Strategies makes \"an independent copy\" with \"No ongoing connection to the source\". No consumer-facing UI export of a strategy definition to a portable file is documented.",
+     "us": "The full spec as JSON, a runnable Python file that reproduces the run against the open engine, and a Pine Script v6 strategy() for TradingView. Exports are on every plan, including free.",
+     "sourceUrl": "https://nexustrade.io/developers"
+    },
+    {
+     "axis": "Free tier",
+     "them": "Observer, $0, no credit card required: up to 2 portfolios, 10 strategies per portfolio, 20 conditions per strategy, 7 assets per rebalance, 3 watchlists, unlimited daily/OHLC backtests, real-time paper trading, and the GA and Sweep optimizers \u2014 but 0 Aurora research tokens per day, no fundamental indicators, and no ability to monetize. Intraday and options backtesting are absent from the free plan's feature list.",
+     "us": "The first backtest needs no signup. A free account adds unlimited daily-timeframe runs, chat edits, exports, and one public forward-test deployment.",
+     "sourceUrl": "https://nexustrade.io/"
+    }
+   ],
+   "pricingRows": [
+    {
+     "tier": "Observer (Free)",
+     "price": "$0 \u2014 no credit card required",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "tier": "Data-Driven Investor",
+     "price": "$13.99/week, $49.99/month, or $499.99/year",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "tier": "Algorithmic Trader",
+     "price": "$29.99/week, $99.99/month, or $999.99/year",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "tier": "Unstoppable Quant",
+     "price": "$49.99/week, $199.99/month, or $1,999.99/year",
+     "sourceUrl": "https://nexustrade.io/"
+    },
+    {
+     "tier": "Institutions",
+     "price": "Custom \u2014 no published price; inquiry form only",
+     "sourceUrl": "https://nexustrade.io/institutions"
+    },
+    {
+     "tier": "Marketplace portfolio subscriptions",
+     "price": "Creator-set, up to $999/month, paid to the creator via Stripe; NexusTrade retains 20% / 10% / 5% depending on the creator's plan",
+     "sourceUrl": "https://nexustrade.io/"
+    }
+   ],
+   "honestAdvantages": [
+    "Live trading through four connected brokerages (Alpaca, TradeStation, Tradier, Public), with paper and live modes on each. Chat\u00b7Backtest does none of this.",
+    "A creator marketplace with copy-trading and revenue share \u2014 creators keep 80%, 90% or 95% and can charge up to $999/month. You can be paid for a strategy here; you cannot on our site.",
+    "Documented walk-forward studies with a strict train/validation/out-of-sample sequence, two to eight folds, one-time OOS promotion, and both genetic and systematic-sweep optimizers. Our lab has no optimizer at all.",
+    "They publish their own overfitting warning \u2014 \"Both optimizer modes can find strategies with incredible backtested returns that won't hold up in live markets\" \u2014 and rank optimizer leaderboards by validation performance by default.",
+    "An autonomous agent mode that will plan, research, build and iterate on strategies with parallel subagents, plus a REST API, MCP server and Python/TypeScript SDKs.",
+    "Real-time paper trading on the free plan, and options data for research."
+   ],
+   "cta": "NexusTrade's marketplace ranks bots by out-of-sample return, and a creator can publish that number while hiding the strategy's conditions. Here the frozen rules and their hash sit beside the record, and neither can be revised after the fact. Run a backtest without signing up and compare the two."
+  }
+ ],
+ "warnings": [
+  "Do NOT claim Chat\u00b7Backtest is the only product that freezes forward-test rules. TrendSpider's bot creation \"will clone and lock\" the strategy in read-only mode \u2014 confirmed on their own docs. The differentiator is that our frozen record is public, hashed and append-only, not that freezing exists. Any page that implies otherwise is factually wrong and a reader can check it in one click.",
+  "Do NOT assert that any competitor's paper-trading rules ARE editable mid-record. For Composer, TradingView, QuantConnect, Trade Ideas and NexusTrade the only defensible phrasing is \"no freeze is documented\" / \"no locked-rules mechanism appears on the pages reviewed\". Absence of documentation is not evidence of absence.",
+  "Do NOT describe Composer's Symphony Database OOS columns or QuantConnect's \"OOS 3M Sharpe\" as verified, audited, or independently attested track records. Neither vendor publishes a definition of what sets the out-of-sample start date or whether the strategy version is pinned from that date. Report the columns exist; do not characterize what they prove.",
+  "Do NOT call our own ledger \"audited\", \"independently verified\", \"third-party attested\", or \"cryptographically notarized\". It is our own append-only database with a spec hash. The honest claim is append-only, frozen at deploy, and public \u2014 nothing stronger.",
+  "Do NOT publish TradingView month-to-month prices ($14.95 / $34.95 / $69.95 / $239.95). Those are arithmetic inferences from the \"Save $X a year\" labels, not sourced figures. Publish annual-billing figures only, with an as-of date, and note the page brands them \"Special price\".",
+  "Do NOT label TrendSpider's $54 / $91 / $122 / $214 as annual pricing and $82 / $137 / $183 / $321 as monthly. TrendSpider does not publish which term maps to which end. The only defensible wording is \"X to Y per month, depending on billing term\".",
+  "Do NOT publish Composer's $40/mo month-to-month Trading Pass price. It did not render on the live pricing page; it comes from a help-center article about a promotion that expired. Publish only \"$32/mo. Billed annually ($384/yr.)\".",
+  "Do NOT quote QuantConnect's Team, Trading Firm or Institution pack prices without the per-user framing and seat minimum. The real entry prices are $336/mo (Team, 2 seats), $960/mo (Trading Firm, 2 seats) and $6,360/mo (Institution, 5 seats). Publishing $480/mo for Trading Firm is wrong.",
+  "Do NOT flatly assert TrendSpider cannot backtest options. Their help center says \"You can not backtest indices or options data\" while their marketing page implies a broader asset set. Publish the help-center quote with the citation and let it stand as their words, not ours.",
+  "Do NOT state any figure for NexusTrade's backtest history depth. They publish none, anywhere. The only honest row is \"NexusTrade does not publish how far back its historical data goes\".",
+  "Do NOT infer \"US-only\" or \"no international markets\" for Composer or TrendSpider from absence of evidence. Neither vendor states a limit; we simply did not find one.",
+  "Do NOT restate vendor marketing metrics as fact. QuantConnect's 526,000 members / 300+ hedge funds / \"Mia generates working code in 75% of test cases\", NexusTrade's user and backtest counts and the founder's $25,000 challenge figures, TradingView's user counts, TrendSpider's \"80% of active investors\" \u2014 attribute explicitly to the vendor or omit.",
+  "Do NOT describe Trade Ideas' OddsMaker as having unlimited or deep history. Their user guide says \"Typically, there are 64 days worth of history in the database\"; the phrase \"Unlimited Backtesting\" appears only in a Test-Drive promo article and cannot be reconciled. Cite the 64-day figure to the guide.",
+  "Do NOT say TradingView has no AI strategy builder as a bare claim. Say none is advertised on their official pages, and note their AI article is cautionary rather than a product announcement.",
+  "Do NOT claim Composer free users cannot trade. The free-tier trading boundary is not spelled out in one authoritative place, and Direct Trading is documented as not requiring the Trading Pass.",
+  "Do NOT describe QuantConnect's Alpha Streams as live or as discontinued. Its docs 404 and no official retirement notice was found. Leave it out entirely.",
+  "Do NOT overstate our own free tier. Free is daily-timeframe only, 10 symbols per run, 12 of 14 templates, one public deployment, no intraday, no crypto, no ALL_US universe, no private deployments. Crypto and ALL_US are Max-only, not Pro.",
+  "Do NOT claim we beat anyone on markets, data depth, or resolution. We lose the Markets & data row to every product on this list. Leaving that row visibly lost is what makes the rest of the table credible.",
+  "Do NOT state a specific earliest data year for our engine without verifying it against the live data cache. The docs say the default daily window starts January 2016; \"about two decades of history\" is the outer claim and should not be sharpened into a start date on a public page.",
+  "Do NOT ship any sourceUrl without opening it first. Several deep links in this frame were reconstructed rather than read \u2014 specifically Composer's Symphony Database path, the TrendSpider bot-lock and strategy-sharing KB articles, the Trade Ideas pricing path, and the NexusTrade docs paths. A dead citation on a page whose entire pitch is \"we show our work\" is worse than no citation; downgrade any unverifiable link to the vendor's canonical page or drop the claim.",
+  "Compliance: no row, CTA or heading may recommend buying or selling anything, predict a price, imply profit, or present a ledger record as evidence a strategy will keep working. Every page keeps the standard disclaimer, and the ledger copy must stay descriptive of mechanism, not outcome.",
+  "Banned vocabulary and patterns still apply on these pages: no \"edge\", \"autopilot\" or \"execute\"; no countdown timers, no fake urgency, no cherry-picked hero stats, no testimonial walls implying profit. Note that \"execute\" appears inside several verbatim competitor quotes \u2014 that is acceptable as a quotation but must never appear in our own voice.",
+  "Register check before publishing: every competitor row should read as something their own marketing team would recognize as accurate. If a sentence would embarrass us in a screenshot next to their site, rewrite it. \"Differences, not disparagement\" is the standard."
+ ]
+}

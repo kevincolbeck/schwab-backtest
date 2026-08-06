@@ -23,11 +23,39 @@ HEADLINE_KEYS = [
     "total_trades", "win_rate", "profit_factor",
 ]
 
+# Section 4's strategy pages render a real equity curve, so persist one here
+# rather than re-running a 30s backtest per page view. Kept in its own file
+# (_curves.json) so the /templates payload the gallery fetches stays lean.
+CURVE_POINTS = 180  # plenty for a sparkline-scale chart; ~10y daily is ~2500
+
+
+def _downsample(curve, target=CURVE_POINTS):
+    """Even-stride downsample that ALWAYS keeps the first and last point, and
+    keeps the deepest drawdown. Losing the trough would flatter the chart —
+    the one distortion this codebase must never introduce."""
+    if len(curve) <= target:
+        keep = list(range(len(curve)))
+    else:
+        stride = (len(curve) - 1) / (target - 1)
+        keep = sorted({int(round(i * stride)) for i in range(target)})
+        keep = [min(i, len(curve) - 1) for i in keep]
+        worst = max(range(len(curve)), key=lambda i: curve[i].get("drawdown_pct") or 0)
+        keep = sorted(set(keep) | {0, len(curve) - 1, worst})
+    return [
+        {
+            "d": curve[i]["date"],
+            "e": curve[i]["equity"],
+            "dd": curve[i].get("drawdown_pct"),
+        }
+        for i in keep
+    ]
+
 
 def main():
     end_date = sys.argv[1] if len(sys.argv) > 1 else datetime.now().strftime("%Y-%m-%d")
     templates_dir = REPO / "templates"
     out = {}
+    curves = {}
     failures = []
 
     for path in sorted(templates_dir.glob("*.json")):
@@ -55,6 +83,15 @@ def main():
 
         stats = serialized["stats"]
         headline = {k: stats.get(k) for k in HEADLINE_KEYS}
+        curve = serialized.get("equity_curve") or []
+        if curve:
+            curves[path.stem] = {
+                "points": _downsample(curve),
+                "start_date": start_date,
+                "end_date": end_date,
+                "timeframe": timeframe,
+                "raw_points": len(curve),
+            }
         out[path.stem] = {
             "stats": headline,
             "start_date": start_date,
@@ -72,7 +109,11 @@ def main():
     (templates_dir / "_stats.json").write_text(
         json.dumps(out, indent=2, sort_keys=True), encoding="utf-8"
     )
+    (templates_dir / "_curves.json").write_text(
+        json.dumps(curves, sort_keys=True), encoding="utf-8"
+    )
     print(f"\nwrote templates/_stats.json ({len(out)} templates)")
+    print(f"wrote templates/_curves.json ({len(curves)} curves)")
     if failures:
         print("FAILURES:", failures)
         sys.exit(1)

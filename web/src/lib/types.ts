@@ -112,6 +112,10 @@ export interface CachedTemplateStats {
   stats: Record<string, number | null>;
   start_date: string;
   end_date: string;
+  /** "1d" | "15m" | … — the bar size the cached run used. Load-bearing on the
+   *  strategy pages: an annualized figure off a ~45-day intraday window is
+   *  arithmetic, not information, so CAGR is suppressed when this isn't 1d. */
+  timeframe?: string;
   elapsed_seconds?: number;
 }
 

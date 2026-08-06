@@ -102,13 +102,25 @@ export default async function TemplateStatsBlock({ templateId }: { templateId: s
         Historical simulation with a slippage assumption; not financial advice;
         past performance does not predict future results.
       </p>
-      <Link href={labHref} className="focus-ring mt-3 inline-block rounded-(--radius-tag) text-sm text-accent hover:underline">
-        {template.spec.backtest_timeframe && template.spec.backtest_timeframe !== "1d"
-          ? // Intraday runs need an account and draw on its allowance — the
-            // "free, no signup" promise is only true for daily templates.
-            "Open this strategy in the lab →"
-          : "Run this backtest yourself in the lab — free, no signup →"}
-      </Link>
+      <div className="mt-3 flex flex-col gap-1.5">
+        <Link href={labHref} className="focus-ring inline-block rounded-(--radius-tag) text-sm text-accent hover:underline">
+          {template.spec.backtest_timeframe && template.spec.backtest_timeframe !== "1d"
+            ? // Intraday runs need an account and draw on its allowance — the
+              // "free, no signup" promise is only true for daily templates.
+              "Open this strategy in the lab →"
+            : "Run this backtest yourself in the lab — free, no signup →"}
+        </Link>
+        {/* Section 4 page for the same template: the full rule set, equity
+            curve and forward record. Contextual internal link, which is the
+            kind that actually carries weight. */}
+        <Link
+          href={`/backtest/${encodeURIComponent(templateId)}`}
+          className="focus-ring inline-block rounded-(--radius-tag) text-sm text-muted hover:text-ink"
+        >
+          Full {template.meta.display_name} backtest: rules, equity curve and
+          forward record →
+        </Link>
+      </div>
     </aside>
   );
 }

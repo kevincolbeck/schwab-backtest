@@ -187,6 +187,16 @@ export default async function LibraryPage({
                           // (not the backlink anchor) absorbs the slack.
                           <div key={t.id} className="flex flex-col gap-2 [&>a.card]:flex-1">
                             <TemplateCard template={t} />
+                            {/* Section 4 deep-dive: rules, equity curve,
+                                interpretation and forward record. Every
+                                template has one, so this link is
+                                unconditional — unlike the article backlink. */}
+                            <Link
+                              href={`/backtest/${t.id}`}
+                              className="focus-ring self-start rounded-(--radius-tag) px-1 text-caption text-muted hover:text-accent"
+                            >
+                              Full backtest & rules →
+                            </Link>
                             {article && (
                               <Link
                                 href={`/blog/${article.slug}`}

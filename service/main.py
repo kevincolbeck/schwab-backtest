@@ -26,6 +26,7 @@ import json
 import logging
 import math
 import os
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import List, Optional
@@ -52,6 +53,10 @@ MAX_SYMBOLS_PER_RUN = int(os.getenv("MAX_SYMBOLS_PER_RUN", "200"))
 # there is no "billed class" needing a tighter backstop during a credits
 # outage — every run is metered by its plan's quiet fair-use cap.
 TEMPLATES_DIR = Path(os.getenv("TEMPLATES_DIR", Path(__file__).resolve().parent.parent / "templates"))
+
+# Template ids are filename stems. Anything outside this shape is a path
+# traversal attempt, not a typo — reject before it reaches the filesystem.
+_TEMPLATE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 ALLOWED_ORIGINS = [o for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o]
 # Shared secret the Next proxy sends so the service can trust its client-IP
 # assertion (P0-3 anon rate limiting). Unset locally — the socket peer is right.
@@ -1254,6 +1259,31 @@ def markets_day(date: str, kind: str = "earnings"):
 def markets_news():
     """General market headlines (10 min cache). Degrades to configured=false."""
     return {**markets.market_news(), "disclaimer": DISCLAIMER}
+
+
+@app.get("/templates/{template_id}/curve")
+def template_curve(template_id: str):
+    """Pre-computed backtest equity curve for a template (Section 4 pages).
+
+    Served separately from /templates so the gallery's payload stays lean —
+    the curves file is ~130KB across all 14. Built by
+    scripts/build_template_stats.py, which downsamples to ~180 points while
+    always keeping the first, last, and DEEPEST-DRAWDOWN points, so the chart
+    can never flatter the record by dropping its trough."""
+    if not _TEMPLATE_ID_RE.match(template_id or ""):
+        raise HTTPException(status_code=404, detail="not found")
+    path = TEMPLATES_DIR / "_curves.json"
+    if not path.exists():
+        return {"id": template_id, "found": False, "points": []}
+    try:
+        curves = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        logger.warning("unreadable template curves cache", exc_info=True)
+        return {"id": template_id, "found": False, "points": []}
+    entry = curves.get(template_id)
+    if not entry:
+        return {"id": template_id, "found": False, "points": []}
+    return {"id": template_id, "found": True, **entry}
 
 
 @app.get("/stocks")
