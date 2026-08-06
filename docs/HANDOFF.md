@@ -257,11 +257,24 @@ farming. Revisit if `REFERRAL_MAX_BONUS` rises or a slot ever gets expensive.
 
 **OUTSTANDING (small, owner):**
 1. Run `supabase/CLEANUP_probe_row.sql` — I left a `spec_hash='probe'` row in
-   production `forward_returns` while testing the append-only trigger. Needs a
-   one-off trigger disable, which is deliberately awkward.
-2. **Rotate `RESEND_API_KEY`** — pasted in chat days ago, still not rotated.
-3. Keyboard-only pass through the run-a-backtest flow (last open Section 7
-   item; see docs/A11Y.md).
+   production `forward_returns` while testing the append-only trigger.
+2. **`RESEND_API_KEY` is NOT rotated — deliberate owner decision 2026-08-06**
+   ("not worth it yet, I have no customers"). The key was pasted in chat and
+   can send from the verified chatbacktest.com domain. Revisit before P1-4 or
+   before any real user volume; reputation damage to a verified sending domain
+   is slow to undo.
+3. Keyboard-only pass: owner considers it fine; NOT formally run. Left
+   unverified rather than marked passing — see docs/A11Y.md.
+
+**Referral card confirmed working on prod 2026-08-06.**
+
+**KNOWN BUG, not yet fixed:** "Fork this strategy" renders on ZERO records.
+`web/src/app/strategy/[slug]/page.tsx:156` gates the button on
+`data.source_run_id`, and `seed_house_templates` creates deployments without
+one (there was no run — specs came from JSON). Every record on the board is
+house-seeded, so the only bridge from the leaderboard back into the lab is
+missing everywhere. The frozen spec IS already in the payload, so the robust
+fix is to fall back to it rather than backfilling run ids.
 
 ## NEXT UP (in spec order)
 
