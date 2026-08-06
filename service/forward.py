@@ -18,8 +18,12 @@ ledger. Paper equity is the replay's equity curve from the deployment date,
 rebased to the paper starting capital (one snapshot per day; intraday curves
 collapse to each day's last bar).
 
-Storage: SQLite at SERVICE_DATA_DIR/forward.db, schema mirroring
-supabase/migrations/0002_forward_ledger.sql (production mirrors rows there).
+Storage: SQLite at SERVICE_DATA_DIR/forward.db. This file is the ONLY store
+that holds ledger rows. supabase/migrations/0002_forward_ledger.sql defines a
+matching Postgres schema as the eventual mirror TARGET, but nothing writes it
+today — those tables are defined and empty. Said plainly because a comment
+claiming a replica that does not exist is exactly the wrong inaccuracy on a
+product that sells verifiable records.
 """
 
 import hashlib
@@ -111,9 +115,81 @@ def _connect() -> sqlite3.Connection:
         CREATE TRIGGER IF NOT EXISTS deployments_spec_immutable
             BEFORE UPDATE OF spec_frozen, spec_hash, deployed_at ON deployments
             BEGIN SELECT RAISE(ABORT, 'deployed specs are immutable'); END;
+
+        -- Section 9: "store daily forward returns as immutable rows keyed by
+        -- (strategy_hash, date) so records can be independently audited later".
+        --
+        -- Deliberately SEPARATE from forward_equity, which is keyed by
+        -- deployment_id and holds an equity level. An auditor does not have
+        -- our internal ids; they have the frozen spec, and they can hash it.
+        -- Keying on the spec hash is what makes a record checkable by someone
+        -- who does not trust us — which is the entire point of the ledger.
+        --
+        -- record_kind is a CHECK, not a comment: every row here states that it
+        -- is a SIMULATED result. No order was placed, no broker was contacted,
+        -- nothing was executed (Section 9's ledger-event/trade-executed
+        -- boundary, enforced by the schema rather than asserted in prose).
+        CREATE TABLE IF NOT EXISTS forward_returns (
+            spec_hash TEXT NOT NULL,
+            date TEXT NOT NULL,
+            record_kind TEXT NOT NULL DEFAULT 'simulated_forward_return'
+                CHECK (record_kind = 'simulated_forward_return'),
+            daily_return_pct REAL NOT NULL,
+            cumulative_return_pct REAL NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (spec_hash, date)
+        );
+        CREATE TRIGGER IF NOT EXISTS forward_returns_no_update
+            BEFORE UPDATE ON forward_returns
+            BEGIN SELECT RAISE(ABORT, 'forward_returns is append-only'); END;
+        CREATE TRIGGER IF NOT EXISTS forward_returns_no_delete
+            BEFORE DELETE ON forward_returns
+            BEGIN SELECT RAISE(ABORT, 'forward_returns is append-only'); END;
         """
     )
+    _ensure_columns(conn)
     return conn
+
+
+# Section 9 groundwork columns: shipped nullable and UNUSED, so a Phase 2
+# feature does not need a migration against a live ledger later.
+#
+# This helper exists because CREATE TABLE IF NOT EXISTS is a no-op against an
+# existing database — the production forward.db already has `deployments`, so
+# every column added above this line would silently never appear there, and
+# the first read of one would raise "no such column". There was no migration
+# path in this module at all before Section 9 needed one.
+_ADDED_COLUMNS: dict[str, list[tuple[str, str]]] = {
+    "deployments": [
+        # Present in supabase/migrations/0002_forward_ledger.sql since day one
+        # but never in SQLite — a real divergence from the schema this store
+        # claims to mirror, closed here now that a migration path exists.
+        ("archived_reason", "TEXT"),
+        ("replaced_by", "TEXT"),
+        # Who AUTHORED the strategy, as distinct from `owner` (who deployed
+        # this record). They are the same today; they diverge the moment a
+        # strategy can be forked, which is what Phase 2 contemplates.
+        ("creator_id", "TEXT"),
+        # Phase 2 only, and deliberately inert. The spec gates any
+        # follower-payment feature on a securities-attorney review that has
+        # not happened, so nothing reads or writes these.
+        ("follower_count", "INTEGER NOT NULL DEFAULT 0"),
+        ("subscription_price", "REAL"),
+        ("terms", "TEXT"),
+    ],
+}
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    """Idempotently ALTER TABLE in the columns a fresh CREATE would have."""
+    for table, columns in _ADDED_COLUMNS.items():
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        for name, decl in columns:
+            if name in existing:
+                continue
+            # SQLite allows ADD COLUMN with a non-null default; it back-fills.
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+    conn.commit()
 
 
 def _now() -> str:
@@ -419,6 +495,8 @@ def process_deployment(deployment: dict, as_of: str, intraday_cache: Optional[di
                 (deployment["id"],),
             ).fetchall()
             open_positions = open_positions_from_signals([dict(r) for r in signals_now])
+            base = float(deployment["starting_capital"]) or DEFAULT_STARTING_CAPITAL
+            prev_equity = base
             for snap_date, equity in snapshots:
                 if snap_date > as_of:
                     continue
@@ -428,6 +506,20 @@ def process_deployment(deployment: dict, as_of: str, intraday_cache: Optional[di
                     (deployment["id"], snap_date, equity,
                      json.dumps(open_positions if snap_date == snapshots[-1][0] else [])),
                 )
+                # Section 9's audit row: same fact, keyed by the SPEC HASH so
+                # someone who does not have our internal ids — and does not
+                # trust us — can still check it against the frozen spec.
+                # INSERT OR IGNORE, not REPLACE: the table is append-only and
+                # a re-run of the same day must be a no-op, not a rewrite.
+                daily = ((equity - prev_equity) / prev_equity * 100.0) if prev_equity else 0.0
+                cumulative = ((equity - base) / base * 100.0) if base else 0.0
+                conn.execute(
+                    "INSERT OR IGNORE INTO forward_returns"
+                    " (spec_hash, date, daily_return_pct, cumulative_return_pct, recorded_at)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (deployment["spec_hash"], snap_date, daily, cumulative, _now()),
+                )
+                prev_equity = equity
             conn.commit()
         finally:
             conn.close()

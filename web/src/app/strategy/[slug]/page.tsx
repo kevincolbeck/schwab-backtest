@@ -140,8 +140,9 @@ export default async function StrategyPage({
                 )}
               </div>
               <p className="mt-3 max-w-2xl text-caption leading-relaxed text-muted">
-                <span className="font-medium text-ink">Execution model</span> ·{" "}
-                {data.execution_model}
+                <span className="font-medium text-ink">How this record is produced</span>{" "}
+                ·{" "}
+                {data.ledger_method ?? data.execution_model}
               </p>
             </div>
             <div className="flex items-center gap-2">

@@ -1131,14 +1131,14 @@ def strategy_page(slug: str):
     owner_identity = identity.resolve(dep["owner"]) or {}
     dep_timeframe = forward.deployment_timeframe(dep)
     if dep_timeframe == "1d":
-        execution_model = (
+        ledger_method = (
             "Paper trading on end-of-day data: signals are evaluated on the daily "
             "close and filled per the strategy's entry price field with the same "
             "slippage assumption as backtests. The deployed spec is frozen "
             "(hash-verified); the ledger is append-only."
         )
     else:
-        execution_model = (
+        ledger_method = (
             f"Paper trading on {dep_timeframe} closed candles, evaluated after the "
             "fact by the daily worker (not live or streaming): signals are evaluated "
             "on closed bars and filled per the strategy's entry price field with the "
@@ -1155,7 +1155,12 @@ def strategy_page(slug: str):
         "signals": forward.get_signals(dep["id"]),
         "equity": forward.get_equity_series(dep["id"]),
         "summary": forward.forward_summary(dep),
-        "execution_model": execution_model,
+        # Renamed from "execution_model" (Section 9: ledger event recorded is
+        # NOT trade executed — nothing is executed on this platform). Both keys
+        # ship for one release because Railway and Vercel deploy independently;
+        # drop the alias once the web side is live.
+        "ledger_method": ledger_method,
+        "execution_model": ledger_method,  # deprecated alias
         "disclaimer": DISCLAIMER,
     }
 

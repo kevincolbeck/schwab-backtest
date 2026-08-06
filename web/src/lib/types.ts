@@ -211,6 +211,10 @@ export interface StrategyPagePayload {
   signals: ForwardSignal[];
   equity: ForwardEquityPoint[];
   summary: ForwardSummary;
-  execution_model: string;
+  /** How the record is PRODUCED — deliberately not called an "execution
+   *  model": nothing is executed on this platform (Section 9 boundary). */
+  ledger_method?: string;
+  /** @deprecated alias the service still emits during the deploy-skew window. */
+  execution_model?: string;
   disclaimer: string;
 }

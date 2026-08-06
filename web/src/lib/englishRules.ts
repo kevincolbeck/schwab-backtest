@@ -120,7 +120,7 @@ export function englishRules(spec: Spec): EnglishRules {
   if (entryRule) entry.push(`Go long when ${humanizeExpression(entryRule)}.`);
   if (spec.entry_rule_short) entry.push(`Go short when ${humanizeExpression(spec.entry_rule_short)}.`);
   if (spec.entry_price_field && spec.entry_price_field !== "close") {
-    entry.push(`Fills happen at the ${spec.entry_price_field} price of the signal bar.`);
+    entry.push(`Simulated fills happen at the ${spec.entry_price_field} price of the signal bar.`);
   }
 
   const exits: string[] = [];
