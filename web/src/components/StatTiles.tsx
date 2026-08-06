@@ -1,5 +1,3 @@
-"use client";
-
 import type { Stats } from "@/lib/types";
 import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 
@@ -127,14 +125,13 @@ export default function StatTiles({
           >
             <div className="flex items-center gap-1 text-caption uppercase tracking-wide text-muted">
               {tile.label}
-              <button
-                type="button"
-                className="focus-ring cursor-help rounded-(--radius-pill) text-muted hover:text-ink"
+              <abbr
+                className="cursor-help no-underline"
                 aria-label={`${tile.label}: ${tile.hint}`}
                 title={tile.hint}
               >
                 ⓘ
-              </button>
+              </abbr>
             </div>
             <div className="mt-1 flex items-baseline justify-between gap-2">
               <span className="tnum text-lg">{tile.fmt(value as number | null)}</span>

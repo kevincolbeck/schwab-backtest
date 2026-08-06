@@ -110,7 +110,7 @@ export default function AuthModalProvider({ children }: { children: ReactNode })
               onKeyDown={(e) => e.key === "Enter" && sendLink()}
               placeholder="you@example.com"
               aria-label="Email address"
-              className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel-2 px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
+              className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel-2 tap-target px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
             />
             <Button className="w-full" onClick={sendLink} disabled={busy || !email.trim()}>
               {busy ? "Sending…" : "Email me a sign-in link"}

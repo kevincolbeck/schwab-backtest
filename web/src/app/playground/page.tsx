@@ -809,7 +809,7 @@ function PlaygroundInner() {
             }
             disabled={busy}
             aria-label="Strategy template"
-            className="focus-ring rounded-(--radius-control) border border-hairline bg-panel px-2.5 py-1.5 text-sm md:hidden"
+            className="focus-ring rounded-(--radius-control) border border-hairline bg-panel tap-target px-2.5 py-1.5 text-sm md:hidden"
           >
             {templateId === "" && !scratchMode && <option value="">Loaded run</option>}
             {templates.map((t) => (
@@ -1104,7 +1104,7 @@ function PlaygroundInner() {
                             key={sym}
                             onClick={() => setChartSymbol(sym)}
                             aria-pressed={sym === activeChartSymbol}
-                            className={`focus-ring tnum rounded-(--radius-pill) border px-3 py-1 text-xs transition-colors duration-(--dur-micro) ${
+                            className={`focus-ring tnum rounded-(--radius-pill) border tap-target inline-flex items-center px-3 py-1 text-xs transition-colors duration-(--dur-micro) ${
                               sym === activeChartSymbol
                                 ? "border-accent bg-accent-soft text-ink"
                                 : "border-hairline text-muted hover:text-ink"

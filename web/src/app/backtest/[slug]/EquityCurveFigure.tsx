@@ -55,7 +55,12 @@ export default function EquityCurveFigure({
     <figure className="mt-4">
       <div className="h-64 w-full" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
+          <AreaChart
+              data={data}
+              margin={{ top: 6, right: 6, bottom: 0, left: 0 }}
+              tabIndex={-1}
+              role="presentation"
+            >
             <defs>
               <linearGradient id="eqfill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={tokens.accent} stopOpacity={0.28} />
@@ -79,9 +84,9 @@ export default function EquityCurveFigure({
             />
             <Tooltip
               contentStyle={{
-                background: "var(--surface-1)",
+                background: "var(--bg-2)",
                 border: `1px solid ${tokens.hairline}`,
-                borderRadius: 8,
+                borderRadius: "var(--radius-tag)",
                 fontSize: 12,
               }}
               formatter={(v) => fmtMoneyCompact(Number(v ?? 0))}
@@ -108,7 +113,7 @@ export default function EquityCurveFigure({
       </figcaption>
 
       <details className="mt-3">
-        <summary className="focus-ring cursor-pointer text-caption text-muted hover:text-ink">
+        <summary className="focus-ring inline-flex min-h-11 cursor-pointer items-center text-caption text-muted hover:text-ink">
           Read the curve as a table
         </summary>
         <div className="mt-3 overflow-x-auto">

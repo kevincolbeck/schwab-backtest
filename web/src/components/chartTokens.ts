@@ -24,8 +24,8 @@ export interface ChartTokens {
 const FALLBACK: ChartTokens = {
   accent: "#4da2ff",
   prev: "#37b7ce",
-  gain: "#089981",
-  loss: "#f23645",
+  gain: "#0aa88e",
+  loss: "#f4505d",
   hairline: "rgba(148, 163, 184, 0.1)",
   muted: "#98a2b3",
   mono: "ui-monospace, monospace",

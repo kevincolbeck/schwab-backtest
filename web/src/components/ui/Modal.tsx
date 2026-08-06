@@ -92,7 +92,7 @@ export default function Modal({
         <button
           onClick={() => onCloseRef.current()}
           aria-label="Close"
-          className="focus-ring absolute right-4 top-4 rounded-(--radius-tag) p-1 text-muted hover:text-ink"
+          className="focus-ring tap-target absolute right-4 top-4 inline-flex items-center justify-center rounded-(--radius-tag) p-1 text-muted hover:text-ink"
         >
           ✕
         </button>

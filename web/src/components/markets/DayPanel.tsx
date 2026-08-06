@@ -271,7 +271,7 @@ export default function DayPanel({
           <button
             onClick={() => onCloseRef.current()}
             aria-label="Close"
-            className="focus-ring rounded-(--radius-tag) p-1 text-muted hover:text-ink"
+            className="focus-ring rounded-(--radius-tag) tap-target inline-flex items-center justify-center p-1 text-muted hover:text-ink"
           >
             ✕
           </button>

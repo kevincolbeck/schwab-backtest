@@ -120,10 +120,33 @@ export default function EquityChart({
   const ticks = yearTicks(data);
   const hasPrev = Boolean(prevCurve?.length);
 
+  // Text alternative for the whole figure. This is the most important graphic
+  // in the product and it had none: a screen-reader user reached the end of a
+  // backtest and got nothing at all. Summarised rather than tabulated —
+  // hundreds of daily points is not a usable table, and start/end/peak/trough
+  // is what a sighted user actually takes from the shape.
+  const points = data.filter((p) => p.equity !== null);
+  const firstPt = points[0];
+  const lastPt = points[points.length - 1];
+  const deepest = points.reduce(
+    (acc, p) => ((p.drawdown ?? 0) < (acc?.drawdown ?? 0) ? p : acc),
+    points[0],
+  );
+  const change =
+    firstPt && lastPt && firstPt.equity
+      ? ((lastPt.equity! - firstPt.equity) / firstPt.equity) * 100
+      : null;
+
   return (
-    <div>
+    <figure className="m-0">
+      <div aria-hidden="true">
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <LineChart
+          data={data}
+          margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+          tabIndex={-1}
+          role="presentation"
+        >
           <CartesianGrid stroke={T.hairline} vertical={false} />
           <XAxis
             dataKey="date"
@@ -184,7 +207,12 @@ export default function EquityChart({
       <div className="mt-1">
         <div className="mb-0.5 pl-1 text-caption text-muted">Drawdown</div>
         <ResponsiveContainer width="100%" height={72}>
-          <AreaChart data={data} margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
+            tabIndex={-1}
+            role="presentation"
+          >
             <XAxis dataKey="date" hide />
             <YAxis
               tickFormatter={(v: number) => `${v.toFixed(0)}%`}
@@ -216,6 +244,18 @@ export default function EquityChart({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+      </div>
+      {firstPt && lastPt ? (
+        <figcaption className="sr-only">
+          Equity curve{hasPrev ? ", with the previous run overlaid" : ""}. Starts
+          at {fmtMoneyCompact(firstPt.equity)} on {firstPt.date} and ends at{" "}
+          {fmtMoneyCompact(lastPt.equity)} on {lastPt.date}
+          {change === null ? "" : `, a change of ${fmtPct(change)}`}. The deepest
+          drawdown reaches {fmtPct(Math.abs(deepest?.drawdown ?? 0))} on{" "}
+          {deepest?.date}. The Trades tab lists every trade in this run as a
+          table.
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }

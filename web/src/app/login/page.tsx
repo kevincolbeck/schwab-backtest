@@ -122,7 +122,7 @@ function LoginInner() {
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="you@example.com"
             aria-label="Email address"
-            className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
+            className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel tap-target px-3 py-2.5 text-sm placeholder:text-faint focus:border-accent"
           />
           <Button className="w-full" onClick={send} disabled={busy || !email.trim()}>
             {busy ? "Sending…" : "Email me a sign-in link"}

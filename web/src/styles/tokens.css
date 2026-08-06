@@ -30,11 +30,15 @@
   --hairline-strong: rgba(148, 163, 184, 0.22); /* focus/emphasis border */
 
   /* ── Text tiers (brief: ~92 / ~60 / ~38% white) ─────────────────────────
-     faint is tuned to ~42% so legacy content on it keeps ≥4:1 until Phase 3
-     reassigns real content up-tier; treat faint as marks/meta only.      */
+     EVERY text token here clears WCAG AA (4.5:1) against EVERY bg-* surface,
+     in BOTH themes — contrast.test.ts recomputes this from these values and
+     fails the build otherwise, so a "just slightly dimmer" tweak can't
+     silently drop the site below AA. faint was previously ~4.1:1 and used
+     for real content (captions, timestamps, legal); Section 7's checklist
+     asked for that audit and it did not pass. */
   --ink: #e9edf4; /* primary — headings, body, numbers */
   --muted: #98a2b3; /* secondary — labels, subcopy (7.4:1 on bg-0) */
-  --faint: #6b7585; /* tertiary — timestamps, hashes, legal (4.1:1) */
+  --faint: #828d9e; /* tertiary — timestamps, hashes, legal (4.8:1 on bg-3) */
 
   /* ── Brand accent — ice blue. ONE accent, extreme restraint ─────────────
      Appears ONLY on: primary CTAs, active/selected states, links, focus
@@ -54,10 +58,10 @@
      leaning green keeps the pair CVD-distinguishable). P&L, deltas, and
      candle valence ONLY. warn: cold amber for cautions/callouts — never
      on charts, so it cannot be read as P&L.                              */
-  --gain: #089981;
-  --loss: #f23645;
-  --gain-soft: rgba(8, 153, 129, 0.12);
-  --loss-soft: rgba(242, 54, 69, 0.1);
+  --gain: #0aa88e;
+  --loss: #f4505d;
+  --gain-soft: rgba(10, 168, 142, 0.12);
+  --loss-soft: rgba(244, 80, 93, 0.1);
   --warn: #e2a33d;
   --warn-soft: rgba(226, 163, 61, 0.12);
 
@@ -204,21 +208,21 @@
 
   --ink: #10151f;
   --muted: #545e6e;
-  --faint: #6a7488; /* AA on light surfaces */
+  --faint: #5c6678; /* AA on ALL light surfaces incl. bg-3 (4.9:1) */
 
-  --accent: #1670d6; /* darkened for 4.8:1 on white */
+  --accent: #1466c4; /* AA on every light surface, not just white (4.7:1 on bg-3) */
   --accent-hover: #1160b8; /* hover = darker on light */
-  --accent-soft: rgba(22, 112, 214, 0.1);
-  --accent-glow: rgba(22, 112, 214, 0.25);
+  --accent-soft: rgba(20, 102, 196, 0.1);
+  --accent-glow: rgba(20, 102, 196, 0.25);
   --accent-2: #0b93ac;
 
-  --gain: #067a67; /* AA-adjusted */
-  --loss: #d1202f;
-  --gain-soft: rgba(6, 122, 103, 0.1);
-  --loss-soft: rgba(209, 32, 47, 0.09);
-  --warn: #9a6a10;
-  --warn-soft: rgba(154, 106, 16, 0.1);
-  --prev-run: #0e7e93;
+  --gain: #06705f; /* AA on every light surface */
+  --loss: #c41d2b;
+  --gain-soft: rgba(6, 112, 95, 0.1);
+  --loss-soft: rgba(196, 29, 43, 0.09);
+  --warn: #8c600e;
+  --warn-soft: rgba(140, 96, 14, 0.1);
+  --prev-run: #0c7285;
 
   /* Categorical chart ramp — darkened for ≥3:1 on white card surfaces. */
   --chart-1: #7c3aed;

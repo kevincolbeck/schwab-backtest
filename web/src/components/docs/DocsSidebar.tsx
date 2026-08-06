@@ -64,7 +64,7 @@ export default function DocsSidebar() {
             )?.href ?? "/docs"
           }
           onChange={(e) => router.push(e.target.value)}
-          className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel px-3 py-2 text-sm text-ink"
+          className="focus-ring w-full rounded-(--radius-control) border border-hairline bg-panel tap-target px-3 py-2 text-sm text-ink"
         >
           {DOCS_SECTIONS.map((section) => (
             <optgroup key={section.title} label={section.title}>

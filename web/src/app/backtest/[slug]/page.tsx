@@ -6,7 +6,7 @@ import SectionShell from "@/components/SectionShell";
 import Card from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { DISCLAIMER } from "@/lib/constants";
-import { fmtPct, fmtSignedPct } from "@/lib/format";
+import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { plainRules } from "@/lib/plainRules";
 import { postForTemplate } from "@/lib/blog";
 import { pageMetadata } from "@/lib/seo";
@@ -100,8 +100,12 @@ function Stat({
         className={`tnum mt-0.5 text-xl font-medium ${negative ? "text-loss" : "text-ink"}`}
       >
         {value}
+        {hint ? (
+          <span className="mt-0.5 block text-caption font-normal text-faint">
+            {hint}
+          </span>
+        ) : null}
       </dd>
-      {hint ? <p className="mt-0.5 text-caption text-faint">{hint}</p> : null}
     </div>
   );
 }
@@ -139,10 +143,10 @@ function StatBlock({ t }: { t: Template }) {
             hint={short ? "window too short" : undefined}
             negative={!short && (s.cagr ?? 0) < 0}
           />
-          <Stat label="Max drawdown" value={fmtPct(s.max_drawdown)} negative />
-          <Stat label="Sharpe" value={(s.sharpe ?? 0).toFixed(2)} />
+          <Stat label="Max drawdown" value={fmtPct(s.max_drawdown)} />
+          <Stat label="Sharpe" value={fmtNum(s.sharpe)} />
           <Stat label="Win rate" value={fmtPct(s.win_rate)} />
-          <Stat label="Trades" value={String(s.total_trades ?? 0)} />
+          <Stat label="Trades" value={s.total_trades == null ? "—" : String(s.total_trades)} />
         </dl>
       </Card>
       <p className="mt-2 text-caption text-faint">

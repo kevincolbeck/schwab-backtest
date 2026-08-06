@@ -80,7 +80,7 @@ export function PriceRangeChart({ bars: rawBars }: { bars: DailyBar[] }) {
                 type="button"
                 onClick={() => setRange(r.id)}
                 aria-pressed={active}
-                className={`focus-ring tnum rounded-(--radius-tag) px-3 py-1 text-xs transition-colors duration-(--dur-micro) ${
+                className={`focus-ring tnum rounded-(--radius-tag) tap-target inline-flex items-center px-3 py-1 text-xs transition-colors duration-(--dur-micro) ${
                   active
                     ? "border border-hairline bg-panel text-ink"
                     : "text-muted hover:text-ink"

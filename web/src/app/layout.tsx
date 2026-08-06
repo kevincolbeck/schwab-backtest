@@ -51,8 +51,23 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-background text-ink">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <AuthModalProvider>
+          {/* WCAG 2.4.1 Bypass Blocks (Level A). Every page renders the nav —
+              logo, 5 links, ⌘K hint, theme toggle, auth button — and the lab
+              adds a toolbar and a 6-button template rail on top of that. A
+              keyboard user re-traversed all of it on every navigation.
+              tabIndex={-1} on the target is load-bearing: without it the
+              browser scrolls but does NOT move focus, so the next Tab
+              restarts from the nav and the link achieves nothing. */}
+          <a
+            href="#main-content"
+            className="focus-ring sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-(--radius-control) focus:border focus:border-hairline-strong focus:bg-panel focus:px-4 focus:py-2 focus:text-sm focus:text-ink"
+          >
+            Skip to main content
+          </a>
           <SiteNav />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
+            {children}
+          </div>
           <CommandPalette />
           <footer className="border-t border-hairline">
             <div className="mx-auto flex w-full max-w-(--container-max) flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">

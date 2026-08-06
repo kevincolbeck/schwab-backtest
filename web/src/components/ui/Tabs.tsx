@@ -60,7 +60,7 @@ export default function Tabs({
                 select(tabs[(idx - 1 + tabs.length) % tabs.length].id);
               }
             }}
-            className={`focus-ring rounded-(--radius-tag) px-3.5 py-1.5 text-sm transition-colors duration-(--dur-micro) ${
+            className={`focus-ring rounded-(--radius-tag) tap-target px-3.5 py-1.5 text-sm transition-colors duration-(--dur-micro) ${
               selected
                 ? "border border-hairline bg-panel text-ink"
                 : "text-muted hover:text-ink"

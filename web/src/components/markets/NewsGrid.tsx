@@ -69,7 +69,7 @@ function NewsCard({ article }: { article: NewsArticle }) {
               <Link
                 key={t}
                 href={`/stocks/${encodeURIComponent(t)}`}
-                className="focus-ring tnum rounded-(--radius-tag) border border-hairline bg-panel-2 px-1.5 py-0.5 text-caption text-muted transition-colors duration-(--dur-micro) hover:border-hairline-strong hover:text-ink"
+                className="focus-ring tnum rounded-(--radius-tag) border border-hairline bg-panel-2 tap-target inline-flex items-center px-1.5 py-0.5 text-caption text-muted transition-colors duration-(--dur-micro) hover:border-hairline-strong hover:text-ink"
               >
                 {t}
               </Link>

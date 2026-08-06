@@ -63,7 +63,7 @@ export default function MobileMenu() {
         aria-controls="mobile-nav-panel"
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex h-8 w-8 items-center justify-center rounded-(--radius-control) border border-hairline text-muted transition-colors duration-(--dur-micro) hover:text-ink"
+        className="focus-ring tap-target flex h-8 w-8 items-center justify-center rounded-(--radius-control) border border-hairline text-muted transition-colors duration-(--dur-micro) hover:text-ink"
       >
         <BurgerIcon open={open} />
       </button>
@@ -90,7 +90,7 @@ export default function MobileMenu() {
                         href={l.href}
                         aria-current={active ? "page" : undefined}
                         onClick={() => setOpen(false)}
-                        className={`focus-ring block rounded-(--radius-control) px-3 py-2.5 text-sm transition-colors duration-(--dur-micro) ${
+                        className={`focus-ring tap-target flex items-center rounded-(--radius-control) px-3 py-2.5 text-sm transition-colors duration-(--dur-micro) ${
                           active
                             ? "bg-accent-soft text-ink"
                             : "text-muted hover:bg-panel-2 hover:text-ink"

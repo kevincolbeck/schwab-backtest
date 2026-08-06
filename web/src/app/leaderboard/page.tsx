@@ -147,7 +147,7 @@ function SortChip({
     <Link
       href={href}
       aria-current={active ? "true" : undefined}
-      className={`focus-ring inline-flex items-center rounded-(--radius-control) border px-3 py-1.5 text-xs transition-colors duration-(--dur-micro) ${
+      className={`focus-ring inline-flex items-center rounded-(--radius-control) border tap-target px-3 py-1.5 text-xs transition-colors duration-(--dur-micro) ${
         active
           ? "border-accent bg-accent-soft text-accent"
           : "border-hairline text-muted hover:border-hairline-strong hover:text-ink"
@@ -158,18 +158,15 @@ function SortChip({
   );
 }
 
-/** Plain-English metric tooltip — the StatTiles ⓘ recipe (focusable button,
- *  title + aria-label) so jargon is never unexplained (CLAUDE.md Phase A). */
+/** Plain-English metric tooltip so jargon is never unexplained (CLAUDE.md
+ *  Phase A). Deliberately an <abbr>, not a <button>: it performs no action,
+ *  and a focusable no-op that does nothing on Enter is worse than no control
+ *  at all. Mirrors StatTiles. */
 function InfoHint({ label, hint }: { label: string; hint: string }) {
   return (
-    <button
-      type="button"
-      className="focus-ring cursor-help rounded-(--radius-pill) text-muted hover:text-ink"
-      aria-label={`${label}: ${hint}`}
-      title={hint}
-    >
+    <abbr className="cursor-help no-underline" aria-label={`${label}: ${hint}`} title={hint}>
       ⓘ
-    </button>
+    </abbr>
   );
 }
 

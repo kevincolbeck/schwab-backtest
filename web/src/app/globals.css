@@ -97,6 +97,34 @@ body {
   outline-offset: var(--focus-offset);
 }
 
+/* Section 7 / WCAG 2.5.5: touch targets >= 44x44 CSS px ON MOBILE.
+   Scoped to `pointer: coarse` deliberately. The spec says "on mobile", and
+   inflating every control to 44px for mouse users would wreck the dense
+   pro-terminal layouts the lab and leaderboard are built around — a precise
+   pointer does not need the padding, a thumb does. Applied to controls, never
+   to inline links inside prose (WCAG exempts inline text).
+   Written unlayered after the Tailwind import so it beats utility classes,
+   same as .focus-ring above. */
+@media (pointer: coarse) {
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* For things that must stay visually small: keep the painted box, grow the
+     hit area outward with a pseudo-element. */
+  .tap-target-pseudo {
+    position: relative;
+  }
+  .tap-target-pseudo::after {
+    content: "";
+    position: absolute;
+    inset: 50% 50% 50% 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Faint dotted grid backdrop for hero sections (instrumentation texture). */
 .hero-grid {
   background-image: radial-gradient(var(--hairline) 1px, transparent 1px);

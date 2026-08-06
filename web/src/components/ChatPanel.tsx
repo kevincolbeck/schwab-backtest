@@ -64,7 +64,7 @@ export default function ChatPanel({
                 key={s}
                 onClick={() => send(s)}
                 disabled={disabled}
-                className="focus-ring block w-full rounded-(--radius-control) border border-hairline bg-panel-2 px-3 py-2.5 text-left text-xs text-ink transition-colors duration-(--dur-micro) hover:border-accent hover:bg-accent-soft disabled:opacity-50"
+                className="focus-ring tap-target block w-full rounded-(--radius-control) border border-hairline bg-panel-2 px-3 py-2.5 text-left text-xs text-ink transition-colors duration-(--dur-micro) hover:border-accent hover:bg-accent-soft disabled:opacity-50"
               >
                 {s}
               </button>

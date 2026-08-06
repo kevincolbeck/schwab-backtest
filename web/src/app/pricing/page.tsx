@@ -153,7 +153,7 @@ export default function PricingPage() {
               role="radio"
               aria-checked={interval === option}
               onClick={() => setInterval(option)}
-              className={`focus-ring rounded-(--radius-tag) px-3.5 py-1.5 text-sm capitalize transition-colors duration-(--dur-micro) ${
+              className={`focus-ring rounded-(--radius-tag) tap-target px-3.5 py-1.5 text-sm capitalize transition-colors duration-(--dur-micro) ${
                 interval === option
                   ? "bg-accent-soft text-accent"
                   : "text-muted hover:text-ink"

@@ -30,8 +30,10 @@ const SIZES: Record<Size, string> = {
   lg: "h-11 px-6 text-sm",
 };
 
+// tap-target gives every variant a 44px floor on touch devices without
+// inflating the dense desktop layouts (see globals.css).
 const BASE =
-  "inline-flex items-center justify-center gap-1.5 rounded-(--radius-control) transition-colors duration-(--dur-micro) focus-ring";
+  "tap-target inline-flex items-center justify-center gap-1.5 rounded-(--radius-control) transition-colors duration-(--dur-micro) focus-ring";
 
 /** Class recipe for elements that must look like a Button but can't be one. */
 export function buttonClasses(

@@ -59,7 +59,7 @@ export default function ShareToX({
         rel="noopener noreferrer"
         aria-label={label}
         title="Share on X"
-        className="focus-ring inline-flex h-7 w-7 items-center justify-center rounded-(--radius-control) text-muted transition-colors duration-(--dur-micro) hover:bg-panel-2 hover:text-ink"
+        className="focus-ring tap-target inline-flex h-7 w-7 items-center justify-center rounded-(--radius-control) text-muted transition-colors duration-(--dur-micro) hover:bg-panel-2 hover:text-ink"
       >
         <XLogo size={13} />
       </a>
