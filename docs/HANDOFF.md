@@ -148,6 +148,50 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   tickers return 200** (was 80 × 404), and `npm run seo` against prod reports
   66/66 sitemap URLs live, 0 problems.
 
+## Section 7 — SHIPPED 2026-08-06 (`b36cbec`, `b086a9b`, `df23375`)
+
+Design / UX / accessibility. Audited by 7 agents against the real components
+before anything changed, which mattered: **colour-only signalling already
+PASSED** (EvidenceMarks glyphs + sr-only text + signed formatters), so the
+"add icons to gain/loss" work the checklist implies was already done and
+correctly left alone. Touch targets and the stat component were the two FAILs.
+
+**Executable acceptance — use these, they are the point:**
+- `cd web && npm run a11y [-- <url>]` — axe over every route's SSR HTML, exits
+  non-zero on critical/serious. Prod: 15/15 routes, 0 violations.
+- `npx vitest run src/lib/contrast.test.ts` — recomputes WCAG ratios FROM
+  tokens.css, both themes, every surface.
+- `npx vitest run src/lib/designSystem.test.ts` — one stat component, no
+  ad-hoc hex, no hand-copied metric copy.
+- Full status and caveats: **`docs/A11Y.md`**.
+
+**What was actually broken:**
+- `--faint` carried captions, timestamps and legal text at **4.1:1** (3.4:1 on
+  control fills); light theme's `--accent`, `--warn`, `--prev-run` failed on
+  three of four surfaces. All raised; the test prevents regression.
+- **No skip link anywhere** — WCAG 2.4.1, Level A. Every keyboard user
+  re-traversed the nav on every navigation.
+- CommandPalette declared `aria-modal="true"` with **no focus trap** — Tab
+  walked into the page behind a non-inert scrim.
+- **Every tab in the app had a dangling `aria-controls`** (found by the new
+  axe scan on its first run): Tabs emitted panel ids no consumer rendered.
+- `EquityChart` — the payoff screen of the whole flow — had **no text
+  alternative at all**.
+- `TradeTable` had `role="button"` on each `<tr>`; that role is Children
+  Presentational, so every cell was hidden from AT on the table that IS the data.
+- ~20 control recipes measured 22–40px. `.tap-target` under
+  `@media (pointer: coarse)` — deliberately NOT applied to mouse users.
+- `ui/StatCard` had **zero importers** while 11 files rolled their own. The new
+  `ui/Stat` + `lib/metrics.ts` registry replaces it; StatCard failed to get
+  adopted because it hardcoded its own card wrapper, so the new one doesn't.
+- 3 of the 5 UX fixes were missing, including **deploy having no confirmation
+  at all** for a permanent, append-only, public action.
+
+**STILL OPEN — do not mark Section 7 fully green:** the spec also requires a
+**keyboard-only pass through the run-a-backtest flow**. That needs a real
+browser and a real person; it has not been done. `docs/A11Y.md` lists what is
+structurally in place and leaves the check itself open.
+
 ## NEXT UP (in spec order)
 
 1. ~~**P1-2 per-page SEO**~~ — **SHIPPED.** Every route sets its own
