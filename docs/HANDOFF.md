@@ -1,8 +1,8 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-06**, /about + P1-5 shipped, two production defects fixed. Live on
+> Last updated: **2026-08-06**, /about, P1-5 and Section 4 shipped; two production defects fixed. Live on
 > chatbacktest.com with Stripe LIVE mode, Resend verified, analytics flowing.
-> Tree clean at `2cbee9e`.
+> Tree clean at `68da32e`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -222,11 +222,41 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
 
    **Refresh cadence:** every claim carries `checkedOn` (2026-08-06) and it
    renders on the page. Vendor pricing moves; re-verify before it goes stale.
-5. Section 4 programmatic template pages `/backtest/[slug]` — when built,
-   re-point blog article template-links, add per-template backlinks, add them
-   to the sitemap, and satisfy §P1-2's last bullet ("Template pages:
-   [Strategy] backtest — 10-year CAGR, drawdown & Sharpe"), which is the ONLY
-   part of P1-2 still outstanding and is blocked on this.
+5. ~~**Section 4 programmatic template pages**~~ — **SHIPPED (`4b6449f`),
+   prod-verified 14/14.** `/backtest/[slug]`, one per template. This also
+   closes §P1-2's last outstanding bullet, so **P1-2 is now complete**.
+
+   Three pieces were new, and each has a load-bearing reason:
+   - **Equity curves.** `scripts/build_template_stats.py` already computed a
+     curve per template and discarded it; it now persists a ~180-point
+     downsample to `templates/_curves.json` (131KB total), served by
+     `GET /templates/{id}/curve` — a separate endpoint so `/templates` stays
+     lean for the gallery. **The downsample always keeps the first point, the
+     last point, AND the deepest drawdown**: an even stride drops the trough,
+     and a chart that flatters the record is the one distortion this codebase
+     must never ship. Pinned in `service/tests/test_template_curve.py`.
+   - **`web/src/lib/plainRules.ts`** — deterministic spec→English, NO LLM. A
+     generated description's failure mode is silently drifting from the rules
+     it describes, and this text is the basis a manual trader would trade on.
+     Too-complex expressions render literally rather than being guessed at.
+   - **`web/src/lib/strategyCopy.ts`** — 14 interpretations (~260 words each,
+     spec wanted ≥150), written by one agent per strategy off its real spec
+     and stats. Contains **no performance figures**: numbers render live
+     beside the prose. `strategyCopy.test.ts` enforces that AND a pairwise
+     6-word-shingle check capping any two pages at 12% overlap.
+
+   **Two defects the verification pass caught** (both now fixed and worth
+   remembering):
+   - The route **404'd when the service was unreachable** — the identical
+     defect that had 80 `/stocks` URLs serving 404 to Google earlier the same
+     day. It degrades to noindex+noStore now. **Check this on every new
+     service-backed indexed route.**
+   - The spec's mandated title promises "10-year CAGR", which is FALSE for the
+     two 15-minute templates (~45-day window, and the page correctly refuses
+     to print a CAGR). Intraday titles say "intraday results" instead.
+
+   Prod: `npm run seo` → 87 sitemap URLs, 87 live, 29 unique titles, 0
+   problems.
 6. ~~§5 pricing restructure~~ — **SHIPPED** (see above). Follow-ups it left:
    build the Max features §5 advertises but we refused to sell unbuilt
    (priority engine queue, verified-record badge, public profile page, early
