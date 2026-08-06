@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fmtSignedPct } from "@/lib/format";
 import styles from "@/components/landing/landing.module.css";
 import EvidenceStrip from "@/components/landing/EvidenceStrip";
 import FrozenPanel from "@/components/landing/FrozenPanel";
@@ -161,6 +162,8 @@ export default async function Home() {
      the teaser always sorts by forward return — even while warming, those are
      real out-of-sample numbers. The full leaderboard offers labeled sorts. */
   const teaser = sortRows(merged, "forward_return").slice(0, 5);
+  // Top forward record for the live strip — same ordering the teaser uses.
+  const leader = teaser[0] ?? null;
 
   return (
     <main className="w-full">
@@ -200,6 +203,53 @@ export default async function Home() {
           </Reveal>
         </div>
       </section>
+
+      {/* ── Live strip (Section 7 UX fix 5): the current top forward record,
+         above the fold. Uses the leaderboard data the page already fetched —
+         no extra request. Guarded on `leader` so an unreachable service
+         renders nothing rather than a fabricated zero. ── */}
+      {leader ? (
+        <section className="border-t border-hairline bg-panel/40">
+          <Link
+            href={`/strategy/${leader.slug}`}
+            className="focus-ring mx-auto flex w-full max-w-(--container-max) flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-6"
+          >
+            <span className="text-caption uppercase tracking-widest text-muted">
+              Live on the ledger now
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+              {leader.name}
+            </span>
+            <span className="tnum inline-flex items-center gap-1 rounded-(--radius-pill) border border-hairline px-2.5 py-1 text-caption text-muted">
+              {verifiedSlugs.has(leader.slug) ? (
+                <>
+                  <span aria-hidden>✓</span>
+                  {leader.days_live} days
+                  <span className="sr-only">verified record</span>
+                </>
+              ) : (
+                <>
+                  day {leader.days_live} of {minDays}
+                  <span className="sr-only"> — not yet verified</span>
+                </>
+              )}
+            </span>
+            {/* Real out-of-sample P&L — the one place valence colour is earned.
+               The sign carries the direction too, so colour is never alone. */}
+            <span
+              className={`tnum text-sm ${
+                (leader.forward_return_pct ?? 0) > 0
+                  ? "text-gain"
+                  : (leader.forward_return_pct ?? 0) < 0
+                    ? "text-loss"
+                    : "text-muted"
+              }`}
+            >
+              {fmtSignedPct(leader.forward_return_pct, 2)} forward
+            </span>
+          </Link>
+        </section>
+      ) : null}
 
       {/* ── Template wall: flagship top 6, winners-first (P0-2). The honesty
          now lives in its own transparency section further down — no forced

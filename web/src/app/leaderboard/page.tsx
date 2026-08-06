@@ -12,6 +12,7 @@ import Sparkline from "@/components/Sparkline";
 import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
+import { METRICS } from "@/lib/metrics";
 import {
   defaultSortKey,
   parseSortKey,
@@ -170,11 +171,12 @@ function InfoHint({ label, hint }: { label: string; hint: string }) {
   );
 }
 
-/* Hint wording matches StatTiles.tsx so the same metric reads the same
-   everywhere. */
-const SHARPE_HINT = "Return per unit of volatility. Above 1 is generally considered good.";
-const CAGR_HINT = "Compound annual growth rate — the smoothed per-year return.";
-const MAX_DD_HINT = "The worst peak-to-bottom drop. How much pain you'd have sat through.";
+/* Hints come from the metric registry, not a copy of it. These three were
+   hand-duplicated from StatTiles and guarded only by a comment — they happened
+   to match, but nothing made them. */
+const SHARPE_HINT = METRICS.sharpe.hint;
+const CAGR_HINT = METRICS.cagr.hint;
+const MAX_DD_HINT = METRICS.max_drawdown.hint;
 
 const TH = "px-4 py-2.5 text-left font-mono text-caption font-medium uppercase tracking-wider text-muted";
 

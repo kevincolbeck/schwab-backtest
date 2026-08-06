@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { fmtPct, fmtSignedPct } from "@/lib/format";
 import { SHORT_WINDOW_DAYS, templateHero, windowDays } from "@/lib/templates";
+import Stat, { StatGrid } from "@/components/ui/Stat";
 import type { Template } from "@/lib/types";
 
 /** Live results block for blog articles (P1-1).
@@ -26,17 +27,6 @@ async function getTemplate(id: string): Promise<Template | null> {
   } catch {
     return null;
   }
-}
-
-function Stat({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
-  return (
-    <div>
-      <dt className="text-caption uppercase tracking-widest text-muted">{label}</dt>
-      <dd className={`tnum mt-0.5 text-lg font-medium ${negative ? "text-loss" : "text-ink"}`}>
-        {value}
-      </dd>
-    </div>
-  );
 }
 
 export default async function TemplateStatsBlock({ templateId }: { templateId: string }) {
@@ -80,22 +70,19 @@ export default async function TemplateStatsBlock({ templateId }: { templateId: s
             : ""}
         </span>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <StatGrid cols={4} className="mt-4">
         {hero && (
           <Stat
             label={hero.kind === "cagr" ? "CAGR" : "Total return (window)"}
-            value={
-              hero.kind === "cagr" ? fmtPct(hero.value, 1) : fmtSignedPct(hero.value, 1)
-            }
-            negative={hero.value < 0}
+            value={hero.kind === "cagr" ? fmtPct(hero.value, 1) : fmtSignedPct(hero.value, 1)}
           />
         )}
         {/* Positive convention, matching StatTiles/leaderboard site-wide. */}
-        {maxDd !== null && <Stat label="Max drawdown" value={fmtPct(Math.abs(maxDd), 1)} />}
-        {sharpe !== null && <Stat label="Sharpe" value={sharpe.toFixed(2)} />}
-        {trades !== null && <Stat label="Trades" value={String(trades)} />}
-        {winRate !== null && <Stat label="Win rate" value={fmtPct(winRate, 1)} />}
-      </dl>
+        {maxDd !== null && <Stat metric="max_drawdown" value={Math.abs(maxDd)} />}
+        {sharpe !== null && <Stat metric="sharpe" value={sharpe} />}
+        {trades !== null && <Stat metric="total_trades" value={trades} />}
+        {winRate !== null && <Stat metric="win_rate" value={winRate} />}
+      </StatGrid>
       <p className="mt-4 text-caption leading-relaxed text-faint">
         Rendered live from our engine&rsquo;s latest run of this exact template —
         not typed into the article.{short ? " This window is under a year, so we show the window's actual total return instead of annualizing it." : ""}{" "}

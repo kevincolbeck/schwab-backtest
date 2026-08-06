@@ -27,8 +27,8 @@ export const CARD = {
   INK: "#e9edf4", // --ink
   MUTED: "#98a2b3", // --muted
   ACCENT: "#4da2ff", // --accent
-  GAIN: "#089981", // --gain
-  LOSS: "#f23645", // --loss
+  GAIN: "#0aa88e", // --gain
+  LOSS: "#f4505d", // --loss
 } as const;
 
 export const DISCLAIMER_LINE =

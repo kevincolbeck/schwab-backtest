@@ -484,7 +484,13 @@ function PlaygroundInner() {
       if (genRef.current !== gen) return; // template switched while thinking
       let reply = res.reply;
       if (res.validation_errors.length) {
-        reply += `\n\n(The proposed change didn't pass validation: ${res.validation_errors.join("; ")})`;
+        // Section 7's error state. The raw validator output ("entry_rule_long:
+        // unknown identifier 'foo'") is accurate and useless to someone who
+        // pasted a strategy they saw on YouTube. Lead with what to do about
+        // it; keep the detail for whoever wants it.
+        reply +=
+          `\n\nThe AI couldn't turn that into testable rules yet. Try naming an entry, an exit, and what you're trading.` +
+          `\n\n(Details: ${res.validation_errors.join("; ")})`;
       }
       setMessages((current) => [...current, { role: "assistant", content: reply }]);
       if (res.updated_spec) {
@@ -557,6 +563,17 @@ function PlaygroundInner() {
       )
     )
       return;
+    // Section 7: this action cannot be undone — the spec is frozen and
+    // hashed, the ledger is append-only, and a strategy that loses stays on
+    // the board. The copy says so plainly rather than softening it, because
+    // the permanence IS the product.
+    if (
+      !window.confirm(
+        "This freezes your strategy permanently.\n\nFrom today it scores itself on fresh data — win or lose, it's on the record. That's the point.",
+      )
+    ) {
+      return;
+    }
     setDeploying(true);
     setError(null);
     try {
@@ -1231,8 +1248,8 @@ function PlaygroundInner() {
               <div className="max-w-sm text-center">
                 <p className="text-sm text-muted">
                   Pick a template on the left and hit{" "}
-                  <span className="font-medium text-ink">Run backtest</span> — or ask the
-                  AI to change anything first.
+                  <span className="font-medium text-ink">Run backtest</span> — or paste a
+                  strategy you saw online and let the AI build it.
                 </p>
                 <p className="mt-2 text-xs text-faint">
                   Ten years of daily data, usually under ten seconds.

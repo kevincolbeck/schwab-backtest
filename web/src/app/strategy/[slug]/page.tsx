@@ -10,6 +10,7 @@ import ShareToX from "@/components/ShareToX";
 import { Accordion, AccordionItem } from "@/components/ui/Accordion";
 import { ButtonLink } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import Stat, { StatGrid } from "@/components/ui/Stat";
 import { fmtDate, fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { EquityPoint, StrategyPagePayload } from "@/lib/types";
@@ -171,32 +172,20 @@ export default async function StrategyPage({
                 <span className="text-xs font-normal text-muted">(in-sample, 2016 →)</span>
               </h2>
               {backtest_stats ? (
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <dt className={DT}>CAGR</dt>
-                    <dd className="tnum mt-0.5 text-xl text-ink">
-                      {fmtPct(backtest_stats.cagr as number, 2)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className={DT}>Total return</dt>
-                    <dd className="tnum mt-0.5 text-xl text-ink">
-                      {fmtSignedPct(backtest_stats.total_return_pct as number, 0)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className={DT}>Max drawdown</dt>
-                    <dd className="tnum mt-0.5 text-xl text-ink">
-                      {fmtPct(backtest_stats.max_drawdown as number)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className={DT}>Sharpe</dt>
-                    <dd className="tnum mt-0.5 text-xl text-ink">
-                      {fmtNum(backtest_stats.sharpe as number)}
-                    </dd>
-                  </div>
-                </dl>
+                <StatGrid cols={2} className="mt-4">
+                  <Stat metric="cagr" value={backtest_stats.cagr as number} size="lg" />
+                  <Stat
+                    metric="total_return_pct"
+                    value={backtest_stats.total_return_pct as number}
+                    size="lg"
+                  />
+                  <Stat
+                    metric="max_drawdown"
+                    value={backtest_stats.max_drawdown as number}
+                    size="lg"
+                  />
+                  <Stat metric="sharpe" value={backtest_stats.sharpe as number} size="lg" />
+                </StatGrid>
               ) : (
                 <p className="mt-4 text-sm text-muted">No backtest snapshot stored.</p>
               )}

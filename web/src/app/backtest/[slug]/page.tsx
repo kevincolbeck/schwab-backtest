@@ -6,7 +6,7 @@ import SectionShell from "@/components/SectionShell";
 import Card from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { DISCLAIMER } from "@/lib/constants";
-import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
+import Stat, { StatGrid } from "@/components/ui/Stat";
 import { plainRules } from "@/lib/plainRules";
 import { postForTemplate } from "@/lib/blog";
 import { pageMetadata } from "@/lib/seo";
@@ -82,34 +82,6 @@ export async function generateMetadata({
   });
 }
 
-function Stat({
-  label,
-  value,
-  hint,
-  negative,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  negative?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="text-caption uppercase tracking-widest text-muted">{label}</dt>
-      <dd
-        className={`tnum mt-0.5 text-xl font-medium ${negative ? "text-loss" : "text-ink"}`}
-      >
-        {value}
-        {hint ? (
-          <span className="mt-0.5 block text-caption font-normal text-faint">
-            {hint}
-          </span>
-        ) : null}
-      </dd>
-    </div>
-  );
-}
-
 function StatBlock({ t }: { t: Template }) {
   const c = t.cached_stats;
   const s = c?.stats;
@@ -128,26 +100,22 @@ function StatBlock({ t }: { t: Template }) {
   return (
     <>
       <Card className="mt-6">
-        <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat
-            label="Total return"
-            value={fmtSignedPct(s.total_return_pct)}
-            negative={(s.total_return_pct ?? 0) < 0}
-          />
+        <StatGrid cols={6}>
+          <Stat metric="total_return_pct" value={s.total_return_pct} size="lg" />
           {/* An annualized figure computed off a ~45-day intraday window is
               arithmetic, not information — the rest of the site refuses to
               show it, and so does this page. */}
           <Stat
-            label="CAGR"
-            value={short ? "—" : fmtSignedPct(s.cagr)}
-            hint={short ? "window too short" : undefined}
-            negative={!short && (s.cagr ?? 0) < 0}
+            metric="cagr"
+            value={short ? "—" : (s.cagr ?? null)}
+            size="lg"
+            sub={short ? "window too short" : undefined}
           />
-          <Stat label="Max drawdown" value={fmtPct(s.max_drawdown)} />
-          <Stat label="Sharpe" value={fmtNum(s.sharpe)} />
-          <Stat label="Win rate" value={fmtPct(s.win_rate)} />
-          <Stat label="Trades" value={s.total_trades == null ? "—" : String(s.total_trades)} />
-        </dl>
+          <Stat metric="max_drawdown" value={s.max_drawdown} size="lg" />
+          <Stat metric="sharpe" value={s.sharpe} size="lg" />
+          <Stat metric="win_rate" value={s.win_rate} size="lg" />
+          <Stat metric="total_trades" value={s.total_trades} size="lg" />
+        </StatGrid>
       </Card>
       <p className="mt-2 text-caption text-faint">
         {c.timeframe} bars, {c.start_date} to {c.end_date}. Computed by the same
