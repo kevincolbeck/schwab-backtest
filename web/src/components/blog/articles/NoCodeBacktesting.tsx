@@ -8,7 +8,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         You saw a setup online — a moving-average cross, a breakout rule, a
         &ldquo;buy the dip&rdquo; recipe with suspiciously round numbers — and
         the honest voice in your head asked the only question that matters:{" "}
-        <em>would this have actually worked?</em> Answering that used to
+        <em>would this have actually worked?</em>{" "}Answering that used to
         require Python, a data subscription, and a weekend. It now requires
         neither code nor money. Here is the whole method, tool-agnostic where
         it can be, specific where it helps.
@@ -24,7 +24,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         stop, a target? How much per position? How many positions at once?
       </p>
       <p>
-        In <Link href="/playground">our lab</Link> you do this by describing
+        In <Link href="/playground">our lab</Link>{" "}you do this by describing
         the idea in plain English — &ldquo;buy when the 50-day crosses above
         the 200-day, sell on the reverse cross, 20% per position&rdquo; — and
         the AI writes the exact, machine-readable rules and shows you every
@@ -47,14 +47,14 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <p>Most people read a backtest backwards. The order that protects you:</p>
       <ol>
         <li>
-          <strong>Max drawdown first.</strong> This is the price of admission
+          <strong>Max drawdown first.</strong>{" "}This is the price of admission
           — the stretch where you&rsquo;d have watched a third of your account
           evaporate while the strategy insisted it was fine. If you
           couldn&rsquo;t have lived through it, the CAGR is irrelevant,
           because you&rsquo;d have quit at the bottom.
         </li>
         <li>
-          <strong>Trade count second.</strong> Twelve trades in a decade is an
+          <strong>Trade count second.</strong>{" "}Twelve trades in a decade is an
           anecdote, not a statistic. Be much more skeptical of beautiful
           results built on few trades.
         </li>
@@ -81,9 +81,9 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <Callout kind="honest" title="The traps no-code tools should refuse for you">
         <p>
           Two lies show up constantly in retail backtests. <strong>Look-ahead
-          bias:</strong> rules that act on information the bar hadn&rsquo;t
+          bias:</strong>{" "}rules that act on information the bar hadn&rsquo;t
           produced yet (our engine only ever evaluates rules on closed bars).{" "}
-          <strong>Fabricated annualization:</strong> quoting a &ldquo;CAGR&rdquo;
+          <strong>Fabricated annualization:</strong>{" "}quoting a &ldquo;CAGR&rdquo;
           from a six-week test (our template cards and these articles refuse
           to annualize any window under a year). A tool that lets you fool
           yourself on either isn&rsquo;t saving you from code — it&rsquo;s
@@ -107,7 +107,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <p>
         Total cost of the whole method: an afternoon, zero dollars, no code.
         The setup you saw online either survives it or it doesn&rsquo;t —
-        and both answers are worth having <em>before</em> a dollar is at risk.
+        and both answers are worth having <em>before</em>{" "}a dollar is at risk.
       </p>
     </>
   );

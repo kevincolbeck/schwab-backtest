@@ -261,7 +261,7 @@ export default function CalendarSection({
               {activePayload.rows.length === 0 && (
                 <p className="mt-2 text-caption text-faint">
                   No {kindLabel.toLowerCase()} on the calendar for{" "}
-                  <span className="tnum">{monthLabel(year, month)}</span> yet.
+                  <span className="tnum">{monthLabel(year, month)}</span>{" "}yet.
                 </p>
               )}
             </div>

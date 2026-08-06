@@ -34,7 +34,7 @@ export default function ForwardTestingPage() {
         When you deploy a strategy, its spec — the exact JSON the engine runs —
         is frozen and hashed. From that moment the deployed spec is immutable at
         the database level: the storage layer rejects any update to it. If you
-        improve the strategy later, that is a <em>new</em> deployment with a
+        improve the strategy later, that is a <em>new</em>{" "}deployment with a
         fresh record starting from zero. The old record stands.
       </p>
       <p>
@@ -56,7 +56,7 @@ export default function ForwardTestingPage() {
 
       <h2>Closed candles only</h2>
       <p>
-        The worker evaluates rules on <strong>closed</strong> bars, after the
+        The worker evaluates rules on <strong>closed</strong>{" "}bars, after the
         fact — end-of-day bars for daily strategies, closed intraday candles
         (down to one-minute) for intraday deployments. Nothing is evaluated
         live or streaming.
@@ -138,7 +138,7 @@ export default function ForwardTestingPage() {
         carries 1 public slot, Pro 10 (and unlocks intraday and private
         records), Max unlimited. There is no per-deploy fee at any tier — if
         you have a free slot, you can deploy. Slots and capabilities are on the{" "}
-        <a href="/docs/credits">Plans &amp; limits</a> page.
+        <a href="/docs/credits">Plans &amp; limits</a>{" "}page.
       </p>
 
       <h2>What the ledger is not</h2>
@@ -147,8 +147,8 @@ export default function ForwardTestingPage() {
         candles closed. It does not notify you, it does not place orders, and it
         is not a source of trade instructions — for your own strategies or
         anyone else’s. If you want to act on rules you built here, the{" "}
-        <a href="/docs/export-pine">exports</a> and the{" "}
-        <a href="/docs/manual-trading">manual trading guide</a> cover how to run
+        <a href="/docs/export-pine">exports</a>{" "}and the{" "}
+        <a href="/docs/manual-trading">manual trading guide</a>{" "}cover how to run
         them on your own tools, in your own accounts, on your own judgment.
       </p>
 

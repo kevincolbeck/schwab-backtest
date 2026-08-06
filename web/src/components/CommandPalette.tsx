@@ -121,7 +121,7 @@ export default function CommandPalette() {
           )}
         </Command.List>
         <div className="border-t border-hairline px-4 py-2 text-caption text-faint">
-          <span className="tnum">⌘K</span> to toggle · <span className="tnum">↵</span> to open
+          <span className="tnum">⌘K</span>{" "}to toggle · <span className="tnum">↵</span>{" "}to open
         </div>
       </Command>
     </div>

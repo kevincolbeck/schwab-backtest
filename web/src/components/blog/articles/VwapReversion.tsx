@@ -24,21 +24,21 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       </p>
       <ul>
         <li>
-          <strong>Universe:</strong> SPY and QQQ on 15-minute bars — the most
+          <strong>Universe:</strong>{" "}SPY and QQQ on 15-minute bars — the most
           liquid things that trade, on purpose.
         </li>
         <li>
-          <strong>Entry:</strong> buy when a bar closes more than 0.3% below
-          the session&rsquo;s VWAP <em>and</em> a fast 3-period RSI is under
+          <strong>Entry:</strong>{" "}buy when a bar closes more than 0.3% below
+          the session&rsquo;s VWAP <em>and</em>{" "}a fast 3-period RSI is under
           25 — stretched and washed out, not just drifting lower.
         </li>
         <li>
-          <strong>Exit:</strong> sell when price closes back above VWAP — the
+          <strong>Exit:</strong>{" "}sell when price closes back above VWAP — the
           snap-back this whole idea is named for — or on a 1% stop, or after
           one day in the trade, whichever comes first.
         </li>
         <li>
-          <strong>Sizing:</strong> 50% of equity per position, max two
+          <strong>Sizing:</strong>{" "}50% of equity per position, max two
           positions — reversion trades are short and parallel opportunities
           are few.
         </li>
@@ -60,7 +60,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
 
       <h2>What went wrong — three honest suspects</h2>
       <p>
-        <strong>Costs and friction dominate at this timescale.</strong> An
+        <strong>Costs and friction dominate at this timescale.</strong>{" "}An
         intraday reversion trade tries to capture a fraction of a percent per
         attempt. Our simulation charges a slippage assumption on every fill,
         and at 15-minute frequency those charges are a headwind the strategy
@@ -69,7 +69,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         meets a real spread.
       </p>
       <p>
-        <strong>The test window is short.</strong> Our intraday data plans cap
+        <strong>The test window is short.</strong>{" "}Our intraday data plans cap
         history to roughly 60 days, so this backtest covers weeks, not
         decades — which is why the results block above shows the
         window&rsquo;s actual total return instead of a fabricated annualized
@@ -80,7 +80,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         record, or worse.
       </p>
       <p>
-        <strong>Regime dependence.</strong> Fading stretch works in ranging
+        <strong>Regime dependence.</strong>{" "}Fading stretch works in ranging
         tape and gets steamrolled in trending tape. A strategy that is
         secretly a bet on &ldquo;the next month looks like a range&rdquo;
         will produce backtests that swing wildly with the window you happen to

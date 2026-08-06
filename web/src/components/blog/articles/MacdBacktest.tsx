@@ -21,12 +21,12 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       </p>
       <ul>
         <li>
-          <strong>The zero-line cross:</strong> the MACD line (the 12-day EMA
+          <strong>The zero-line cross:</strong>{" "}the MACD line (the 12-day EMA
           minus the 26-day EMA) crosses above zero — which is identical to the
           12-day EMA crossing above the 26-day. Slower, fewer signals.
         </li>
         <li>
-          <strong>The signal-line cross:</strong> the MACD line crosses its
+          <strong>The signal-line cross:</strong>{" "}the MACD line crosses its
           own 9-day EMA. Faster, far more signals, far more noise.
         </li>
       </ul>
@@ -48,7 +48,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         cross&rsquo;s 50/200, and it shows in the trade count: you get many
         times more signals, which makes the statistics more meaningful — and
         the experience more annoying. Faster crosses mean earlier entries into
-        real trends <em>and</em> far more false starts. Expect the win rate to
+        real trends <em>and</em>{" "}far more false starts. Expect the win rate to
         look unimpressive; trend-following systems routinely lose most of
         their trades and make it back on a few large winners. The number that
         decides whether you could actually live with this strategy is the max

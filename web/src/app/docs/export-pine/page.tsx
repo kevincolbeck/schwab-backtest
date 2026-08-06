@@ -27,11 +27,11 @@ export default function ExportPinePage() {
       <h2>From the lab to a TradingView chart</h2>
       <Steps>
         <Step n={1} title="Download the script from the Rules tab">
-          In the lab, open the <strong>Rules</strong> tab and click{" "}
+          In the lab, open the <strong>Rules</strong>{" "}tab and click{" "}
           <strong>↓ Pine Script (.pine)</strong>. If parts of your strategy need
           manual attention on TradingView, a note above the rules lists them
           before you download — the same items appear as{" "}
-          <code>{"// TODO"}</code> comments inside the file.
+          <code>{"// TODO"}</code>{" "}comments inside the file.
         </Step>
         <Step n={2} title="Open a chart of one of your symbols">
           On TradingView, open a chart for a symbol from your spec and set the
@@ -39,7 +39,7 @@ export default function ExportPinePage() {
           daily chart, a 15m strategy on a 15m chart).
         </Step>
         <Step n={3} title="Paste into the Pine Editor">
-          Open the <strong>Pine Editor</strong> panel, replace its contents with
+          Open the <strong>Pine Editor</strong>{" "}panel, replace its contents with
           the downloaded file, and save.
         </Step>
         <Step n={4} title="Add to chart">
@@ -47,7 +47,7 @@ export default function ExportPinePage() {
           the chart wherever the rules fired on that symbol’s history.
         </Step>
         <Step n={5} title="Open the Strategy Tester">
-          The <strong>Strategy Tester</strong> tab shows TradingView’s own
+          The <strong>Strategy Tester</strong>{" "}tab shows TradingView’s own
           simulation of the script: trade list, equity curve, and summary
           statistics — computed by TradingView, on TradingView’s data.
         </Step>
@@ -134,7 +134,7 @@ exitSignal = sma_50 < sma_200`}</code>
       </p>
       <p>
         Anything outside that boundary is surfaced, never dropped. Each case
-        becomes a <code>{"// TODO"}</code> comment in the file carrying the
+        becomes a <code>{"// TODO"}</code>{" "}comment in the file carrying the
         original expression, and the same list is shown in the Rules tab before
         you download. The common ones:
       </p>
@@ -142,21 +142,21 @@ exitSignal = sma_50 < sma_200`}</code>
         <li>
           <strong>Cross-symbol references</strong> (a rule that reads SPY’s
           close from another symbol’s chart) need a{" "}
-          <code>request.security()</code> call you wire up on TradingView — the
+          <code>request.security()</code>{" "}call you wire up on TradingView — the
           TODO includes the exact line to use.
         </li>
         <li>
-          <strong>Risk-based position sizing</strong> has no direct Pine
+          <strong>Risk-based position sizing</strong>{" "}has no direct Pine
           equivalent; the export ships with percent-of-equity sizing and a TODO
           explaining the difference.
         </li>
         <li>
-          <strong>Entry at the bar’s high or low</strong> cannot be reproduced
+          <strong>Entry at the bar’s high or low</strong>{" "}cannot be reproduced
           by TradingView’s order model; the export fills at the next bar’s open
           and says so in the header.
         </li>
         <li>
-          <strong>Unrecognized functions or identifiers</strong> are left in
+          <strong>Unrecognized functions or identifiers</strong>{" "}are left in
           place with a TODO naming them, so you can translate by hand rather
           than trust a guess.
         </li>

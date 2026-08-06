@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           <h1 className="text-headline font-semibold text-ink">Dashboard</h1>
           <p className="mt-1 text-sm text-muted">
             {session.user.email} ·{" "}
-            <span className="uppercase">{me?.plan ?? "free"}</span> plan ·{" "}
+            <span className="uppercase">{me?.plan ?? "free"}</span>{" "}plan ·{" "}
             <Link
               href="/account"
               className="focus-ring rounded-(--radius-tag) text-accent hover:underline"

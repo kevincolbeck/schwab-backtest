@@ -100,19 +100,19 @@ export default function DocsIntroPage() {
       <h2>How the docs are organized</h2>
       <ul>
         <li>
-          <strong>Getting started</strong> walks through your first backtest, how to
+          <strong>Getting started</strong>{" "}walks through your first backtest, how to
           read the results honestly, and how credits meter usage.
         </li>
         <li>
-          <strong>The Lab</strong> covers building by chat, the markets and
+          <strong>The Lab</strong>{" "}covers building by chat, the markets and
           timeframes available to test on, and the strategy spec itself.
         </li>
         <li>
-          <strong>The Ledger</strong> explains forward testing: frozen specs,
+          <strong>The Ledger</strong>{" "}explains forward testing: frozen specs,
           append-only records, and why losers stay on the board.
         </li>
         <li>
-          <strong>Your arsenal</strong> is about leaving with something useful —
+          <strong>Your arsenal</strong>{" "}is about leaving with something useful —
           Pine Script and Python exports, and trading a strategy manually from its
           plain-English rules.
         </li>

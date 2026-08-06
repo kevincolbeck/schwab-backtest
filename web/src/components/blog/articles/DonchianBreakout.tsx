@@ -16,20 +16,20 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <h2>The exact rules we tested</h2>
       <ul>
         <li>
-          <strong>Universe:</strong> ten megacaps — AAPL, MSFT, NVDA, AMZN,
+          <strong>Universe:</strong>{" "}ten megacaps — AAPL, MSFT, NVDA, AMZN,
           META, GOOGL, TSLA, AMD, AVGO, NFLX — on daily bars.
         </li>
         <li>
-          <strong>Entry:</strong> buy when today&rsquo;s close exceeds the
+          <strong>Entry:</strong>{" "}buy when today&rsquo;s close exceeds the
           highest high of the previous 20 trading days.
         </li>
         <li>
-          <strong>Exit:</strong> sell when the close drops below the lowest
+          <strong>Exit:</strong>{" "}sell when the close drops below the lowest
           low of the previous 10 days — or on an 8% stop-loss, whichever
           comes first.
         </li>
         <li>
-          <strong>Sizing:</strong> 20% of equity per position, up to five
+          <strong>Sizing:</strong>{" "}20% of equity per position, up to five
           concurrent positions.
         </li>
       </ul>
@@ -47,7 +47,8 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         record. They lose small and often: most 20-day highs don&rsquo;t turn
         into runaway trends, and each one that fizzles costs a little. They
         win rarely and large: the whole system is a bet that occasionally a
-        new high is the <em>first</em> new high of a very long move, and that
+        new high is the <em>first</em>{" "}
+        new high of a very long move, and that
         one position pays for the parade of failed ones. If the win rate above
         looks low to you, that&rsquo;s not a bug in the test — it&rsquo;s the
         shape of the strategy. The honest question is never &ldquo;how often
@@ -71,7 +72,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
           Point the same rules at a basket of range-bound utilities and the
           record would look very different. That&rsquo;s not a reason to
           dismiss the test; it&rsquo;s a reason to rerun it on{" "}
-          <em>your</em> watchlist before believing anything.
+          <em>your</em>{" "}watchlist before believing anything.
         </p>
       </Callout>
 

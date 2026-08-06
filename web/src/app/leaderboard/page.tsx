@@ -243,12 +243,12 @@ export default async function LeaderboardPage({
             <p className="max-w-prose text-sm text-muted">
               {anyVerified ? (
                 <>
-                  <span className="tnum">{entries.length}</span> verified record
+                  <span className="tnum">{entries.length}</span>{" "}verified record
                   {entries.length === 1 ? "" : "s"} on the board
                   {qualifying.length > 0 && (
                     <>
                       {" "}
-                      · <span className="tnum">{qualifying.length}</span> more
+                      · <span className="tnum">{qualifying.length}</span>{" "}more
                       accruing
                     </>
                   )}

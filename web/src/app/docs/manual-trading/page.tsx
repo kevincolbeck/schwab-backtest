@@ -82,7 +82,7 @@ Sizing    Each position uses 20% of equity, up to 5 positions at once.`}</code>
           strategy asks you to run this loop dozens of times a day without
           drift. That is a job description, not a routine. Manual trading suits
           daily strategies; for intraday rules, the{" "}
-          <a href="/docs/export-pine">Pine export with TradingView alerts</a> is
+          <a href="/docs/export-pine">Pine export with TradingView alerts</a>{" "}is
           the saner path.
         </p>
       </Callout>
@@ -90,7 +90,7 @@ Sizing    Each position uses 20% of equity, up to 5 positions at once.`}</code>
       <h2>The pre-trade checklist</h2>
       <p>Before any order, derived straight from the rules panel:</p>
       <ul>
-        <li>The entry condition is true on a <strong>closed</strong> bar — verified against the actual numbers, not eyeballed on a chart.</li>
+        <li>The entry condition is true on a <strong>closed</strong>{" "}bar — verified against the actual numbers, not eyeballed on a chart.</li>
         <li>The position count after this trade stays within the spec’s maximum.</li>
         <li>The size comes from the sizing line and current equity, not from conviction.</li>
         <li>The stop level is computed and the stop order goes in with the entry.</li>

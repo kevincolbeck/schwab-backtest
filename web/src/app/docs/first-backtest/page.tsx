@@ -36,7 +36,7 @@ export default function FirstBacktestPage() {
           <p>Two ways in:</p>
           <ul>
             <li>
-              <strong>A template.</strong> The left rail lists ready-made
+              <strong>A template.</strong>{" "}The left rail lists ready-made
               strategies with their category and historical result — CAGR when
               a year-plus window backs it, the window&apos;s total return for
               short intraday tests.
@@ -44,7 +44,7 @@ export default function FirstBacktestPage() {
               Click one and its rules load instantly.
             </li>
             <li>
-              <strong>New from scratch.</strong> The chat runs a guided intake
+              <strong>New from scratch.</strong>{" "}The chat runs a guided intake
               — market, then timeframe, then entry, then exits and stops, then
               position sizing — and builds a live draft as you answer. It
               fills gaps with placeholder defaults and tells you which parts
@@ -95,7 +95,7 @@ export default function FirstBacktestPage() {
             email for a sign-in link, no password to invent. Free accounts run{" "}
             <strong>unlimited backtests on daily data</strong> (a generous
             fair-use cap exists to stop scripts, not people), no card
-            required; the <a href="/docs/credits">Plans &amp; limits</a> page
+            required; the <a href="/docs/credits">Plans &amp; limits</a>{" "}page
             explains what each tier unlocks.
           </p>
         </Step>
@@ -118,9 +118,9 @@ export default function FirstBacktestPage() {
         Metric tiles — total return, CAGR, max drawdown, Sharpe, win rate,
         trade count, profit factor, expectancy — each with a plain-English
         tooltip, above the equity curve with drawdown charted beneath it. After
-        a second run, each tile shows its change labeled <em>better</em> or{" "}
+        a second run, each tile shows its change labeled <em>better</em>{" "}or{" "}
         <em>worse</em>, and the previous run&rsquo;s curve stays overlaid in a
-        second color. The <a href="/docs/reading-results">next page</a> covers
+        second color. The <a href="/docs/reading-results">next page</a>{" "}covers
         every metric in depth.
       </p>
 
@@ -150,9 +150,9 @@ export default function FirstBacktestPage() {
       <h2>After the run</h2>
       <p>
         Two buttons appear next to the tabs once a run exists:{" "}
-        <strong>Share</strong> copies a link to this exact result (works
+        <strong>Share</strong>{" "}copies a link to this exact result (works
         without an account — anonymous shares carry a watermark), and{" "}
-        <strong>Deploy to forward test</strong> freezes the strategy on the
+        <strong>Deploy to forward test</strong>{" "}freezes the strategy on the
         public ledger, where it accrues a track record on data nobody had when
         it was built. Deploying needs a free account — it puts a name on a
         public record. That step deserves its own page —{" "}
@@ -168,7 +168,7 @@ export default function FirstBacktestPage() {
           universe and crypto on Max. Generous per-day fair-use limits run
           quietly in the background to stop scripts; you&rsquo;ll never watch
           a counter drain. Details on the{" "}
-          <a href="/docs/credits">Plans &amp; limits</a> page.
+          <a href="/docs/credits">Plans &amp; limits</a>{" "}page.
         </p>
       </Callout>
 

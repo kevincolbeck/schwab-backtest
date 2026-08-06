@@ -15,8 +15,8 @@ export default function ExportPythonPage() {
       <p>A self-documenting file that carries your strategy — and its receipts.</p>
 
       <p>
-        The <strong>↓ Python</strong> button on the Rules tab downloads a single{" "}
-        <code>.py</code> file built for one purpose: letting you reproduce and
+        The <strong>↓ Python</strong>{" "}button on the Rules tab downloads a single{" "}
+        <code>.py</code>{" "}file built for one purpose: letting you reproduce and
         extend your research away from this site, against the same open-source
         engine that ran your backtest. No account required to run it, no calls
         back to us.
@@ -62,13 +62,13 @@ export default function ExportPythonPage() {
         </Step>
         <Step n={3} title="Set a data key">
           The engine fetches daily bars from Polygon.io: set{" "}
-          <code>POLYGON_API_KEY</code> in your environment. Fetched data is
+          <code>POLYGON_API_KEY</code>{" "}in your environment. Fetched data is
           cached in a local SQLite file, so the first run does the downloading
           and later runs are fast.
         </Step>
         <Step n={4} title="Emit the spec JSON">
-          <code>python golden-cross.py</code> writes{" "}
-          <code>golden-cross.json</code> next to the file and prints the run
+          <code>python golden-cross.py</code>{" "}writes{" "}
+          <code>golden-cross.json</code>{" "}next to the file and prints the run
           command.
         </Step>
         <Step n={5} title="Run it">
@@ -100,7 +100,7 @@ export default function ExportPythonPage() {
         adapt the data layer to your own sources — everything is ordinary
         Python in the repo, and nothing about your strategy is locked to this
         site. If you never touch Python, you lose nothing: the same rules are
-        available as <a href="/docs/export-pine">Pine Script</a> and as{" "}
+        available as <a href="/docs/export-pine">Pine Script</a>{" "}and as{" "}
         <a href="/docs/manual-trading">plain English</a>.
       </p>
 

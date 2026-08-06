@@ -39,6 +39,10 @@ const STATIC_ROUTES: { path: string; changeFrequency: "daily" | "weekly"; priori
   { path: "/library", changeFrequency: "weekly", priority: 0.8 },
   { path: "/leaderboard", changeFrequency: "daily", priority: 0.8 },
   { path: "/pricing", changeFrequency: "weekly", priority: 0.7 },
+  // /about carries the expertise + accountability signal Google looks for on
+  // "Your Money or Your Life" topics, and it's the target of every article
+  // byline — so it has to be crawlable in its own right, not just via links.
+  { path: "/about", changeFrequency: "weekly", priority: 0.6 },
   { path: "/docs", changeFrequency: "weekly", priority: 0.6 },
   { path: "/docs/first-backtest", changeFrequency: "weekly", priority: 0.5 },
   { path: "/docs/reading-results", changeFrequency: "weekly", priority: 0.5 },

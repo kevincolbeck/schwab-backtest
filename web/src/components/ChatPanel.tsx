@@ -94,7 +94,7 @@ export default function ChatPanel({
                 <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:0ms]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:120ms]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-(--radius-pill) bg-muted motion-reduce:animate-none [animation-delay:240ms]" />
-              </span>
+              </span>{" "}
               Thinking
             </div>
           )}

@@ -19,7 +19,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <h2>What a backtest actually is</h2>
       <p>
         A backtest asks: <em>if I had traded these rules in the past, what
-        would have happened?</em> Done honestly, it&rsquo;s the most useful
+        would have happened?</em>{" "}Done honestly, it&rsquo;s the most useful
         tool in trading — it kills bad ideas in seconds and shows you a
         strategy&rsquo;s character (how it loses, how long it sits flat, what
         its worst stretch felt like) before you pay tuition for the lesson.
@@ -27,24 +27,24 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <p>
         But a backtest has a structural weakness no amount of data fixes:{" "}
         <strong>it is graded on an exam whose answers existed before you
-        wrote it.</strong> Four leaks follow from that, and they account for
+        wrote it.</strong>{" "}Four leaks follow from that, and they account for
         most vanishing edges:
       </p>
       <ul>
         <li>
-          <strong>Selection.</strong> You tested twenty ideas and kept the
+          <strong>Selection.</strong>{" "}You tested twenty ideas and kept the
           best one. The best of twenty random strategies also looks good —
           that&rsquo;s what &ldquo;best of twenty&rdquo; means. The published
           winner carries the invisible luck of its dead siblings.
         </li>
         <li>
-          <strong>Overfitting.</strong> Every parameter you tuned — the 20-day
+          <strong>Overfitting.</strong>{" "}Every parameter you tuned — the 20-day
           lookback, the 8% stop — was tuned against the same history
           you&rsquo;re now citing as evidence. The more knobs, the more the
           &ldquo;edge&rdquo; is just memorized noise.
         </li>
         <li>
-          <strong>Look-ahead and survivorship.</strong> Subtler leaks: rules
+          <strong>Look-ahead and survivorship.</strong>{" "}Subtler leaks: rules
           that peek at data the bar hasn&rsquo;t produced yet, universes built
           from stocks you already know survived. (Our engine evaluates entry
           and exit rules only on closed bars, which closes the worst of the
@@ -54,7 +54,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
           form of the second, and we label it wherever it applies.)
         </li>
         <li>
-          <strong>Costs.</strong> Slippage, spreads, and missed fills are
+          <strong>Costs.</strong>{" "}Slippage, spreads, and missed fills are
           small numbers that compound into the whole edge at higher trade
           frequencies. A backtest that ignores them isn&rsquo;t optimistic —
           it&rsquo;s fictional.
@@ -71,17 +71,17 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <p>Three properties make it the referee:</p>
       <ul>
         <li>
-          <strong>The rules are frozen first.</strong> No quiet re-tuning
+          <strong>The rules are frozen first.</strong>{" "}No quiet re-tuning
           after a bad week. The spec is locked before the data arrives, so
           overfitting has nothing left to fit.
         </li>
         <li>
-          <strong>Every result counts.</strong> There is no drawer to hide the
+          <strong>Every result counts.</strong>{" "}There is no drawer to hide the
           losers in. Selection bias needs a selection step, and forward
           records don&rsquo;t have one.
         </li>
         <li>
-          <strong>Time does the auditing.</strong> A 20-day live record is
+          <strong>Time does the auditing.</strong>{" "}A 20-day live record is
           modest evidence; a 200-day one is a reputation. Either way it
           accumulates in public, one closed candle at a time.
         </li>
@@ -93,7 +93,8 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
           hashed, it starts trading flat on data from the day the spec was
           frozen onward, and its record becomes append-only — we archive strategies, but we
           don&rsquo;t edit or delete their history, and losers stay on{" "}
-          <Link href="/leaderboard">the leaderboard</Link> next to winners.
+          <Link href="/leaderboard">the leaderboard</Link>{" "}
+          next to winners.
           Records under 20 trading days are labeled as still warming up rather
           than hidden. We built it this way because &ldquo;trust our
           backtests&rdquo; is not an argument; a public record you could have
@@ -104,12 +105,12 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       <h2>How to use both without fooling yourself</h2>
       <ol>
         <li>
-          <strong>Backtest to reject, not to believe.</strong> The
+          <strong>Backtest to reject, not to believe.</strong>{" "}The
           backtest&rsquo;s honest job is falsification: most ideas should die
           there, cheaply.
         </li>
         <li>
-          <strong>Stress the survivor.</strong> Shift the date window, change
+          <strong>Stress the survivor.</strong>{" "}Shift the date window, change
           the universe, fatten the costs. An edge that only exists in one
           decade on five stocks isn&rsquo;t an edge — it&rsquo;s an anecdote.
           (We wrote up{" "}
@@ -118,7 +119,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
           anyway.)
         </li>
         <li>
-          <strong>Then freeze it and go live on paper.</strong> Deploy the
+          <strong>Then freeze it and go live on paper.</strong>{" "}Deploy the
           exact spec to a forward test and stop touching it. The waiting is
           the test. Anyone unwilling to wait is telling you which question
           they&rsquo;re afraid of.

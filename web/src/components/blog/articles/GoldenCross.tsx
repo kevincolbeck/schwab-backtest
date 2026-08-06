@@ -30,20 +30,20 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
       </p>
       <ul>
         <li>
-          <strong>Universe:</strong> SPY, QQQ, AAPL, MSFT, NVDA — daily bars.
+          <strong>Universe:</strong>{" "}SPY, QQQ, AAPL, MSFT, NVDA — daily bars.
         </li>
         <li>
-          <strong>Entry:</strong> buy on the day the 50-day simple moving
+          <strong>Entry:</strong>{" "}buy on the day the 50-day simple moving
           average closes above the 200-day, having been at or below it the day
           before (the cross day itself, not just &ldquo;50 above 200&rdquo;).
         </li>
         <li>
-          <strong>Exit:</strong> sell when the 50-day closes back below the
+          <strong>Exit:</strong>{" "}sell when the 50-day closes back below the
           200-day — the &ldquo;death cross.&rdquo; No stop-loss, no profit
           target: this is the pure signal, unedited.
         </li>
         <li>
-          <strong>Sizing:</strong> 20% of equity per position, up to 5
+          <strong>Sizing:</strong>{" "}20% of equity per position, up to 5
           positions at once.
         </li>
       </ul>
@@ -52,7 +52,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
 
       <h2>What the numbers mean</h2>
       <p>
-        The first thing to notice is how <em>few</em> trades a decade
+        The first thing to notice is how <em>few</em>{" "}trades a decade
         produces. Moving averages this slow cross rarely — this is a strategy
         that acts a handful of times per symbol per decade and holds for
         months or years. That has two consequences worth sitting with.
@@ -69,7 +69,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
         50/200 cross confirms an uptrend only after months of rising prices,
         so you buy well off the low; the death cross confirms the downtrend
         the same way, so you sell well off the high. What you get in exchange
-        is time <em>in</em> the big moves and time <em>out</em> of the big
+        is time <em>in</em>{" "}the big moves and time <em>out</em>{" "}of the big
         disasters. Whether that trade-off pays is exactly what the drawdown
         and CAGR numbers above are telling you.
       </p>
@@ -87,7 +87,7 @@ export default function Article({ stats }: { stats?: React.ReactNode }) {
           Our universe is five of the era&rsquo;s biggest winners — three
           megacaps and the two dominant index ETFs — chosen, honestly, because
           they are the tickers people actually ask about. That is survivorship-shaped: the same rules on a basket of
-          2016&rsquo;s darlings that <em>didn&rsquo;t</em> keep winning would
+          2016&rsquo;s darlings that <em>didn&rsquo;t</em>{" "}keep winning would
           look worse. Treat these results as &ldquo;the golden cross on
           winners,&rdquo; not &ldquo;the golden cross on the market.&rdquo;
           The fix is to rerun it on your own universe — which is one click

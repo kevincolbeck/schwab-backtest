@@ -147,14 +147,14 @@ export default function PlansPage() {
         strategy session: five messages is roughly two or three edits and a
         question. Explanations you&rsquo;ve already generated stay readable
         forever at no cost, since they&rsquo;re cached by strategy behavior —
-        only <em>new</em> ones count. If you hit a limit the message says so
+        only <em>new</em>{" "}ones count. If you hit a limit the message says so
         plainly and tells you it resets tomorrow; on a paid plan it&rsquo;s a
         guardrail rather than a quota, so email us and we&rsquo;ll raise it.
       </p>
 
       <h2>Top-up packs (optional overflow)</h2>
       <p>
-        Packs — <strong>500 for $10</strong> or <strong>1,500 for $25</strong>{" "}
+        Packs — <strong>500 for $10</strong>{" "}or <strong>1,500 for $25</strong>{" "}
         — buy overflow headroom that&rsquo;s used automatically <em>only</em>{" "}
         if you pass a daily fair-use limit, so heavy days keep working instead
         of stopping. They never expire, and most accounts never touch them.

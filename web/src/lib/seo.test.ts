@@ -91,6 +91,10 @@ describe("pageMetadata output", () => {
   it("marks noIndex routes as such", () => {
     const priv = pageMetadata({ title: "T", description: "D", path: "/x", noIndex: true });
     expect(priv.robots).toEqual({ index: false, follow: false });
-    expect(md.robots).toBeUndefined();
+    // Indexable pages state it explicitly and opt into large image previews
+    // and untruncated snippets — the OG cards are the main thing a domain with
+    // no backlinks has going for it in Discover and rich results.
+    expect(md.robots).toMatchObject({ index: true, follow: true });
+    expect(md.robots).toHaveProperty("googleBot.max-image-preview", "large");
   });
 });

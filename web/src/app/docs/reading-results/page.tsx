@@ -112,7 +112,7 @@ export default function ReadingResultsPage() {
       <h2>Comparing runs</h2>
       <p>
         When you rerun after an edit, two things happen. Each tile grows a
-        delta — ▲ or ▼ with the change, labeled <em>better</em> or{" "}
+        delta — ▲ or ▼ with the change, labeled <em>better</em>{" "}or{" "}
         <em>worse</em>, because the arrow alone is ambiguous (▲ on max
         drawdown is a worse result). And the previous run&rsquo;s equity curve
         stays on the chart in a second color, so you see the change in shape,
@@ -141,7 +141,7 @@ export default function ReadingResultsPage() {
       </p>
       <ul>
         <li>
-          <strong>Overfitting.</strong> Every tweak that improves this
+          <strong>Overfitting.</strong>{" "}Every tweak that improves this
           backtest is also a chance you&rsquo;ve fit noise instead of a real
           effect. The more you tune to make the past look good, the more
           you&rsquo;ve learned about the past — not the future. This risk
@@ -149,25 +149,25 @@ export default function ReadingResultsPage() {
           just...&rdquo; edits.
         </li>
         <li>
-          <strong>Survivorship bias.</strong> Hand-picking symbols that are
-          famous winners <em>today</em> bakes tomorrow&rsquo;s knowledge into
+          <strong>Survivorship bias.</strong>{" "}Hand-picking symbols that are
+          famous winners <em>today</em>{" "}bakes tomorrow&rsquo;s knowledge into
           yesterday&rsquo;s universe. Of course a momentum strategy on the
           2026 giants looked great in 2016 — you chose them because they won.
         </li>
         <li>
-          <strong>Regime change.</strong> Rules learned in one kind of market
+          <strong>Regime change.</strong>{" "}Rules learned in one kind of market
           can stop working when the market changes character. Ten years of
           data is still mostly one regime with interruptions; a strategy
           tuned to it has never met the next one.
         </li>
         <li>
-          <strong>Slippage reality.</strong> The simulation assumes a flat
+          <strong>Slippage reality.</strong>{" "}The simulation assumes a flat
           0.05% slippage per fill. Real fills depend on liquidity, spread,
           order size, and speed — and diverge most exactly where backtests
           look best: fast moves, thin names, intraday timeframes.
         </li>
         <li>
-          <strong>Look-ahead bias.</strong> Rules that peek at data the trade
+          <strong>Look-ahead bias.</strong>{" "}Rules that peek at data the trade
           couldn&rsquo;t have known yet — like entering at the open using the
           same bar&rsquo;s close. The spec validation and the AI both watch
           for this, but creative rule combinations can still smuggle it in.
@@ -175,7 +175,7 @@ export default function ReadingResultsPage() {
           logic.
         </li>
         <li>
-          <strong>Too few trades.</strong> Below roughly 30 trades, the
+          <strong>Too few trades.</strong>{" "}Below roughly 30 trades, the
           statistics are anecdotes, not evidence — the same threshold at
           which the AI warns you. A 90% win rate over 10 trades is a coin
           that came up heads a few times.
@@ -187,7 +187,7 @@ export default function ReadingResultsPage() {
           A good backtest is a reason to forward-test, not a reason to trade.
           Every number on this page describes a past that will not repeat
           exactly. That is why{" "}
-          <a href="/docs/forward-testing">the ledger</a> exists: freeze the
+          <a href="/docs/forward-testing">the ledger</a>{" "}exists: freeze the
           strategy, let it meet data nobody had when it was built, and let
           the record speak.
         </p>

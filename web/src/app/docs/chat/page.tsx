@@ -24,27 +24,27 @@ export default function DocsChatPage() {
       <h2>What the assistant can do</h2>
       <ul>
         <li>
-          <strong>Edit the spec.</strong> Every edit comes back as a complete
+          <strong>Edit the spec.</strong>{" "}Every edit comes back as a complete
           updated strategy, not a vague suggestion — you see exactly what
           changed, and the run happens on the real, validated spec.
         </li>
         <li>
-          <strong>Explain historical results.</strong> It has your latest run in
+          <strong>Explain historical results.</strong>{" "}It has your latest run in
           front of it — returns, drawdown, trade counts, exit breakdowns — and
           can tell you what drove them.
         </li>
         <li>
-          <strong>Teach concepts.</strong> Ask what Sharpe means, what an ATR
+          <strong>Teach concepts.</strong>{" "}Ask what Sharpe means, what an ATR
           stop is, why drawdown matters. Jargon gets explained, not assumed.
         </li>
         <li>
-          <strong>Compare runs.</strong> Ask how the current version stacks up
+          <strong>Compare runs.</strong>{" "}Ask how the current version stacks up
           against the previous one and why.
         </li>
       </ul>
       <p>
         When a request is vague — “make it better” — it proposes{" "}
-        <em>one</em> concrete change with reasoning, not a rewrite. The more
+        <em>one</em>{" "}concrete change with reasoning, not a rewrite. The more
         specific your ask, the better the edit: “tighten the stop from 8% to
         5%” beats “tighten the stop”.
       </p>
@@ -91,7 +91,7 @@ export default function DocsChatPage() {
       <p>
         Two conveniences worth knowing. First, simple indicators referenced in a
         rule are registered automatically — mention{" "}
-        <code>rsi_14</code> or <code>sma_50</code> in an edit and the matching
+        <code>rsi_14</code>{" "}or <code>sma_50</code>{" "}in an edit and the matching
         indicator definition is added for you. Second, when you switch to an
         intraday timeframe the assistant also shrinks your date range to 60 days
         or less and tells you why — that cap is real and explained in{" "}
@@ -214,7 +214,7 @@ export default function DocsChatPage() {
       <p>
         Nothing per message — AI chat is included on every plan, with no
         counter and no per-message charge. What exists instead is a daily
-        limit: <strong>3 messages</strong> without an account,{" "}
+        limit: <strong>3 messages</strong>{" "}without an account,{" "}
         <strong>5 on Free</strong>, <strong>15 on Pro</strong>,{" "}
         <strong>40 on Max</strong>. Model tokens are one of the two things
         that genuinely cost us money per use, so the free tier&rsquo;s limit

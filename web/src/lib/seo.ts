@@ -33,6 +33,8 @@ export interface PageSeo {
   type?: "website" | "article";
   /** ISO date — only meaningful for articles. */
   publishedTime?: string;
+  /** Byline for articles: the person accountable for the content. */
+  authors?: { name: string; url?: string }[];
   /** Extra keywords; the target search phrase for content pages. */
   keywords?: string[];
   /** Keep a page out of the index (operator surfaces, user-private views). */
@@ -59,6 +61,7 @@ export function pageMetadata({
   path,
   type = "website",
   publishedTime,
+  authors,
   keywords,
   noIndex,
   ogImage = DEFAULT_OG_IMAGE,
@@ -68,6 +71,7 @@ export function pageMetadata({
   return {
     title,
     description,
+    ...(authors?.length ? { authors } : {}),
     ...(keywords?.length ? { keywords } : {}),
     // Indexable pages opt into large image previews and untruncated snippets.
     // Without this Google defaults to a small thumbnail, and the OG cards this
@@ -93,6 +97,7 @@ export function pageMetadata({
       type,
       ...(images ? { images } : {}),
       ...(publishedTime ? { publishedTime } : {}),
+      ...(authors?.length ? { authors: authors.map((a) => a.name) } : {}),
     },
     twitter: {
       card: "summary_large_image",

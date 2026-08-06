@@ -14,6 +14,12 @@
  * template stats, so a data refresh can't strand stale claims in an article.
  */
 
+/** Articles carry the company byline — Chat·Backtest is the entity
+ *  accountable for every claim in them. The expertise signal Google looks for
+ *  on financial ("Your Money or Your Life") topics lives at /about, which the
+ *  byline links to and which names the founder and his background. */
+export const AUTHOR = { name: "Chat·Backtest", url: "/about" } as const;
+
 export const BLOG_CATEGORIES = [
   {
     slug: "strategy-tests",

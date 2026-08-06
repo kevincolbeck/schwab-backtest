@@ -5,7 +5,7 @@ import TemplateStatsBlock from "@/components/blog/TemplateStatsBlock";
 import { ARTICLE_BODIES } from "@/components/blog/articles";
 import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
-import { BLOG_POSTS, categoryBySlug, postBySlug } from "@/lib/blog";
+import { AUTHOR, BLOG_POSTS, categoryBySlug, postBySlug } from "@/lib/blog";
 import { pageMetadata } from "@/lib/seo";
 
 /* Article pages (P1-1). dynamicParams:false makes the registry the slug
@@ -83,8 +83,18 @@ export default async function BlogArticlePage({
             day: "numeric",
             timeZone: "UTC",
           })}{" "}
-          · {post.readingMinutes} min read · research &amp; education, not financial
-          advice
+          · {post.readingMinutes} min read
+        </p>
+        <p className="mt-1 text-caption text-faint">
+          By{" "}
+          <Link
+            href={AUTHOR.url}
+            className="focus-ring rounded-(--radius-tag) text-muted hover:text-ink"
+            rel="author"
+          >
+            {AUTHOR.name}
+          </Link>{" "}
+          · research &amp; education, not financial advice
         </p>
 
         <article className="docs-prose mt-8">

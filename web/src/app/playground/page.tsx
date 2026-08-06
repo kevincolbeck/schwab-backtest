@@ -720,7 +720,7 @@ function PlaygroundInner() {
               Pine export: {pineOut.warnings.length} part
               {pineOut.warnings.length === 1 ? "" : "s"} of this strategy need
               manual attention on TradingView (marked{" "}
-              <span className="font-mono">{"// TODO"}</span> in the file):{" "}
+              <span className="font-mono">{"// TODO"}</span>{" "}in the file):{" "}
               {pineOut.warnings.join("; ")}. TradingView results will differ —
               different fill models and data.
             </p>
@@ -1161,7 +1161,7 @@ function PlaygroundInner() {
                   <>
                     <p className="text-sm text-muted">
                       Draft in progress — keep refining in chat, then hit{" "}
-                      <span className="font-medium text-ink">Run backtest</span> to
+                      <span className="font-medium text-ink">Run backtest</span>{" "}to
                       see results.
                     </p>
                     <p className="mt-2 text-xs text-faint">

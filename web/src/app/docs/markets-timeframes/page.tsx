@@ -30,7 +30,7 @@ export default function DocsMarketsTimeframesPage() {
 
       <h3>The ALL_US universe</h3>
       <p>
-        Setting the symbol list to <code>ALL_US</code> scans a broad universe of
+        Setting the symbol list to <code>ALL_US</code>{" "}scans a broad universe of
         currently listed US common stocks instead of a hand-picked list. The
         universe is built from public exchange listings and filters out
         warrants, preferred shares, and fund products; each run takes a capped
@@ -46,12 +46,12 @@ export default function DocsMarketsTimeframesPage() {
 
       <h2>Crypto</h2>
       <p>
-        Crypto uses Polygon-style tickers with an <code>X:</code> prefix —{" "}
+        Crypto uses Polygon-style tickers with an <code>X:</code>{" "}prefix —{" "}
         <code>X:BTCUSD</code>, <code>X:ETHUSD</code>. Crypto strategies test on
         daily bars. These markets trade 24/7, and the engine treats them that
         way: no trading-day filter, candles on weekends, and days bucketed at
-        UTC boundaries — so calendar rules like <code>month</code> and{" "}
-        <code>day_of_week</code> refer to UTC days.
+        UTC boundaries — so calendar rules like <code>month</code>{" "}and{" "}
+        <code>day_of_week</code>{" "}refer to UTC days.
       </p>
       <Callout kind="honest" title="Crypto is still benchmarked against SPY">
         <p>
@@ -148,7 +148,7 @@ export default function DocsMarketsTimeframesPage() {
         This is a philosophy, not just a data plumbing detail. Numbers computed
         from closed bars are reproducible: run the same spec on the same range
         twice and you get the same answer. The{" "}
-        <Link href="/docs/forward-testing">forward ledger</Link> works the same
+        <Link href="/docs/forward-testing">forward ledger</Link>{" "}works the same
         way — deployed strategies are scored on closed bars after the day ends,
         which is what makes its track records auditable rather than vibes.
       </p>

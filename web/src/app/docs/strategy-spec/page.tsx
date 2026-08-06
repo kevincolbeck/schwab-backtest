@@ -49,17 +49,17 @@ export default function DocsStrategySpecPage() {
         50; exit when price loses the 50-day average; put 10% of equity in each
         position, hold up to five at once, with a hard 8% stop. Zero means
         “disabled” for the stop, take-profit, and holding-period fields. Two
-        fields not shown: <code>entry_price_field</code> picks which price of
+        fields not shown: <code>entry_price_field</code>{" "}picks which price of
         the triggering bar fills the entry (<code>open</code>,{" "}
         <code>high</code>, <code>low</code>, or the default <code>close</code>),
-        and <code>entry_rule_short</code> defines a short side with the same
+        and <code>entry_rule_short</code>{" "}defines a short side with the same
         grammar.
       </p>
 
       <h2>Indicators</h2>
       <p>
         Indicators are named columns computed before the rules run. The{" "}
-        <code>name_length</code> convention (<code>sma_50</code>,{" "}
+        <code>name_length</code>{" "}convention (<code>sma_50</code>,{" "}
         <code>rsi_14</code>) is what your rules reference — and when a chat edit
         mentions a simple indicator that does not exist yet, it is added
         automatically.
@@ -161,15 +161,15 @@ export default function DocsStrategySpecPage() {
         Rules are boolean expressions over the data columns: prices (
         <code>open</code>, <code>high</code>, <code>low</code>,{" "}
         <code>close</code>, <code>volume</code>), your indicators, and calendar
-        columns (<code>month</code> 1–12, <code>day_of_week</code> where 0 is
+        columns (<code>month</code>{" "}1–12, <code>day_of_week</code>{" "}where 0 is
         Monday, <code>year</code>). Combine comparisons with{" "}
         <code>&amp;</code> (and), <code>|</code> (or), <code>~</code> (not), and
-        parentheses — the words <code>and</code> / <code>or</code> work too.
+        parentheses — the words <code>and</code> / <code>or</code>{" "}work too.
         The allowed functions are <code>abs</code>, <code>min</code>,{" "}
         <code>max</code>, <code>sma</code>, <code>ema</code>, <code>rsi</code>,{" "}
         <code>zscore</code>, <code>atr</code>, <code>lag</code>,{" "}
         <code>pct_change</code>, <code>crosses_above</code>, and{" "}
-        <code>crosses_below</code>. <code>close[N]</code> is shorthand for{" "}
+        <code>crosses_below</code>. <code>close[N]</code>{" "}is shorthand for{" "}
         <code>{"lag(close, N)"}</code>.
       </p>
       <table>
@@ -243,8 +243,8 @@ export default function DocsStrategySpecPage() {
         <code>entry_price</code>, <code>days_held</code>,{" "}
         <code>current_stop</code>, <code>initial_stop</code>,{" "}
         <code>r_value</code> (the dollar distance from entry to the initial
-        stop), <code>shares</code>, and <code>position_side</code> with the{" "}
-        <code>is_long</code> / <code>is_short</code> shorthands. Entry rules
+        stop), <code>shares</code>, and <code>position_side</code>{" "}with the{" "}
+        <code>is_long</code> / <code>is_short</code>{" "}shorthands. Entry rules
         cannot see any of these — there is no position yet.
       </p>
 
@@ -277,12 +277,12 @@ export default function DocsStrategySpecPage() {
       <ul>
         <li>
           <code>notional_pct</code> — each position uses{" "}
-          <code>position_size_pct</code> percent of current equity (1–100).
+          <code>position_size_pct</code>{" "}percent of current equity (1–100).
           Simple and predictable.
         </li>
         <li>
           <code>risk_pct</code> — each trade risks{" "}
-          <code>risk_per_trade_pct</code> percent of equity (0.05–10), and the
+          <code>risk_per_trade_pct</code>{" "}percent of equity (0.05–10), and the
           share count is derived from the distance between entry and stop. A
           wider stop means a smaller position; every trade risks roughly the
           same dollars.
@@ -290,7 +290,7 @@ export default function DocsStrategySpecPage() {
       </ul>
       <p>
         <code>max_positions</code> (1–20) caps how many positions are open at
-        once, and the optional <code>ranking_field</code> names an indicator
+        once, and the optional <code>ranking_field</code>{" "}names an indicator
         used to rank candidates when more entries qualify than there are open
         slots. One sizing smell worth knowing: if position size × max positions
         goes far past 100% of equity, the backtest is quietly assuming leverage
@@ -299,13 +299,13 @@ export default function DocsStrategySpecPage() {
 
       <h2>Where you see it in the lab</h2>
       <p>
-        The <strong>Rules</strong> tab of the workspace shows the same strategy
+        The <strong>Rules</strong>{" "}tab of the workspace shows the same strategy
         three ways: a plain-English translation of the rules (with an AI-polished
         version when available), the raw JSON of the spec as it was actually
         run, and a download button that saves it as <code>strategy.json</code>.
         The English version is meant to be complete enough to{" "}
         <Link href="/docs/manual-trading">trade by hand</Link>, and the JSON is
-        exactly what <Link href="/docs/export-python">exports</Link> embed —
+        exactly what <Link href="/docs/export-python">exports</Link>{" "}embed —
         there is no hidden version of your strategy anywhere.
       </p>
 
