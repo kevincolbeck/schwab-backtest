@@ -75,6 +75,21 @@ export default function RootLayout({
                 >
                   The Lab
                 </Link>
+                {/* Kept in the footer rather than the nav: both are
+                    search-entry surfaces that need a crawlable internal link
+                    from every page, not a seventh and eighth top-level tab. */}
+                <Link
+                  href="/compare"
+                  className="focus-ring rounded-(--radius-tag) hover:text-ink"
+                >
+                  Compare
+                </Link>
+                <Link
+                  href="/about"
+                  className="focus-ring rounded-(--radius-tag) hover:text-ink"
+                >
+                  About
+                </Link>
               </div>
               <p className="max-w-xl text-caption leading-relaxed text-faint">
                 {DISCLAIMER}

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { BLOG_CATEGORIES, BLOG_POSTS, postsInCategory } from "@/lib/blog";
+import { COMPETITORS } from "@/lib/compare";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { SITE_URL } from "@/lib/seo";
 
@@ -40,6 +41,7 @@ const STATIC_ROUTES: { path: string; changeFrequency: "daily" | "weekly"; priori
   // "Your Money or Your Life" topics, and it's the target of every article
   // byline — so it has to be crawlable in its own right, not just via links.
   { path: "/about", changeFrequency: "weekly", priority: 0.6 },
+  { path: "/compare", changeFrequency: "weekly", priority: 0.7 },
   { path: "/docs", changeFrequency: "weekly", priority: 0.6 },
   { path: "/docs/first-backtest", changeFrequency: "weekly", priority: 0.5 },
   { path: "/docs/reading-results", changeFrequency: "weekly", priority: 0.5 },
@@ -142,6 +144,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: COPY_LAST_CHANGED,
       changeFrequency: "weekly" as const,
       priority: 0.6,
+    })),
+    // Comparison pages (P1-5). Commercial-intent surface; the copy changes
+    // only when a vendor's own pricing or features do.
+    ...COMPETITORS.map((c) => ({
+      url: `${SITE_URL}/compare/${c.slug}`,
+      lastModified: new Date(`${c.checkedOn}T00:00:00Z`),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
     })),
     ...BLOG_POSTS.map((p) => ({
       url: `${SITE_URL}/blog/${p.slug}`,
