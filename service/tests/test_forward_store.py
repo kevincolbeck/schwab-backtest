@@ -32,11 +32,55 @@ def test_create_deployment_freezes_spec_and_hash():
 
 
 def test_duplicate_names_get_distinct_slugs():
+    """Two DIFFERENT strategies that happen to share a display name still get
+    distinct, resolvable slugs. (This test used to deploy the same spec twice;
+    that is now refused outright — see the duplicate-spec tests below.)"""
     a = forward.create_deployment(SPEC, deployed_at="2026-06-01")
-    b = forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    variant = {**SPEC, "symbols": ["QQQ"]}  # same name, different rules
+    b = forward.create_deployment(variant, name=SPEC["name"], deployed_at="2026-06-01")
     assert a["slug"] != b["slug"]
     assert forward.get_deployment_by_slug(a["slug"])["id"] == a["id"]
     assert forward.get_deployment_by_slug(b["slug"])["id"] == b["id"]
+
+
+def test_identical_spec_cannot_be_deployed_publicly_twice():
+    """§8's one-click deploy must not let the board fill with copies.
+
+    A forward record is a deterministic function of (frozen spec, start date,
+    market data). A same-spec copy started later is the SAME strategy with
+    fewer days live — ranking it separately makes the board worse, not bigger.
+    """
+    first = forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    with pytest.raises(forward.DuplicateSpecError) as exc:
+        forward.create_deployment(SPEC, deployed_at="2026-06-02")
+    # The refusal must carry somewhere useful to go, not just say no.
+    assert exc.value.slug == first["slug"]
+    assert exc.value.name == first["name"]
+
+
+def test_editing_one_rule_makes_it_a_new_record():
+    """The escape hatch has to actually work: change a rule, get a record."""
+    forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    edited = {**SPEC, "stop_loss_pct": 8}
+    dep = forward.create_deployment(edited, deployed_at="2026-06-02")
+    assert dep["spec_hash"] != forward.spec_hash_of(SPEC)
+
+
+def test_private_copies_are_allowed():
+    """Dedup protects the PUBLIC board. A private record is your own notebook
+    and competes with nothing."""
+    forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    dep = forward.create_deployment(SPEC, visibility="private", deployed_at="2026-06-02")
+    assert dep["visibility"] == "private"
+
+
+def test_house_seeding_bypasses_the_duplicate_gate():
+    """seed_house_templates dedups by hash itself and predates user records."""
+    forward.create_deployment(SPEC, deployed_at="2026-06-01")
+    dep = forward.create_deployment(
+        SPEC, owner="house", deployed_at="2026-06-02", allow_duplicate_spec=True
+    )
+    assert dep["owner"] == "house"
 
 
 def test_signal_append_is_idempotent():

@@ -223,6 +223,40 @@ def deployment_timeframe(deployment: dict) -> str:
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
 
+class DuplicateSpecError(Exception):
+    """Raised when a spec hash is already live on the public board.
+
+    §8's one-click deploy would otherwise let ten people put an unmodified
+    golden-cross on the ledger and produce eleven near-identical rows. That
+    destroys the only thing the board is for. A record is a deterministic
+    function of (frozen spec, start date, market data), so a same-spec copy
+    started later is not new information — it is the same strategy with fewer
+    days live, ranked as though it were a separate discovery.
+
+    So the duplicate is refused at the door and the caller is pointed at the
+    record that already exists. Editing the rules first produces a different
+    hash, a genuinely different strategy, and a record worth having.
+    """
+
+    def __init__(self, slug: str, name: str):
+        self.slug = slug
+        self.name = name
+        super().__init__(f"spec already deployed as {slug}")
+
+
+def find_active_public_by_hash(spec_hash: str) -> Optional[dict]:
+    conn = _connect()
+    try:
+        row = conn.execute(
+            "SELECT * FROM deployments WHERE spec_hash = ? AND status = 'active'"
+            " AND visibility = 'public' ORDER BY deployed_at LIMIT 1",
+            (spec_hash,),
+        ).fetchone()
+    finally:
+        conn.close()
+    return _deployment_row(row) if row else None
+
+
 def create_deployment(
     spec: dict,
     name: Optional[str] = None,
@@ -232,11 +266,20 @@ def create_deployment(
     deployed_at: Optional[str] = None,
     source_run_id: Optional[str] = None,
     backtest_stats: Optional[dict] = None,
+    allow_duplicate_spec: bool = False,
 ) -> dict:
     """Freeze a spec into a new deployment. Frozen specs are immutable —
-    changing a deployed strategy means a NEW deployment with a fresh record."""
+    changing a deployed strategy means a NEW deployment with a fresh record.
+
+    Raises DuplicateSpecError when this exact spec is already live publicly,
+    unless allow_duplicate_spec is set (the house seeding path, which is
+    idempotent by design and predates every user record)."""
     frozen = json.dumps(spec, sort_keys=True, separators=(",", ":"))
     digest = spec_hash_of(spec)
+    if not allow_duplicate_spec and visibility == "public":
+        clash = find_active_public_by_hash(digest)
+        if clash:
+            raise DuplicateSpecError(clash["slug"], clash["name"])
     dep_id = hashlib.sha256(f"{digest}{_now()}".encode()).hexdigest()[:16]
     slug = _slugify(name or spec.get("name", "strategy"), digest)
     deployed = deployed_at or datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -665,6 +708,9 @@ def seed_house_templates(
             owner="house",
             deployed_at=deployed_at,
             backtest_stats=(cached_stats.get(path.stem) or {}).get("stats"),
+            # This path already skips known hashes above, and it is the
+            # seeding that every user record is later compared against.
+            allow_duplicate_spec=True,
         )
         deployed.append(dep["slug"])
     return {"deployed": deployed, "skipped": skipped}

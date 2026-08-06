@@ -19,6 +19,7 @@ export default function ShareRecord({
   name: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   const copyLink = async () => {
     const url = `${window.location.origin}/strategy/${slug}`;
@@ -29,6 +30,23 @@ export default function ShareRecord({
     } catch {
       /* clipboard blocked (insecure context / permissions) — the download
          link still works, and the URL is in the address bar regardless. */
+    }
+  };
+
+  // §8 creator embed: a live card for the creator's own site or link-in-bio.
+  // An iframe rather than a script tag on purpose — a script would ask people
+  // to run our code on their page, and there is nothing here that needs to.
+  const copyEmbed = async () => {
+    const src = `${window.location.origin}/embed/${slug}`;
+    const snippet =
+      `<iframe src="${src}" title="${name} — live forward-test record on Chat·Backtest" ` +
+      `width="360" height="230" loading="lazy" style="border:0;max-width:100%"></iframe>`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — the embed URL is still documented on the page. */
     }
   };
 
@@ -48,6 +66,14 @@ export default function ShareRecord({
       >
         Download card
       </a>
+      <button
+        type="button"
+        onClick={copyEmbed}
+        className="focus-ring tap-target rounded-(--radius-control) border border-hairline px-2.5 py-1.5 text-xs text-muted transition-colors duration-(--dur-micro) hover:border-hairline-strong hover:text-ink"
+        title="Copy an iframe snippet that shows this record live on your own site"
+      >
+        {embedCopied ? "Embed copied!" : "Embed"}
+      </button>
     </div>
   );
 }

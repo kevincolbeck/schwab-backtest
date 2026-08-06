@@ -580,7 +580,21 @@ function PlaygroundInner() {
       const out = await deployRun({ run_id: run.run_id, name: run.spec.name });
       setDeployedSlug(out.deployment.slug);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Deploy failed");
+      // §8: a duplicate spec is refused with a 409 carrying the record that
+      // already exists — show that, not a generic failure. Being told "these
+      // exact rules are already on the board, here they are" is a useful
+      // answer; "Deploy failed" is not.
+      const detail =
+        e instanceof ApiError && typeof e.detail === "object" && e.detail
+          ? (e.detail as { error?: string; message?: string })
+          : null;
+      setError(
+        detail?.error === "duplicate_spec" && detail.message
+          ? detail.message
+          : e instanceof Error
+            ? e.message
+            : "Deploy failed",
+      );
     } finally {
       setDeploying(false);
     }

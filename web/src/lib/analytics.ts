@@ -17,7 +17,17 @@
 export const AID_KEY = "cb_aid";
 
 /** Client events /api/t will accept — keep in sync with its allowlist. */
-export const CLIENT_EVENTS = ["result_viewed", "upgrade_viewed", "deploy_started"] as const;
+export const CLIENT_EVENTS = [
+  "result_viewed",
+  "upgrade_viewed",
+  "deploy_started",
+  // §8 demand test for Phase 2 "follow top strategies". A click is the whole
+  // measurement — deliberately no email capture, because there is no consent
+  // record, no unsubscribe, no suppression list and no privacy policy in this
+  // codebase yet (see docs/P1-4-EMAIL-PLAN.md). Collecting addresses we cannot
+  // lawfully mail is worse than counting clicks.
+  "follow_interest",
+] as const;
 export type ClientEvent = (typeof CLIENT_EVENTS)[number];
 
 /** Stable first-party anonymous id (localStorage + cookie mirror). */

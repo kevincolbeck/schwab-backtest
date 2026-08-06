@@ -10,6 +10,7 @@ import SectionShell from "@/components/SectionShell";
 import ShareToX from "@/components/ShareToX";
 import Sparkline from "@/components/Sparkline";
 import Card from "@/components/ui/Card";
+import FollowInterest from "@/components/FollowInterest";
 import { DISCLAIMER } from "@/lib/constants";
 import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { METRICS } from "@/lib/metrics";
@@ -431,6 +432,9 @@ export default async function LeaderboardPage({
             </Card>
           </>
         )}
+        {/* §8 demand test. Sits BELOW the board so it never competes with the
+            records themselves — the page's job is the ledger, not a teaser. */}
+        <FollowInterest />
       </SectionShell>
 
       <div className="mx-auto w-full max-w-(--container-max) px-4 pb-12 sm:px-6">

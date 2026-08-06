@@ -1042,6 +1042,23 @@ def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(
             source_run_id=req.run_id,
             backtest_stats=run.get("stats"),
         )
+    except forward.DuplicateSpecError as clash:
+        # §8: refuse the clone, point at the original. 409 rather than 400 —
+        # the request is well-formed, it conflicts with existing state.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "duplicate_spec",
+                "slug": clash.slug,
+                "name": clash.name,
+                "message": (
+                    f'These exact rules are already on the ledger as "{clash.name}". '
+                    "A second copy would score the same strategy twice with fewer "
+                    "days live, which makes the board worse, not bigger. Change a "
+                    "rule and deploy that instead — it becomes a different record."
+                ),
+            },
+        )
     except HTTPException:
         raise
     except Exception:
