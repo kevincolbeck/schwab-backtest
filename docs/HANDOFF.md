@@ -268,13 +268,18 @@ farming. Revisit if `REFERRAL_MAX_BONUS` rises or a slot ever gets expensive.
 
 **Referral card confirmed working on prod 2026-08-06.**
 
-**KNOWN BUG, not yet fixed:** "Fork this strategy" renders on ZERO records.
-`web/src/app/strategy/[slug]/page.tsx:156` gates the button on
-`data.source_run_id`, and `seed_house_templates` creates deployments without
-one (there was no run — specs came from JSON). Every record on the board is
-house-seeded, so the only bridge from the leaderboard back into the lab is
-missing everywhere. The frozen spec IS already in the payload, so the robust
-fix is to fall back to it rather than backfilling run ids.
+**Fork bug FIXED (`413f2fe`), prod-verified.** "Fork this strategy" had been
+gated on `data.source_run_id`, which house-seeded deployments don't have — so
+it rendered on ZERO records and the leaderboard had no route back into the
+product. The lab now accepts `?from=<slug>` and loads the frozen spec (already
+public in the payload), so the path no longer depends on how a deployment was
+created; `?run=` is still preferred where a source run exists. Needed a new
+`/api/strategy/[slug]` proxy — the record page is server-rendered but the lab
+is a client component and can't reach FastAPI directly.
+
+Deliberately does NOT pre-fill the run on the `?from=` path: a forward record
+is not a backtest of that spec over the lab's window, and showing it as one
+would merge two curves this product refuses to merge.
 
 ## NEXT UP (in spec order)
 
