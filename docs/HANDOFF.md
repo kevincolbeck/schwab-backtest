@@ -1,7 +1,8 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-05**, §5 shipped + live on chatbacktest.com with
-> Stripe live mode, Resend, and analytics all configured.
+> Last updated: **2026-08-06**, P1-2 shipped. Live on chatbacktest.com with
+> Stripe LIVE mode, Resend verified, analytics flowing, SEO complete.
+> Tree clean at `1ad99da`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -42,6 +43,17 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   to the retired $29/$79 prices — checkout 503s until the new env vars are
   set rather than silently mischarging.
 
+- **P1-2 PER-PAGE SEO: SHIPPED (`1ad99da`), prod-verified.** Every route now
+  sets its own title/description/canonical/OG/twitter via
+  `web/src/lib/seo.ts::pageMetadata()`. Six routes previously had NO metadata
+  and no route had ANY Open Graph tags. Spec titles verbatim for all five
+  mandated pages. Site-wide OG card at `web/src/app/opengraph-image.tsx`.
+  noIndex on /login /account /dashboard /admin /runs/[id] /s/[slug].
+  Sitemap gained /playground + 16 live strategy-record pages (fetched from
+  /leaderboard, revalidate 3600) and honest `lastModified` dates — 156 URLs
+  on prod. **Acceptance is executable: `cd web && npm run seo -- <url>`.**
+  Prod run: 29 routes, 28 unique titles, 28 unique descriptions, 0 problems.
+
 ## NEXT UP (in spec order)
 
 1. ~~**P1-2 per-page SEO**~~ — **SHIPPED.** Every route sets its own
@@ -60,12 +72,21 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
    og:image/canonical. Remaining §P1-2 bullet: "Template pages: [Strategy]
    backtest — …" needs Section 4's `/backtest/[slug]` routes, which don't
    exist yet.
-2. **P1-3 shareable record cards** (dynamic OG image per strategy + download).
-3. **P1-4 email sequences** — BLOCKED on owner: Resend-or-Loops decision +
-   API key (spec §6 + §10 blocker #1).
+2. **P1-3 shareable record cards** — dynamic OG image per strategy already
+   exists (`strategy/[slug]/opengraph-image.tsx`); what's missing is the
+   "Share this record" button that copies the link AND downloads a square
+   social image. Start there, not from scratch.
+3. **P1-4 email sequences** — **UNBLOCKED.** Resend account is live, domain
+   `chatbacktest.com` VERIFIED (DKIM+SPF+MX green), key in gitignored `.env`
+   as `RESEND_API_KEY`. Nine emails + triggers specified in spec §6; branch
+   off the P0-5 `backtest_run` / `deploy_completed` events. Kevin should
+   rotate the key (it was pasted in chat) before/after building.
 4. **P1-5 comparison pages** (6 competitors, factual tone).
 5. Section 4 programmatic template pages `/backtest/[slug]` — when built,
-   re-point blog article template-links and add per-template backlinks.
+   re-point blog article template-links, add per-template backlinks, add them
+   to the sitemap, and satisfy §P1-2's last bullet ("Template pages:
+   [Strategy] backtest — 10-year CAGR, drawdown & Sharpe"), which is the ONLY
+   part of P1-2 still outstanding and is blocked on this.
 6. ~~§5 pricing restructure~~ — **SHIPPED** (see above). Follow-ups it left:
    build the Max features §5 advertises but we refused to sell unbuilt
    (priority engine queue, verified-record badge, public profile page, early
@@ -94,6 +115,12 @@ file via `git commit -F`, end with the Claude co-author line) →
   is truly static except sitemap.xml; "it'll fail at build" reasoning is wrong.
 - Anonymous analytics ids are ALWAYS `anon:`-prefixed (user-UUID collision =
   forgeable funnels). Client may only emit view events via `/api/t`.
+- SEO (P1-2): Next merges metadata SHALLOWLY — setting `openGraph` in a page
+  REPLACES the root's block. Never hand-write page metadata; always use
+  `pageMetadata()` from `web/src/lib/seo.ts`, or og:title silently becomes the
+  homepage's. Routes with their own `opengraph-image.tsx` must pass
+  `ogImage: null`. Anything added to the sitemap must be indexable, and
+  anything indexable should be in the sitemap — `npm run seo` enforces both.
 - Pricing truth (§5): NOTHING is priced per action. Plans sell capabilities;
   quiet per-day caps meter usage; credits are invisible overflow only. Never
   reintroduce a usage counter into the lab, and never advertise a capability
@@ -157,10 +184,15 @@ file via `git commit -F`, end with the Claude co-author line) →
 - Decide `FREE_CHAT_PER_DAY` (ships at 5; the case for 10 is in
   docs/pricing-model.md §5 — it's the one growth-vs-COGS dial).
 
-- **Google Search Console**: verify `chatbacktest.com` (the new canonical
-  domain, purchased 2026-08-05) and submit
-  `https://chatbacktest.com/sitemap.xml`. Do this on the CUSTOM domain, not
-  the vercel.app one, so the index isn't split.
+- **Google Search Console** — property verified and sitemap submitted
+  (2026-08-05). After P1-2 the sitemap grew 139 -> 156 URLs (added
+  /playground + 16 strategy-record pages) and every page's title/description
+  changed, so Google needs to re-crawl. Nothing to resubmit — Google refetches
+  a known sitemap on its own schedule and the new `lastmod` dates signal the
+  change. To speed up the pages that matter: URL Inspection -> "Request
+  indexing" on `/`, `/library`, `/leaderboard`, `/playground` and the top blog
+  posts (roughly 10/day quota). Expect Coverage/Pages counts to move over
+  days, not hours.
 - Archive prod duplicate `golden-cross-ddb5a4-5186` (SQL on Railway; status
   column is mutable).
 - §10 blockers: #1 email provider (Resend/Loops) + key → unblocks P1-4;
@@ -175,6 +207,8 @@ file via `git commit -F`, end with the Claude co-author line) →
 - Tests: `python -m pytest` from repo root (237 green);
   `cd web && npm test -- --run` (43 green); `npm run build` green;
   `npm run lint` has exactly 3 pre-existing errors + 1 warning.
+- SEO acceptance: `cd web && npm run seo -- https://chatbacktest.com`
+  (or a local `npx next start` URL). Exits non-zero on any violation.
 - Prod: web `chatbacktest.com` (canonical; `schwab-backtest.vercel.app` still
   resolves and should 308-redirect once the domain is primary in Vercel),
   service
