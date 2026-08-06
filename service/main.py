@@ -1172,12 +1172,10 @@ def strategy_page(slug: str):
         "signals": forward.get_signals(dep["id"]),
         "equity": forward.get_equity_series(dep["id"]),
         "summary": forward.forward_summary(dep),
-        # Renamed from "execution_model" (Section 9: ledger event recorded is
-        # NOT trade executed — nothing is executed on this platform). Both keys
-        # ship for one release because Railway and Vercel deploy independently;
-        # drop the alias once the web side is live.
+        # Section 9: ledger event recorded is NOT trade executed — nothing is
+        # executed on this platform. (Was "execution_model"; the compatibility
+        # alias is gone now that both tiers are deployed on this key.)
         "ledger_method": ledger_method,
-        "execution_model": ledger_method,  # deprecated alias
         "disclaimer": DISCLAIMER,
     }
 

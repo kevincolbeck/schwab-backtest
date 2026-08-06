@@ -21,7 +21,6 @@ What is banned is naming something in a way that asserts the PLATFORM placed
 an order.
 """
 
-import json
 import re
 
 import pytest
@@ -163,19 +162,4 @@ def test_public_payloads_never_name_execution():
 
     res = client.get("/leaderboard")
     assert res.status_code == 200
-    body = res.json()
-    walk(body)
-    # The deprecated alias is deliberately excluded: it exists only for the
-    # one-release deploy-skew window and is asserted dead below.
-    assert "disclaimer" not in json.dumps(body) or True
-
-
-def test_deprecated_execution_model_alias_is_scheduled_for_removal():
-    """Fails once the alias is gone — which is the reminder to delete this
-    test too, rather than letting a 'temporary' key live forever."""
-    import pathlib
-
-    main = (pathlib.Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
-    assert '"execution_model": ledger_method,  # deprecated alias' in main, (
-        "the alias is gone — delete it from main.py's comment and delete this test"
-    )
+    walk(res.json())
