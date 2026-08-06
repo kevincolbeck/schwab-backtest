@@ -210,18 +210,21 @@ export default function DocsChatPage() {
 
       <h2>What chat costs</h2>
       <p>
-        Without an account you get <strong>3 AI messages a day</strong> —
-        enough to test-drive an edit before signing up. Signed in, each message
-        debits credits based on an estimate of what is actually sent to the
-        model: the system context (which embeds your current spec and latest
-        results) plus your recent conversation — the last 12 messages, each
-        capped at 2,000 characters. What is billed is what is sent, and if the
-        model call fails the charge is refunded. Details and current rates live
-        in <Link href="/docs/credits">Credits</Link>.
+        Nothing per message — AI chat is included on every plan, with no
+        counter and no per-message charge. What exists instead is a daily
+        limit: <strong>3 messages</strong> without an account,{" "}
+        <strong>5 on Free</strong>, <strong>15 on Pro</strong>,{" "}
+        <strong>40 on Max</strong>. Model tokens are one of the two things
+        that genuinely cost us money per use, so the free tier&rsquo;s limit
+        is a real constraint rather than a formality — worth knowing before a
+        long session. Context is capped on every plan too (the last 12
+        messages, each trimmed to 2,000 characters), so a long conversation
+        can&rsquo;t quietly balloon. Full table in{" "}
+        <Link href="/docs/credits">Plans &amp; limits</Link>.
       </p>
 
       <DocsFooterNav
-        prev={{ href: "/docs/credits", label: "Credits" }}
+        prev={{ href: "/docs/credits", label: "Plans & limits" }}
         next={{ href: "/docs/markets-timeframes", label: "Markets & timeframes" }}
       />
     </>

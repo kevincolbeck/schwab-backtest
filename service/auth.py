@@ -22,18 +22,30 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
-# Plan limits (master plan Phase 4). None = unlimited.
+# Plan capabilities (§5 flat tiers). None = unlimited. Every per-day number is
+# a QUIET fair-use cap, not an advertised quota — the product sells
+# capabilities, and these caps exist to stop scripts, not people. Chat caps
+# are the real COGS boundary (model tokens): they're sized so even a
+# worst-case adversarial month stays at/above break-even at the §5 prices
+# (math in docs/pricing-model.md §5) while typical usage never notices.
 PLAN_LIMITS = {
     "anon": {"runs_per_day": int(os.getenv("ANON_RUNS_PER_DAY", "10")), "max_symbols": 10,
-             "deployments": 0, "private": False, "all_us": False},
-    # P0-4: the free plan's runs_per_day is a quiet fair-use cap, not an
-    # advertised quota — daily-data runs no longer spend credits, so this cap
-    # is what actually meters them. Generous on purpose: a human clicking
-    # around should never hit it in a normal day.
+             "deployments": 0, "private": False, "all_us": False,
+             "intraday": False, "crypto": False, "chat_per_day": None,
+             "explain_per_day": None},  # anon uses EXPLAIN_PER_DAY_ANON
     "free": {"runs_per_day": int(os.getenv("FREE_RUNS_PER_DAY", "50")), "max_symbols": 10,
-             "deployments": 1, "private": False, "all_us": False},
-    "pro": {"runs_per_day": None, "max_symbols": 100, "deployments": 5, "private": True, "all_us": False},
-    "max": {"runs_per_day": None, "max_symbols": 200, "deployments": 25, "private": True, "all_us": True},
+             "deployments": 1, "private": False, "all_us": False,
+             "intraday": False, "crypto": False,
+             "chat_per_day": int(os.getenv("FREE_CHAT_PER_DAY", "5")),
+             "explain_per_day": int(os.getenv("FREE_EXPLAIN_PER_DAY", "5"))},
+    "pro": {"runs_per_day": None, "max_symbols": 100, "deployments": 10, "private": True,
+            "all_us": False, "intraday": True, "crypto": False,
+            "chat_per_day": int(os.getenv("PRO_CHAT_PER_DAY", "15")),
+            "explain_per_day": int(os.getenv("PRO_EXPLAIN_PER_DAY", "10"))},
+    "max": {"runs_per_day": None, "max_symbols": 200, "deployments": None, "private": True,
+            "all_us": True, "intraday": True, "crypto": True,
+            "chat_per_day": int(os.getenv("MAX_CHAT_PER_DAY", "40")),
+            "explain_per_day": int(os.getenv("MAX_EXPLAIN_PER_DAY", "20"))},
 }
 
 _token_cache: dict = {}  # token_hash -> (expires_at, user_dict)
@@ -99,6 +111,13 @@ def get_user(authorization: Optional[str]) -> Optional[dict]:
 
 def limits_for(user: Optional[dict]) -> dict:
     if user is None:
+        # Dev-open: with auth unconfigured there are no accounts, so there are
+        # no plans to gate by — everything the rest of the code treats as
+        # "dev-open" (rate limits, the /backtest 401) behaves the same way.
+        # In production auth IS configured, so this branch never widens
+        # anything; anonymous visitors get the anon capability set.
+        if not auth_configured():
+            return PLAN_LIMITS["max"]
         return PLAN_LIMITS["anon"]
     return PLAN_LIMITS.get(user.get("plan", "free"), PLAN_LIMITS["free"])
 

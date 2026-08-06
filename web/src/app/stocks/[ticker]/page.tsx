@@ -28,7 +28,7 @@ export const revalidate = 21600;
 export const dynamicParams = true;
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://schwab-backtest.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com";
 
 const HOUR_LABELS: Record<string, string> = {
   bmo: "before open",

@@ -1,10 +1,15 @@
-"""Credit system client (Claude-style usage billing).
+"""Credit client — since §5, the invisible OVERFLOW rail (not the pricing model).
+
+Plans sell capabilities (see auth.PLAN_LIMITS) and every action is metered by
+a quiet per-day fair-use cap. Credits are what happens PAST that cap: a user
+holding a balance (signup grant, monthly grant, or a top-up pack) keeps
+working instead of hitting a wall. Nothing in the lab shows a balance; only
+/account and the pricing-page footer mention packs at all.
 
 Balances live in Supabase (credits_ledger + atomic RPCs from
 APPLY_ME_PART3.sql); this module is a thin, fail-open client: when the RPCs
-aren't installed yet (or auth is off), credits are DISABLED and the older
-per-day limits still protect the endpoints — the system deploys dormant and
-switches itself on when the SQL lands.
+aren't installed (or auth is off), overflow is simply unavailable and the
+fair-use caps stand on their own.
 """
 
 import logging

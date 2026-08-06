@@ -119,7 +119,14 @@ def test_anon_run_limit_429_is_recognizable(anon_client, monkeypatch):
     assert "free account" in detail["message"]
 
 
-def test_signed_in_template_run_still_skips_the_daily_counter(monkeypatch):
+def test_signed_in_template_run_counts_against_the_quiet_cap(monkeypatch):
+    """§5: every allowed run is metered by the plan's quiet fair-use cap.
+
+    The credits-era exemption (signed-in template runs skipped the counter
+    because credits priced them instead) is gone — nothing is priced now, so
+    the cap is the only meter and it must see every run. Free's cap is
+    deliberately generous; Pro/Max pass None and stay uncapped.
+    """
     monkeypatch.setattr(auth, "auth_configured", lambda: True)
     monkeypatch.setattr(credits, "enabled_for", lambda user: False)
     _stub_engine(monkeypatch)
@@ -134,7 +141,7 @@ def test_signed_in_template_run_still_skips_the_daily_counter(monkeypatch):
     finally:
         main.app.dependency_overrides.pop(main.current_user, None)
     assert resp.status_code == 200
-    assert counted == []  # the signed-in template exemption survives P0-3
+    assert counted == [(USER["id"], auth.PLAN_LIMITS["free"]["runs_per_day"])]
 
 
 def test_anon_chat_three_free_then_gated(anon_client, monkeypatch):

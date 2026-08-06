@@ -73,7 +73,9 @@ export default async function DashboardPage() {
           My forward deployments{" "}
           {me && (
             <span className="tnum normal-case tracking-normal">
-              ({deployments.length}/{me.limits?.deployments ?? "—"} slots)
+              {/* deployments === null means unlimited (Max) — §5 flat tiers. */}
+              ({deployments.length}
+              {me.limits?.deployments == null ? "" : `/${me.limits.deployments}`} slots)
             </span>
           )}
         </SectionLabel>

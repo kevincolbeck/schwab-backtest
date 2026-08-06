@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import {
+  ANNUAL_MULTIPLIER,
   MONTHLY_CREDITS,
   getProfile,
   grantCredits,
@@ -117,7 +118,12 @@ export async function POST(request: Request) {
       }
     }
     if (userId && (plan === "pro" || plan === "max")) {
-      const ok = await grantCredits(userId, MONTHLY_CREDITS[plan], "monthly_grant", obj.id ?? "unknown");
+      // Annual subscriptions invoice once a year, so a plain monthly grant
+      // would give an annual subscriber 1/12th the overflow headroom of a
+      // monthly one. Scale by the interval recorded at checkout.
+      const annual = meta.interval === "annual";
+      const amount = MONTHLY_CREDITS[plan] * (annual ? ANNUAL_MULTIPLIER : 1);
+      const ok = await grantCredits(userId, amount, "monthly_grant", obj.id ?? "unknown");
       if (!ok) return retry();
     }
   } else if (

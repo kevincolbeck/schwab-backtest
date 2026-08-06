@@ -94,8 +94,8 @@ export default function FirstBacktestPage() {
             email for a sign-in link, no password to invent. Free accounts run{" "}
             <strong>unlimited backtests on daily data</strong> (a generous
             fair-use cap exists to stop scripts, not people), no card
-            required; the <a href="/docs/credits">Credits</a> page explains how
-            advanced usage is metered.
+            required; the <a href="/docs/credits">Plans &amp; limits</a> page
+            explains what each tier unlocks.
           </p>
         </Step>
       </Steps>
@@ -160,13 +160,14 @@ export default function FirstBacktestPage() {
 
       <Callout kind="note" title="What this costs">
         <p>
-          Daily-data backtests — every template, edited or not, and any
-          universe up to 10 symbols — are free: anonymously up to 10 a day,
-          and on every plan once signed in (a generous fair-use cap applies).
-          What&rsquo;s metered is the genuinely expensive stuff: AI
-          conversations (a typical message is 12 from your allowance),
-          intraday timeframes, and custom universes past 10 symbols. Full
-          price list on the <a href="/docs/credits">Credits</a> page.
+          Nothing, on daily data. Backtests on daily bars are unlimited on
+          every plan — including free — and anonymously up to 10 a day
+          without an account. Paid plans unlock capabilities rather than
+          volume: intraday timeframes and bigger universes on Pro, the full US
+          universe and crypto on Max. Generous per-day fair-use limits run
+          quietly in the background to stop scripts; you&rsquo;ll never watch
+          a counter drain. Details on the{" "}
+          <a href="/docs/credits">Plans &amp; limits</a> page.
         </p>
       </Callout>
 

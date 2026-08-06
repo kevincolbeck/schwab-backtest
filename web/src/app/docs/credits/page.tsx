@@ -1,192 +1,176 @@
+import Link from "next/link";
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
 
 export const metadata = {
-  title: "Credits",
+  title: "Plans & limits",
   description:
-    "How usage is metered: daily-data backtests are free, what the genuinely expensive actions cost, how chat pricing works, plans and top-up packs, and automatic refunds when something fails.",
+    "What each plan can do, how the quiet fair-use limits work, and why there is no usage counter to watch while you work.",
 };
 
-export default function CreditsPage() {
+export default function PlansPage() {
   return (
     <>
-      <h1>Credits</h1>
+      <h1>Plans &amp; limits</h1>
       <p>
-        Most of the lab is free to use — daily-data backtests on any template
-        (edited or not) or any universe up to 10 symbols never draw on a
-        balance, on any plan. Credits meter only the things that cost us real
-        money per use — AI model tokens, intraday market data, very large
-        universes — so heavy usage pays its own way while everyday testing
-        stays free.
+        Plans here sell <strong>capabilities</strong>, not usage currency.
+        There is no counter in the lab, nothing drains while you work, and no
+        action has a price attached to it. What changes between tiers is what
+        you can <em>do</em>: which timeframes and markets you can test, how
+        many symbols per run, how many strategies you can put on the public
+        ledger, and whether your exports and share links carry a watermark.
       </p>
 
-      <h2>The short version</h2>
-      <ul>
-        <li>
-          No account yet? Daily-bar templates run <strong>free</strong> — up to
-          10 a day per visitor — with 3 AI messages and plain-English
-          explanations. An account unlocks custom strategies, intraday
-          timeframes, exports, and deploys.
-        </li>
-        <li>
-          Free accounts get <strong>unlimited backtests on daily data</strong>{" "}
-          (a fair-use cap of 50 runs a day exists to stop scripts, not
-          people), the full strategy library, and one live public forward-test
-          deployment — no card required. A one-time starter allowance of 250
-          credits covers advanced usage: AI conversations and intraday runs.
-          Bigger custom universes are a plan feature — Free runs up to 10
-          symbols, Pro up to 100.
-        </li>
-        <li>
-          Every priced action debits <em>before</em> it runs; if the action
-          fails, the credits come back automatically.
-        </li>
-        <li>
-          Subscriptions add a monthly allowance; one-time packs top you up
-          between refills.
-        </li>
-        <li>
-          The ◈ meter in the lab toolbar is your live balance. It stays out of
-          the way during your first session, then updates with every priced
-          action and turns red when you drop below 25. Template and
-          up-to-10-symbol daily backtests never move it.
-        </li>
-      </ul>
-
-      <h2>What actions cost</h2>
+      <h2>What each plan can do</h2>
       <table>
         <thead>
           <tr>
-            <th>Action</th>
-            <th>Credits</th>
+            <th>Capability</th>
+            <th>Free</th>
+            <th>Pro — $39/mo</th>
+            <th>Max — $99/mo</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Backtest — daily bars: any template (edited or not) or up to 10 symbols</td>
-            <td>Free on every plan — never draws on your balance</td>
+            <td>Daily-data backtests</td>
+            <td>Unlimited</td>
+            <td>Unlimited</td>
+            <td>Unlimited</td>
           </tr>
           <tr>
-            <td>Backtest — daily bars, custom universe of 11+ symbols or full-US</td>
-            <td>10 per block of 10 symbols, all blocks counted (11 symbols = 20; full-US caps at 200)</td>
+            <td>The strategy library</td>
+            <td>Daily templates (12 of 14)</td>
+            <td>All 14</td>
+            <td>All 14</td>
           </tr>
           <tr>
-            <td>Backtest — 15m / 30m / 60m bars</td>
-            <td>25 per block of 10 symbols</td>
+            <td>Intraday timeframes (1m–60m)</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>✓</td>
           </tr>
           <tr>
-            <td>Backtest — 1m / 5m bars</td>
-            <td>50 per block of 10 symbols</td>
+            <td>Symbols per run</td>
+            <td>10</td>
+            <td>100</td>
+            <td>200</td>
           </tr>
           <tr>
-            <td>Chat message</td>
-            <td>12 minimum, scaling with size (explained below)</td>
+            <td>Full US universe (ALL_US)</td>
+            <td>—</td>
+            <td>—</td>
+            <td>✓</td>
           </tr>
           <tr>
-            <td>AI plain-English explanation (Rules tab)</td>
-            <td>5 — repeats for the same strategy are cached and free</td>
+            <td>Crypto markets (X:BTCUSD …)</td>
+            <td>—</td>
+            <td>—</td>
+            <td>✓</td>
           </tr>
           <tr>
-            <td>Deploy a daily strategy to the ledger</td>
-            <td>No credit fee — uses one of your plan&rsquo;s slots</td>
+            <td>Forward-test deployments</td>
+            <td>1 (public)</td>
+            <td>10</td>
+            <td>Unlimited</td>
           </tr>
           <tr>
-            <td>Deploy a 15m/30m/60m strategy (Pro/Max)</td>
-            <td>100, one-time</td>
+            <td>Private deployments</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>✓</td>
           </tr>
           <tr>
-            <td>Deploy a 1m/5m strategy (Pro/Max)</td>
-            <td>250, one-time</td>
+            <td>Clean share links (no watermark)</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Python + Pine Script export</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
           </tr>
         </tbody>
       </table>
-
-      <h3>Symbol blocks</h3>
       <p>
-        Priced backtests scale by the size of the universe they actually
-        resolve: one block per 10 symbols, capped at 20 blocks. Daily runs
-        inside one block — up to 10 symbols — are free, as is any daily run of
-        a template&rsquo;s universe; from 11 custom symbols the run is priced
-        on <em>all</em> of its blocks, so an 11-symbol daily run is 20
-        credits, and the full-US universe hits the cap: 10 × 20 = 200 credits,
-        no matter how large the market grows. Intraday runs price from the
-        first block. The benchmark symbol is added free, and duplicate symbols
-        count once — billing follows what the engine actually simulates.
+        Annual billing is 10 months&rsquo; price for 12 — two months free —
+        and changes nothing about what a plan can do. No account at all still
+        gets you daily-bar template runs (10 a day per visitor) and a few AI
+        messages, which is enough to feel the whole loop before deciding.
       </p>
 
-      <h3>How chat pricing works</h3>
+      <h2>The quiet fair-use limits</h2>
       <p>
-        A chat message is priced <em>before</em> the model is called, from the
-        size of everything we send: your recent messages plus the strategy
-        spec and latest results the AI needs for context. The rate works out
-        to roughly one credit per 2,000 characters, with a 12-credit minimum
-        — and a typical message just costs the minimum. Context is capped
-        (only your last 12 messages travel, each trimmed to 2,000
-        characters), so a long conversation can&rsquo;t quietly snowball into
-        an expensive one.
+        Two things here genuinely cost us money per use: AI model tokens and
+        intraday market data. So every plan carries per-day limits on those
+        two in the background. We don&rsquo;t display them as a countdown —
+        watching a number fall changes how people use a research tool — but
+        we&rsquo;re not going to hide the numbers either. Here they are.
       </p>
-
-      <h2>Plans and top-ups</h2>
       <table>
         <thead>
           <tr>
-            <th>Plan</th>
-            <th>Price</th>
-            <th>Credits</th>
+            <th>Per day</th>
+            <th>Free</th>
+            <th>Pro</th>
+            <th>Max</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Free</td>
-            <td>$0</td>
-            <td>Unlimited daily-data backtests + 250 for advanced usage, once at signup</td>
+            <td>Backtests</td>
+            <td>50</td>
+            <td>Uncapped</td>
+            <td>Uncapped</td>
           </tr>
           <tr>
-            <td>Pro</td>
-            <td>$29 / month</td>
-            <td>2,500 per month</td>
+            <td>AI chat messages</td>
+            <td>5</td>
+            <td>15</td>
+            <td>40</td>
           </tr>
           <tr>
-            <td>Max</td>
-            <td>$79 / month</td>
-            <td>10,000 per month</td>
+            <td>New AI explanations</td>
+            <td>5</td>
+            <td>10</td>
+            <td>20</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Top-up packs: <strong>500 credits for $10</strong> or{" "}
-        <strong>1,500 for $25</strong>. Per credit, packs cost more than a
-        subscription — deliberately. If you buy packs regularly, subscribing
-        is the better deal, and we&rsquo;d rather tell you that here than let
-        you discover it on a statement.
+        The backtest limit is a genuine anti-script guardrail — 50 runs a day
+        is far more than hands-on testing produces. The AI limits are real
+        constraints on the free tier and worth knowing before you plan a long
+        strategy session: five messages is roughly two or three edits and a
+        question. Explanations you&rsquo;ve already generated stay readable
+        forever at no cost, since they&rsquo;re cached by strategy behavior —
+        only <em>new</em> ones count. If you hit a limit the message says so
+        plainly and tells you it resets tomorrow; on a paid plan it&rsquo;s a
+        guardrail rather than a quota, so email us and we&rsquo;ll raise it.
       </p>
-      <p>Plans also gate a few features beyond the allowance:</p>
-      <ul>
-        <li>Symbols per run: 10 on Free, 100 on Pro, 200 on Max.</li>
-        <li>Forward-test slots: 1 on Free, 5 on Pro, 25 on Max.</li>
-        <li>Private deployments: Pro and above (public is free).</li>
-        <li>The full-US universe: Max only.</li>
-        <li>Intraday forward deployments: Pro and Max.</li>
-      </ul>
 
-      <h2>Refunds and running out</h2>
+      <h2>Top-up packs (optional overflow)</h2>
       <p>
-        Credits are spent before an action runs, and refunded automatically if
-        it fails: a backtest that hits an engine error, a chat call that
-        doesn&rsquo;t reach the model, a deploy that can&rsquo;t complete —
-        all come back on their own, no support ticket. If your balance
-        can&rsquo;t cover an action, it is blocked before anything runs and
-        you see your current balance — nothing is ever half-charged.
+        Packs — <strong>500 for $10</strong> or <strong>1,500 for $25</strong>{" "}
+        — buy overflow headroom that&rsquo;s used automatically <em>only</em>{" "}
+        if you pass a daily fair-use limit, so heavy days keep working instead
+        of stopping. They never expire, and most accounts never touch them.
+        If you find yourself buying packs regularly, upgrading is cheaper —
+        we&rsquo;d rather say that here than let you discover it on a
+        statement. Any balance you hold is shown on your{" "}
+        <Link href="/account">account page</Link>, and nowhere else.
       </p>
 
-      <Callout kind="honest" title="What credits actually pay for">
+      <Callout kind="honest" title="Why we dropped per-action pricing">
         <p>
-          Most of what the lab does is nearly free for us — rerunning a
-          strategy over cached historical bars costs close to nothing. The
-          real costs are AI tokens and market-data subscriptions, and credit
-          prices follow that shape: intraday runs cost more than daily
-          because the data does; a huge pasted chat message costs more than a
-          one-liner because the tokens do. Prices carry a margin — this is a
-          business — but the structure tracks cost, not attention-milking.
+          We used to price each run and message in credits. It was accurate to
+          our costs and wrong for the product: new users rationed their own
+          curiosity, and the first thing they learned about a research tool
+          was what it cost to think. Flat capability tiers move the decision
+          to one honest question — what do you need to be able to do? —
+          and leave the metering where it belongs: invisible, generous, and
+          our problem, not yours.
         </p>
       </Callout>
 

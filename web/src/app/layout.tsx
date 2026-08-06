@@ -17,7 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/** Canonical origin for absolute metadata URLs (OG images, canonicals).
+ *  Set NEXT_PUBLIC_SITE_URL in Vercel; the default is the production domain
+ *  so previews and local builds still emit sane absolute URLs. */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
   title: "Chat·Backtest — AI backtesting for momentum & swing traders",
   description:
     "Describe any trading strategy in plain English. The AI writes the exact rules, backtests up to 20 years of data in seconds, and shows you where it breaks — then survivors prove themselves on a public, independently verifiable forward-test ledger. Research and education — no signals, no live trading.",

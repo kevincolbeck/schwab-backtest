@@ -23,7 +23,7 @@ export default function DocsMarketsTimeframesPage() {
         5,000 listed symbols. Type tickers into the symbol controls or just tell
         the chat — “add NVDA and drop TSLA” is a valid edit. How many symbols a
         single run may include depends on your plan; see{" "}
-        <Link href="/docs/credits">Credits</Link>.
+        <Link href="/docs/credits">Plans &amp; limits</Link>.
       </p>
 
       <h3>The ALL_US universe</h3>
@@ -33,9 +33,8 @@ export default function DocsMarketsTimeframesPage() {
         universe is built from public exchange listings and filters out
         warrants, preferred shares, and fund products; each run takes a capped
         slice (200 symbols) so results come back in seconds. This is a Max plan
-        feature, and because the run touches the full slice, it is priced
-        accordingly — a universe scan costs more credits than a five-symbol
-        test.
+        feature — a universe scan asks far more of the engine than a
+        five-symbol test.
       </p>
       <p>
         One honest reason to care about universe scans: testing on a hand-picked
@@ -100,9 +99,11 @@ export default function DocsMarketsTimeframesPage() {
         </tbody>
       </table>
       <p>
-        Finer bars cost more credits per run — intraday data is the genuinely
-        expensive thing in this product, so it is priced rather than banned.
-        Rates are in <Link href="/docs/credits">Credits</Link>.
+        Intraday data is the genuinely expensive thing in this product, so
+        it&rsquo;s a plan capability rather than a per-run charge: Pro and Max
+        unlock every timeframe down to 1m, with no per-run cost once
+        you&rsquo;re on them. See{" "}
+        <Link href="/docs/credits">Plans &amp; limits</Link>.
       </p>
 
       <h2>The 60-day intraday cap</h2>

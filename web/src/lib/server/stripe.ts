@@ -2,17 +2,52 @@
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY ?? "";
 
+/** §5 flat tiers: Pro $39/mo · $390/yr, Max $99/mo · $990/yr (2 months free).
+ *
+ *  NO fallback to the retired $29/$79 prices (STRIPE_PRICE_PRO/MAX). Falling
+ *  back would silently charge $29 while the page advertises $39 — a
+ *  mispricing is strictly worse than a clear "not configured yet" error.
+ *  Checkout additionally verifies the resolved price's unit_amount against
+ *  lib/pricing.ts before creating a session, so a wrong env var can't
+ *  mischarge either. Stripe prices are immutable, so existing subscribers
+ *  keep billing on whatever price their subscription already holds. */
 export const PRICE_IDS: Record<string, string | undefined> = {
-  pro: process.env.STRIPE_PRICE_PRO,
-  max: process.env.STRIPE_PRICE_MAX,
+  pro: process.env.STRIPE_PRICE_PRO_V2,
+  max: process.env.STRIPE_PRICE_MAX_V2,
+  pro_annual: process.env.STRIPE_PRICE_PRO_ANNUAL,
+  max_annual: process.env.STRIPE_PRICE_MAX_ANNUAL,
 };
+
+/** Read a price object (to verify its amount before charging anyone). */
+export async function stripeGetPrice(priceId: string): Promise<{ unit_amount?: number } | null> {
+  if (!STRIPE_KEY) return null;
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/prices/${priceId}`, {
+      headers: { Authorization: `Bearer ${STRIPE_KEY}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as { unit_amount?: number };
+  } catch {
+    return null;
+  }
+}
+
+/** plan + billing interval → the price key above. */
+export function priceKey(plan: string, interval?: string): string {
+  return interval === "annual" ? `${plan}_annual` : plan;
+}
 
 export const PACK_PRICE_IDS: Record<string, { price: string | undefined; credits: number }> = {
   small: { price: process.env.STRIPE_PRICE_PACK_SMALL, credits: 500 },
   large: { price: process.env.STRIPE_PRICE_PACK_LARGE, credits: 1500 },
 };
 
+/** Overflow headroom granted each billing period (§5: invisible past the
+ *  fair-use caps — never advertised as an allowance to ration). Annual plans
+ *  invoice once a year, so they receive 12× the monthly grant up front. */
 export const MONTHLY_CREDITS: Record<string, number> = { pro: 2500, max: 10000 };
+export const ANNUAL_MULTIPLIER = 12;
 
 /** Grant credits via the Supabase RPC (service-role only; ref = idempotency). */
 export async function grantCredits(
@@ -124,6 +159,31 @@ export async function updateProfile(
     body: JSON.stringify(patch),
   });
   return res.ok;
+}
+
+/** Overflow balance (§5). Surfaced ONLY on /account — never in the lab —
+ *  so someone who bought a top-up pack can still see what they hold. */
+export async function getCreditBalance(userId: string): Promise<number | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !serviceKey) return null;
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/credit_balance`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_user: userId }),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const value = await res.json();
+    return typeof value === "number" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getProfile(userId: string): Promise<Record<string, unknown> | null> {

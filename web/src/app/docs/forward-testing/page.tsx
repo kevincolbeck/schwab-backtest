@@ -132,12 +132,11 @@ export default function ForwardTestingPage() {
 
       <h2>What deploying costs</h2>
       <p>
-        Daily (1d) deployments are free within your plan’s forward-test slots.
-        Intraday deployments are a Pro feature and charge a one-time credit fee
-        at deploy time, with the fastest timeframes priced highest — their data
-        volume compounds in the daily worker with every pass. If a deploy fails,
-        the fee is refunded. Prices and plan slots live on the{" "}
-        <a href="/docs/credits">Credits</a> page.
+        Nothing beyond your plan. Deployments are slots, not purchases: Free
+        carries 1 public slot, Pro 10 (and unlocks intraday and private
+        records), Max unlimited. There is no per-deploy fee at any tier — if
+        you have a free slot, you can deploy. Slots and capabilities are on the{" "}
+        <a href="/docs/credits">Plans &amp; limits</a> page.
       </p>
 
       <h2>What the ledger is not</h2>

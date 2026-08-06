@@ -1,5 +1,12 @@
 # Pricing model — unit economics (tunable source of truth)
 
+> **§5 UPDATE (2026-08-05) — flat capability tiers superseded per-action credit
+> pricing.** Read `## §5` at the bottom FIRST: it states the live model (what
+> a plan can do, what the quiet fair-use caps are, and how the worst case is
+> now bounded by CAPS rather than by prices). Sections (a)–(e) below describe
+> the retired credits model and are kept because the *marginal-cost* analysis
+> in (b) is unchanged and still the basis for the cap math.
+
 Owner directive: **every credit-priced action must carry a large gross margin over
 its worst-case marginal cost — extremely profitable no matter what.** This doc is
 the math that proves it and the map of where each constant lives. Tune numbers
@@ -189,3 +196,117 @@ COGS ~90% on cache hits.)
   spend while credits are dormant).
 - Monthly refresh: Stripe `invoice.payment_succeeded` webhook (ref = invoice id).
 - Intraday history is capped at 60 days (data-plan reality; lift later).
+
+---
+
+## §5 — Flat capability tiers (LIVE MODEL, 2026-08-05)
+
+Per-action credit pricing is retired. Plans sell **capabilities**; usage is
+metered by quiet per-day **fair-use caps** that are never displayed as a
+countdown. Credits survive only as invisible **overflow** past those caps.
+
+### Tiers
+
+| | Free | Pro | Max |
+| --- | --- | --- | --- |
+| Price | $0 | **$39/mo · $390/yr** | **$99/mo · $990/yr** |
+| Daily-data backtests | unlimited (cap 50/day) | unlimited (uncapped) | unlimited (uncapped) |
+| Intraday 1m–60m | — | ✓ | ✓ |
+| Symbols per run | 10 | 100 | 200 |
+| ALL_US universe | — | — | ✓ |
+| Crypto (`X:…`) | — | — | ✓ |
+| Deployments | 1 (public only) | 10 | unlimited |
+| Private deployments | — | ✓ | ✓ |
+| Clean exports / no watermark | — | ✓ | ✓ |
+| AI messages/day (published cap) | 5 | 15 | 40 |
+| New AI explanations/day | 5 | 10 | 20 |
+
+Annual = 10× monthly (two months free). Constants live in
+`service/auth.py::PLAN_LIMITS` (every cap is env-overridable:
+`FREE_RUNS_PER_DAY`, `FREE_CHAT_PER_DAY`, `PRO_CHAT_PER_DAY`,
+`MAX_CHAT_PER_DAY`, `FREE/PRO/MAX_EXPLAIN_PER_DAY`). Stripe price IDs: `scripts/setup_stripe_v2.py`
+(lookup keys `cb_pro_monthly_v2`, `cb_pro_annual_v2`, `cb_max_monthly_v2`,
+`cb_max_annual_v2`).
+
+### Why this is safe: the worst case is bounded by CAPS, not by prices
+
+Section (b)'s marginal-cost model is unchanged — **Anthropic tokens are the
+only per-action variable cost**; cached-bar backtests are ≈ $0. Under credits,
+margin was defended per action. Under flat tiers it's defended by the chat cap,
+because chat is the only action that can burn real money.
+
+Worst-case AI cost is the (b) adversarial figure for chat (**$0.0611** —
+~10k dense input tokens + the 2,048-token output cap) and **$0.0135** for an
+uncached explain (≤2K in + 500 out). BOTH are model calls, so both count. The
+ceiling on model COGS per subscriber-month is
+`30 × (chat_cap × $0.0611 + explain_cap × $0.0135)`:
+
+| Plan | Chat/day | Explain/day | Worst-case monthly AI COGS | Revenue | Worst-case gross |
+| --- | --- | --- | --- | --- | --- |
+| Free | 5 | 5 | $11.19 | $0 | **−$11.19** (acquisition ceiling) |
+| Pro | 15 | 10 | $31.55 | $39.00 | +$7.45 (19%) |
+| Max | 40 | 20 | $81.42 | $99.00 | +$17.58 (18%) |
+
+Typical usage is ~3× cheaper than that adversarial point (§(c): ~$0.021/chat
+message), and explanations are cached by behavior hash so realistic explain
+COGS trends to zero. The adversarial row requires a subscriber to max BOTH
+surfaces every day for a month with deliberately dense payloads.
+
+> **Why Pro's chat cap is 15, not 20.** The first §5 draft used 20 and left
+> `/explain` bounded only by a flat 50/day (a credits-era backstop, not a
+> plan cap). Adversarial review caught it: that combination priced Pro at
+> $56.91 of worst-case COGS against $39 of revenue — loss-making. Explain is
+> now a per-plan cap sized by the same arithmetic, and Pro's chat cap came
+> down to restore a real margin. **Any future cap change must re-run the
+> table above** — the two caps are coupled through one budget.
+
+**Free-tier exposure** is the number to watch: 5 chat + 5 explain per day is
+an **$11.19/month** ceiling per free account if fully abused (typical: ~$3).
+Bounded per account, but unbounded in aggregate. Mitigations in place:
+accounts require auth, anonymous chat is 3/day/IP, and every AI payload is
+size-capped (`ANON_CHAT_MAX_TOKENS`, `EXPLAIN_MAX_CHARS`).
+
+> **OPEN BUSINESS DECISION — `FREE_CHAT_PER_DAY` (currently 5).** The one
+> number here that trades growth against COGS, deliberately shipped
+> conservative. Case for RAISING to ~10: §5's own promise is "Free is
+> genuinely usable", the AI strategist is the differentiator, and a signed-in
+> free user currently gets only 2 more messages/day than an anonymous visitor
+> (3/day/IP) — a thin reward for the signup that P0-5 measures as activation.
+> Cost of raising to 10: ~$6.30/month typical, +$9.17 worst case per fully
+> active free account. Case for LOWERING: any sign of aggregate abuse. Either
+> direction is one env var, no deploy. Decide with the activation rate on
+> `/admin`, not by intuition.
+
+### Tuning invariant (replaces the credits-era one)
+
+For each paid plan, across EVERY model-call surface:
+`price ≥ 30 × Σ(cap_i × worst_case_cost_i)`. Today: Pro $39 ≥ $31.55 ✓ (19%),
+Max $99 ≥ $81.42 ✓ (18%). Pinned by
+`service/tests/test_flat_tiers.py::test_plan_limits_match_the_published_pricing_table`,
+which fails the build if a cap change breaks it.
+
+**Warning:** any of these breaks the inequality — raising `PRO_CHAT_PER_DAY`
+or `PRO_EXPLAIN_PER_DAY`, switching `CHAT_MODEL` to a pricier tier, or raising
+`max_tokens` in `service/chat.py`. **Adding a NEW model-call endpoint adds a
+term to the sum** — that is exactly the mistake the §5 review caught with
+`/explain`. Prompt caching on the system prompt (~90% input cut, still
+untapped) would roughly double the headroom.
+
+### Overflow (what credits are now)
+
+Past a fair-use cap, a held balance is spent instead of hard-stopping:
+reasons `backtest_overflow` / `chat_overflow` in the ledger. Grants unchanged
+(`SIGNUP_GRANT` 250; monthly 2,500 Pro / 10,000 Max, ×12 on annual invoices).
+Packs unchanged (500/$10, 1,500/$25) and demoted to a collapsed footer section
+on `/pricing`. Balance is visible ONLY on `/account`. Because overflow is
+priced by the retired per-action table, its margin math is section (c)'s and
+still holds.
+
+### Migration note
+
+Stripe prices are immutable, so the retired $29/$79 prices
+(`ctb_pro`/`ctb_max`) still exist and any existing subscription keeps billing
+on them until deliberately migrated. `STRIPE_PRICE_PRO`/`_MAX` remain as
+fallbacks so a partial env rollout can't 503 checkout. **Owner action:** set
+`STRIPE_PRICE_PRO_V2`, `STRIPE_PRICE_PRO_ANNUAL`, `STRIPE_PRICE_MAX_V2`,
+`STRIPE_PRICE_MAX_ANNUAL` in Vercel; Stripe is still test-mode.

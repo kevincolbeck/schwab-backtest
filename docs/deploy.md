@@ -47,6 +47,7 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
    | Variable | Value |
    |---|---|
    | `BACKTEST_API_URL` | the Railway service URL (server-side only) |
+   | `STRIPE_PRICE_PRO_V2` · `STRIPE_PRICE_PRO_ANNUAL` · `STRIPE_PRICE_MAX_V2` · `STRIPE_PRICE_MAX_ANNUAL` | §5 flat-tier price IDs (printed by `scripts/setup_stripe_v2.py`). **Required** — there is deliberately NO fallback to the retired $29/$79 prices, so checkout 503s until these are set rather than silently charging the old amount. Checkout also verifies each price's `unit_amount` against `web/src/lib/pricing.ts` before charging. |
    | `POSTHOG_KEY` | P0-5 analytics — web events (signup, upgrade_viewed/completed, result_viewed, deploy_started) stay dormant no-ops until set. Same project key as Railway. Server-side env, NOT `NEXT_PUBLIC_` |
    | `POSTHOG_HOST` | optional, defaults to `https://us.i.posthog.com` |
 
@@ -68,7 +69,9 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
 
 ## 4. Stripe (Phase 5)
 
-Two products (Pro $29/mo, Max $79/mo) → Checkout links; webhook → a Vercel route
+Two products (Pro $39/mo · $390/yr, Max $99/mo · $990/yr — §5 flat tiers, created by
+`scripts/setup_stripe_v2.py`; the retired $29/$79 prices still exist because Stripe
+prices are immutable) → Checkout links; webhook → a Vercel route
 updates `profiles.plan`. Use the Stripe customer portal for cancel/upgrade — build
 nothing custom.
 

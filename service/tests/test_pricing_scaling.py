@@ -127,24 +127,34 @@ def _stub_engine(monkeypatch):
     )
 
 
-def test_backtest_charges_symbol_scaled_cost(client, monkeypatch):
+# ── §5: these prices only apply PAST a fair-use cap (overflow). Each test
+# exhausts the cap first, then asserts the overflow spend uses the same
+# scaling the pure functions above define.
+
+def _cap_exhausted(monkeypatch):
+    monkeypatch.setattr(auth, "check_and_count_run", lambda identity, limit: False)
+
+
+def test_overflow_backtest_charges_symbol_scaled_cost(client, monkeypatch):
     _stub_engine(monkeypatch)
+    _cap_exhausted(monkeypatch)
     spends = []
     monkeypatch.setattr(
         credits, "spend",
-        lambda uid, amount, reason, ref=None: spends.append(amount) or (True, 460),
+        lambda uid, amount, reason, ref=None: spends.append((amount, reason)) or (True, 460),
     )
     # 11 fake tickers (pro cap is 100): resolved count 11 -> x2 -> 20 credits.
     symbols = [f"ZZZ{c}" for c in "ABCDEFGHIJK"]
     resp = client.post("/backtest", json={"spec": spec_with(symbols)})
     assert resp.status_code == 200
-    assert spends == [20]
+    assert spends == [(20, "backtest_overflow")]
     assert resp.json()["credits_charged"] == 20
     assert resp.json()["credits_remaining"] == 480
 
 
-def test_backtest_all_us_prices_at_cap(client, monkeypatch):
+def test_overflow_backtest_all_us_prices_at_cap(client, monkeypatch):
     _stub_engine(monkeypatch)
+    _cap_exhausted(monkeypatch)
     main.app.dependency_overrides[main.current_user] = lambda: {**USER, "plan": "max"}
     # ALL_US resolves to the full capped universe (no network in tests).
     monkeypatch.setattr(
@@ -162,8 +172,9 @@ def test_backtest_all_us_prices_at_cap(client, monkeypatch):
     assert resp.json()["credits_charged"] == 200
 
 
-def test_chat_charges_token_scaled_cost(client, monkeypatch):
+def test_overflow_chat_charges_token_scaled_cost(client, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    _cap_exhausted(monkeypatch)
     monkeypatch.setattr(
         main.chat_brain, "call_claude",
         lambda *a, **k: '{"reply": "hi", "updated_spec": null, "should_rerun": false}',
@@ -171,7 +182,7 @@ def test_chat_charges_token_scaled_cost(client, monkeypatch):
     spends = []
     monkeypatch.setattr(
         credits, "spend",
-        lambda uid, amount, reason, ref=None: spends.append(amount) or (True, 470),
+        lambda uid, amount, reason, ref=None: spends.append((amount, reason)) or (True, 470),
     )
     # Long history: the charge must be computed over the CAPPED context.
     messages = [{"role": "user", "content": "m" * 5000} for _ in range(15)]
@@ -183,7 +194,7 @@ def test_chat_charges_token_scaled_cost(client, monkeypatch):
     expected_chars = len(system_prompt) + sum(len(m["content"]) for m in capped)
     expected = credits.chat_cost(credits.estimate_chat_tokens(expected_chars))
     assert expected > credits.CHAT_COST_MIN  # this payload is big enough to scale
-    assert spends == [expected]
+    assert spends == [(expected, "chat_overflow")]
     body = resp.json()
     assert body["credits_charged"] == expected
     assert body["credits_remaining"] == 480

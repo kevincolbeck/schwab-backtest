@@ -18,7 +18,6 @@ import {
   deployRun,
   fetchBars,
   fetchExplanation,
-  fetchMe,
   fetchRun,
   fetchTemplates,
   runBacktest,
@@ -31,7 +30,6 @@ import { pineExport } from "@/lib/exportPine";
 import { download, pythonExport, slugifyName } from "@/lib/exportPython";
 import { fmtDate, fmtMoney, fmtPct, fmtSignedPct } from "@/lib/format";
 import { track } from "@/lib/analytics";
-import { checkFirstSession } from "@/lib/firstSession";
 import { templateHero } from "@/lib/templates";
 import { useAuthModal } from "@/components/AuthModal";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -162,14 +160,11 @@ function PlaygroundInner() {
     [barsCache, loadingSymbols],
   );
 
-  const [creditBalance, setCreditBalance] = useState<number | null>(null);
-  // P0-4: no draining counter in a new user's first session — default true
-  // (hidden) so the meter never flashes before the localStorage check runs.
-  const [firstSession, setFirstSession] = useState(true);
-
-  useEffect(() => {
-    setFirstSession(checkFirstSession());
-  }, []);
+  /* §5: the lab shows NO usage counter at all. Plans sell capabilities; the
+     quiet fair-use caps behind them are the server's business, not something
+     to watch drain while you work. The overflow balance (if any) lives on
+     /account. P0-4's first-session hiding is obsolete — there is nothing
+     left to hide. */
 
   // P0-5 `result_viewed`: a real run landed in the workspace (the lab opens
   // the Results tab on completion; the baked demo never enters `run` state).
@@ -185,14 +180,7 @@ function PlaygroundInner() {
       setSignedIn(null);
       return;
     }
-    const apply = (authed: boolean) => {
-      setSignedIn(authed);
-      if (authed) {
-        fetchMe()
-          .then((me) => setCreditBalance(me.credits))
-          .catch(() => {});
-      }
-    };
+    const apply = (authed: boolean) => setSignedIn(authed);
     supabase.auth.getSession().then(({ data }) => apply(Boolean(data.session)));
     // Keep signedIn live: a visitor who signs up via the gate modal (magic
     // link completes in another tab; @supabase/ssr broadcasts the session
@@ -324,9 +312,6 @@ function PlaygroundInner() {
         setBarsCache({}); // bars belong to a specific run
         setInspectTrade(null);
         setChartSymbol(null);
-        if (typeof result.credits_remaining === "number") {
-          setCreditBalance(result.credits_remaining);
-        }
         // Flag apples-to-oranges: if the date window or bar timeframe changed
         // between runs, suppress numeric comparisons and say so instead.
         const pseudoChanges: SpecChange[] = [];
@@ -359,13 +344,11 @@ function PlaygroundInner() {
             openAuth(e.message);
             return null;
           }
-          // Out-of-credits responses carry the authoritative balance — sync
-          // the meter so it doesn't keep showing stale credits, and reveal it
-          // even in a first session: once an action is blocked on usage, the
-          // balance is information the user needs, not anxiety (P0-4 review).
-          if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
-            setCreditBalance(e.detail.balance);
-            setFirstSession(false);
+          // §5: a plan gate (403) is a capability message, not an error the
+          // user can fix by retrying — route it to the upgrade prompt.
+          if (e instanceof ApiError && e.status === 403 && e.detail?.plan_required) {
+            setError(e.message);
+            return null;
           }
           setError(e instanceof Error ? e.message : "Backtest failed");
         }
@@ -499,9 +482,6 @@ function PlaygroundInner() {
         bt_summary: btSummary,
       });
       if (genRef.current !== gen) return; // template switched while thinking
-      if (typeof res.credits_remaining === "number") {
-        setCreditBalance(res.credits_remaining);
-      }
       let reply = res.reply;
       if (res.validation_errors.length) {
         reply += `\n\n(The proposed change didn't pass validation: ${res.validation_errors.join("; ")})`;
@@ -533,13 +513,6 @@ function PlaygroundInner() {
             "You've used your free AI messages for today — create a free account to keep going. No card required.",
           );
           return;
-        }
-        // Out-of-credits responses carry the authoritative balance — sync
-        // the meter so it doesn't keep showing stale credits, and reveal it
-        // even in a first session (see the run handler's rationale).
-        if (e instanceof ApiError && e.status === 402 && typeof e.detail?.balance === "number") {
-          setCreditBalance(e.detail.balance);
-          setFirstSession(false);
         }
         setMessages((current) => [
           ...current,
@@ -623,7 +596,6 @@ function PlaygroundInner() {
   const deployTimeframe = (run?.spec.backtest_timeframe ?? "1d").trim() || "1d";
   const intradayDeploy = ["15m", "30m", "60m", "1m", "5m"].includes(deployTimeframe);
   // 1m/5m are the premium data class — deployable day one at a higher fee.
-  const deployFee = ["1m", "5m"].includes(deployTimeframe) ? 250 : 100;
 
   const tradedSymbols = useMemo(() => {
     if (!run) return [];
@@ -887,18 +859,6 @@ function PlaygroundInner() {
               <option value="5m">5m</option>
               <option value="1m">1m</option>
             </select>
-            {signedIn && creditBalance !== null && !firstSession && (
-              <Link
-                href="/pricing"
-                title="Your usage balance — intraday runs, custom universes past 10 symbols, and AI chat draw on it; daily runs up to 10 symbols and templates don't"
-                className="focus-ring tnum hidden items-center gap-1 rounded-(--radius-control) border border-hairline bg-panel px-2.5 py-1.5 text-xs sm:flex"
-              >
-                <span className="text-accent" aria-hidden="true">◈</span>
-                <span className={creditBalance < 25 ? "text-loss" : "text-ink"}>
-                  {creditBalance}
-                </span>
-              </Link>
-            )}
             <Button
               onClick={() => spec && executeRun(spec, [])}
               disabled={!spec || busy || Boolean(dateError)}
@@ -1064,9 +1024,9 @@ function PlaygroundInner() {
                     {intradayDeploy && (
                       <span
                         className="text-caption text-faint"
-                        title="Intraday forward tests are evaluated on your strategy's own closed candles — one-time credit fee, Pro/Max plans"
+                        title="Intraday forward tests are evaluated on your strategy's own closed candles — included with Pro and Max"
                       >
-                        Intraday deployment — Pro/Max · {deployFee} credits
+                        Intraday deployment — Pro feature
                       </span>
                     )}
                   </>

@@ -68,11 +68,13 @@ export default function TemplateCard({
             {template.meta.category}
           </span>
           {timeframe && timeframe !== "1d" && (
+            // Intraday templates need Pro to RUN (§5 capability gate) — say
+            // so on the card so a free user doesn't discover it via a 403.
             <span
               className="tnum rounded-(--radius-pill) border border-hairline px-1.5 py-0.5 text-caption text-muted"
-              title="Bar timeframe this strategy trades on"
+              title="Intraday strategy — running it needs a Pro plan"
             >
-              {timeframe}
+              {timeframe} · Pro
             </span>
           )}
         </span>

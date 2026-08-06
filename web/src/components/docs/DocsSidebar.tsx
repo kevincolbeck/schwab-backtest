@@ -14,7 +14,8 @@ export const DOCS_SECTIONS: {
       { href: "/docs", label: "Introduction" },
       { href: "/docs/first-backtest", label: "Your first backtest" },
       { href: "/docs/reading-results", label: "Reading the results" },
-      { href: "/docs/credits", label: "Credits" },
+      // URL kept for link/sitemap stability; the page is plans + fair use now.
+      { href: "/docs/credits", label: "Plans & limits" },
     ],
   },
   {

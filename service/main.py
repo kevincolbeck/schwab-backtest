@@ -17,7 +17,7 @@ Endpoints:
 Env: ANTHROPIC_API_KEY, CHAT_MODEL, POLYGON_API_KEY, BACKTEST_CACHE_DB,
 SERVICE_DATA_DIR, ALLOWED_ORIGINS, MAX_SYMBOLS_PER_RUN, TEMPLATES_DIR,
 FINNHUB_API_KEY, PROXY_SHARED_SECRET, ANON_RUNS_PER_DAY, ANON_CHAT_PER_DAY,
-EXPLAIN_PER_DAY_ANON.
+EXPLAIN_PER_DAY_ANON, EXPLAIN_MAX_CHARS. Per-plan caps live in auth.PLAN_LIMITS.
 """
 
 import copy
@@ -48,7 +48,9 @@ MAX_SYMBOLS_PER_RUN = int(os.getenv("MAX_SYMBOLS_PER_RUN", "200"))
 # When a CREDIT-BILLED run can't charge (credits dormant or failing open), the
 # per-day backstop uses this tight cap — the free plan's generous quiet-run cap
 # must not widen intraday/model exposure during a credits outage (P0-4 review).
-BILLED_FALLBACK_RUNS_PER_DAY = int(os.getenv("BILLED_FALLBACK_RUNS_PER_DAY", "10"))
+# Retired with the credits model (§5): runs are no longer credit-billed, so
+# there is no "billed class" needing a tighter backstop during a credits
+# outage — every run is metered by its plan's quiet fair-use cap.
 TEMPLATES_DIR = Path(os.getenv("TEMPLATES_DIR", Path(__file__).resolve().parent.parent / "templates"))
 ALLOWED_ORIGINS = [o for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o]
 # Shared secret the Next proxy sends so the service can trust its client-IP
@@ -210,10 +212,12 @@ def me(user: Optional[dict] = Depends(current_user)):
         raise HTTPException(status_code=401, detail="not signed in")
     limits = auth.limits_for(user)
     active = [d for d in forward.list_deployments("active") if d["owner"] == user["id"]]
+    # §5: plans sell capabilities, so `limits` is the contract the UI reads.
+    # `credits` is the invisible OVERFLOW balance (past fair-use) — surfaced
+    # only on the account page, never in the lab. Per-action `costs` are gone.
     return {"id": user["id"], "email": user["email"], "plan": user["plan"],
             "limits": limits, "active_deployments": len(active),
-            "credits": credits.ensure_signup_grant(user["id"]),
-            "costs": credits.COSTS}
+            "credits": credits.ensure_signup_grant(user["id"])}
 
 
 @app.get("/me/runs")
@@ -235,29 +239,39 @@ def my_deployments(user: Optional[dict] = Depends(current_user)):
     return {"deployments": out}
 
 
-def _usage_limit_message(user: Optional[dict], action: str,
-                         timeframe: Optional[str] = None) -> str:
-    """Limit-reached copy (P0-4): frame limits as capability boundaries, never
-    "you're out of credits". Free users only land on a 402 for advanced usage
-    (intraday runs, AI past the starter allowance) — every daily run a free
-    plan can express is exempted from spending before this can fire. The
-    timeframe branch is defense in depth: if a billed daily class ever becomes
-    reachable again, the copy must not blame intraday. Paid plans land here
-    when the monthly allowance is used up."""
+def _fair_use_message(user: Optional[dict], action: str) -> str:
+    """Fair-use-reached copy (§5 flat tiers).
+
+    Nothing in the product is priced per action any more — plans sell
+    CAPABILITIES, and these per-day caps exist to stop scripts, not people.
+    So the copy never mentions credits or balances: for free users it points
+    at the plan that lifts the cap; for paid users it says what's true —
+    this is a guardrail, and a human can raise it.
+    """
     plan = ((user or {}).get("plan") or "free").lower()
+    noun = "AI messages" if action == "chat" else "backtests"
     if plan in ("pro", "max"):
-        return ("You've used this month's included usage — grab a top-up pack, "
-                "or it refills with your next billing cycle.")
-    if action == "backtest":
-        if (timeframe or "1d") == "1d":
-            return ("Universes past 10 symbols draw on the free starter allowance, "
-                    "which is used up — daily runs up to 10 symbols (and every "
-                    "template) stay free, and Pro includes a monthly allowance.")
-        return ("Intraday backtests draw on the free starter allowance, which is "
-                "used up — Pro includes a monthly allowance that covers them. "
-                "Daily-data backtests stay free either way.")
-    return ("You've used the free plan's AI allowance — upgrade to Pro to keep "
-            "going. Daily-data backtests stay free either way.")
+        return (f"You've hit today's fair-use limit on {noun}. It's a guardrail "
+                "against runaway scripts, not a quota — email support and we'll "
+                "raise it.")
+    if action == "chat":
+        return ("You've used today's AI messages on the free plan — Pro raises the "
+                "limit. Backtests on daily data stay unlimited either way.")
+    return ("You've hit today's fair-use limit on backtests — Pro lifts it. "
+            "Nothing was charged; the cap resets tomorrow.")
+
+
+def _capability_403(feature: str, plan_needed: str) -> HTTPException:
+    """Plan-gate refusal (§5): capability language, never currency."""
+    return HTTPException(
+        status_code=403,
+        detail={
+            "error": "plan_required",
+            "plan_required": plan_needed,
+            "message": f"{feature} is {'a Pro' if plan_needed == 'pro' else 'a Max'} "
+            f"feature — upgrade to unlock it.",
+        },
+    )
 
 
 @app.post("/backtest")
@@ -317,17 +331,32 @@ def backtest(
 
     limits = auth.limits_for(user)
 
-    # Plan gates run BEFORE any spend — a rejected run must never cost credits.
+    # ── §5 capability gates: what your PLAN may run. Nothing here is priced
+    # per action; a refusal names the plan that unlocks it, never a balance.
     symbols = spec.get("symbols", [])
+    # `external` indicators name their own symbol and the engine fetches those
+    # too, so the capability gates must see them — checking spec["symbols"]
+    # alone would let an external indicator pull a crypto/other feed on a plan
+    # that doesn't include it.
+    gated_symbols = list(symbols) + [
+        ind.get("symbol")
+        for ind in (spec.get("indicators") or [])
+        if isinstance(ind, dict) and ind.get("type") == "external"
+    ]
     is_all_us = any(
         isinstance(s, str) and s.strip().upper() in backtest_runner.ALL_US_TOKENS
-        for s in symbols
+        for s in gated_symbols
     )
     if is_all_us and not limits["all_us"]:
-        raise HTTPException(
-            status_code=403,
-            detail="the full-US universe is a Max plan feature — pick specific symbols instead",
-        )
+        raise _capability_403("The full US universe", "max")
+    # Crypto tickers are Polygon "X:BTCUSD" style (engine _TICKER_RE). This
+    # gate is new in §5 — the pricing page advertised crypto as Max-only, but
+    # nothing enforced it before.
+    if any(isinstance(s, str) and s.strip().upper().startswith("X:") for s in gated_symbols) \
+            and not limits["crypto"]:
+        raise _capability_403("Crypto markets", "max")
+    if timeframe != "1d" and not limits["intraday"]:
+        raise _capability_403("Intraday timeframes", "pro")
     plan_symbol_cap = min(limits["max_symbols"], MAX_SYMBOLS_PER_RUN)
     if (
         not is_template_run
@@ -340,80 +369,51 @@ def backtest(
             detail={"validation_errors": [f"too many symbols (max {plan_symbol_cap} on your plan)"]},
         )
 
-    run_cost = 0
+    # ── Quiet fair-use metering. Every ALLOWED run counts against a per-day
+    # cap (None = uncapped on paid plans); no run is credit-priced. Credits
+    # survive only as invisible OVERFLOW: a user who holds a balance (signup
+    # grant, monthly grant, or a top-up pack) keeps working past the cap
+    # instead of hitting a wall. Nothing about this is surfaced in the lab.
+    overflow_cost = 0
     charged = False
-    quiet_run = False  # P0-4: capability run — day-metered, never credit-billed
-    if user is not None and credits.enabled_for(user):
-        # Price scales with the RESOLVED universe size (post-expansion, so
-        # ALL_US prices at the multiplier cap); template runs stay at base.
-        if is_template_run:
-            billable_symbols = 1
-        else:
-            resolved, _ = backtest_runner.resolve_symbols(
-                spec, max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0
-            )
-            # The auto-appended benchmark rides along free; duplicates count
-            # once — the engine dedupes before simulating, so billing must too
-            # (a doubled entry must never flip a free run into a billed one).
-            billable_symbols = len({s for s in resolved if s != backtest_runner.BENCHMARK})
-        # P0-4 (remove credit anxiety): a daily-data run inside one symbol
-        # block — or inside a TEMPLATE's universe, whatever its size — is a
-        # free capability on EVERY plan; the per-day cap below meters it
-        # quietly. Template universes matter because three shipped daily
-        # templates hold 11-19 symbols: a chat-edited variant must stay as
-        # free signed-in as it is anonymously. Only the genuinely expensive
-        # runs spend credits: intraday timeframes, multi-block custom
-        # universes, ALL_US.
-        quiet_run = (
-            timeframe == "1d"
-            and not is_all_us
-            and (
-                billable_symbols <= credits.SYMBOL_BLOCK
-                or _within_template_universe(symbols)
-            )
-        )
-        if not quiet_run:
-            run_cost = credits.backtest_cost(timeframe, billable_symbols)
-            allowed, bal = credits.spend(user["id"], run_cost, "backtest")
-            if not allowed:
-                raise HTTPException(
-                    status_code=402,
-                    detail={"error": "out_of_credits", "balance": bal, "needed": run_cost,
-                            "message": _usage_limit_message(user, "backtest",
-                                                            timeframe=timeframe)},
-                )
-            charged = bal is not None  # (True, None) = fail-open, nothing was debited
-    if not charged and (
-        quiet_run
-        or not is_template_run
-        or (user is None and auth.auth_configured())
-    ):
-        # Credit-exempt, dormant, or unreachable — the per-day limits still
-        # meter runs (a quiet fair-use cap on the free plan, uncapped on paid).
-        # BILLED classes that failed open keep the old tight backstop: a
-        # credits outage must not widen intraday/model exposure to the quiet
-        # cap. Anonymous runs ALWAYS count against the per-IP allowance (P0-3).
-        day_limit = limits["runs_per_day"]
-        if user is not None and not quiet_run and day_limit is not None:
-            day_limit = min(day_limit, BILLED_FALLBACK_RUNS_PER_DAY)
-        identity = user["id"] if user else f"ip:{_client_ip(request)}"
-        if not auth.check_and_count_run(identity, day_limit):
-            if user is None:
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "error": "anon_run_limit",
-                        "message": f"You've hit today's free run limit "
-                        f"({limits['runs_per_day']}/day) — create a free account "
-                        f"to keep going. No card required.",
-                    },
-                )
+    identity = user["id"] if user else f"ip:{_client_ip(request)}"
+    if not auth.check_and_count_run(identity, limits["runs_per_day"]):
+        if user is None:
             raise HTTPException(
                 status_code=429,
                 detail={
-                    "error": "free_run_limit",
-                    "message": "You've hit today's free run limit — Pro removes it.",
+                    "error": "anon_run_limit",
+                    "message": f"You've hit today's free run limit "
+                    f"({limits['runs_per_day']}/day) — create a free account "
+                    f"to keep going. No card required.",
                 },
+            )
+        if credits.enabled_for(user):
+            # Universe size only matters for overflow pricing, so it's
+            # computed here rather than on every run.
+            if is_template_run:
+                billable_symbols = 1
+            else:
+                resolved, _ = backtest_runner.resolve_symbols(
+                    spec, max_symbols=MAX_SYMBOLS_PER_RUN if is_all_us else 0
+                )
+                # Benchmark rides free; duplicates count once (the engine
+                # dedupes before simulating, so metering must too).
+                billable_symbols = len({s for s in resolved if s != backtest_runner.BENCHMARK})
+            overflow_cost = credits.backtest_cost(timeframe, billable_symbols)
+            allowed, bal = credits.spend(user["id"], overflow_cost, "backtest_overflow")
+            charged = allowed and bal is not None
+            if not allowed:
+                raise HTTPException(
+                    status_code=429,
+                    detail={"error": "fair_use_limit",
+                            "message": _fair_use_message(user, "backtest")},
+                )
+        else:
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "fair_use_limit",
+                        "message": _fair_use_message(user, "backtest")},
             )
 
     end_date = req.end_date or datetime.now().strftime("%Y-%m-%d")
@@ -441,24 +441,20 @@ def backtest(
         )
     except HTTPException:
         if charged:
-            credits.refund(user["id"], run_cost, "backtest_error")
+            credits.refund(user["id"], overflow_cost, "backtest_overflow_error")
         raise
     except Exception:
         logger.error("backtest run failed", exc_info=True)
         if charged:
-            credits.refund(user["id"], run_cost, "backtest_error")
-        raise HTTPException(
-            status_code=500,
-            detail="backtest failed — credits refunded" if charged
-            else "backtest failed — nothing was charged",
-        )
+            credits.refund(user["id"], overflow_cost, "backtest_overflow_error")
+        raise HTTPException(status_code=500, detail="backtest failed — nothing was charged")
     logger.info("Backtest %s finished in %.1fs (%s trades)",
                 run_id, elapsed, (serialized["stats"] or {}).get("total_trades"))
     analytics.capture("backtest_run", _analytics_id(request, user), {
         "timeframe": timeframe,
         "template": is_template_run,
-        "quiet": quiet_run,
-        "credits_charged": run_cost if charged else 0,
+        "overflow": charged,  # past fair-use, covered by a credit balance
+        "credits_charged": overflow_cost if charged else 0,
         "anon": user is None,
         "elapsed_seconds": round(elapsed, 2),
     })
@@ -477,7 +473,7 @@ def backtest(
         "stats": serialized["stats"],
         "equity_curve": serialized["equity_curve"],
         "trades": serialized["trades"],
-        "credits_charged": run_cost if charged else 0,
+        "credits_charged": overflow_cost if charged else 0,
         "credits_remaining": credits.balance(user["id"]) if (user and charged) else None,
         "disclaimer": DISCLAIMER,
     }
@@ -676,10 +672,14 @@ _EXPLAIN_CACHE_MAX = 5000
 _explain_lock = __import__("threading").Lock()
 
 EXPLAIN_PER_DAY_ANON = int(os.getenv("EXPLAIN_PER_DAY_ANON", "10"))
-EXPLAIN_PER_DAY_USER = int(os.getenv("EXPLAIN_PER_DAY_USER", "50"))
-# Serialized-spec ceiling for the uncredited anon path (a normal spec is a few
-# KB; validate_spec bounds values but not list lengths).
-ANON_EXPLAIN_MAX_CHARS = int(os.getenv("ANON_EXPLAIN_MAX_CHARS", "20000"))
+# Signed-in explain caps are PER PLAN (auth.PLAN_LIMITS["explain_per_day"]).
+# A cache-miss explanation is a paid model call in the same COGS class as
+# chat, so it must be bounded by the plan like chat is — a flat 50/day was
+# what the retired credit charge used to backstop, and on its own it broke
+# the §5 margin invariant (docs/pricing-model.md §5).
+# Serialized-spec ceiling, enforced for EVERY caller: a normal spec is a few
+# KB, and validate_spec bounds values but not list lengths.
+EXPLAIN_MAX_CHARS = int(os.getenv("EXPLAIN_MAX_CHARS", "20000"))
 
 
 def _projected_spec(spec: dict) -> dict:
@@ -728,35 +728,34 @@ def explain_spec(
 
     # A cache miss is a paid model call whose input is the serialized spec.
     # validate_spec bounds field values but not list lengths, so cap the
-    # anon-path payload before spending (cache hits above are free regardless).
-    if user is None and len(json.dumps(projected)) > ANON_EXPLAIN_MAX_CHARS:
+    # payload before the model call (cache hits above are free regardless).
+    # This bound applies to EVERY caller, not just anonymous ones: validate_spec
+    # bounds field values but not the length of `symbols`, so a signed-in
+    # account could otherwise post a six-figure-character spec on every call.
+    if len(json.dumps(projected)) > EXPLAIN_MAX_CHARS:
         raise HTTPException(
             status_code=413,
-            detail="This strategy is too large for anonymous explanations — "
-            "create a free account.",
+            detail="This strategy is too large to explain — trim the symbol "
+            "list or the indicator set and try again.",
         )
 
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="explanations not configured")
 
-    # Every cache miss is a paid model call — charge credits (cache hits above
-    # stay free, as documented), with the per-day cap as the fallback meter.
-    explain_cost = credits.COSTS["explain"]
-    charged = False
-    if user is not None and credits.enabled_for(user):
-        allowed, bal = credits.spend(user["id"], explain_cost, "explain")
-        if not allowed:
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "out_of_credits", "balance": bal, "needed": explain_cost,
-                        "message": _usage_limit_message(user, "explain")},
-            )
-        charged = bal is not None
-    if not charged:
-        identity = user["id"] if user else f"ip:{_client_ip(request)}"
-        limit = EXPLAIN_PER_DAY_USER if user else EXPLAIN_PER_DAY_ANON
-        if not auth.check_and_count_run(f"explain:{identity}", limit):
-            raise HTTPException(status_code=429, detail="daily explanation limit reached")
+    # §5: a cache miss is a paid model call, metered by a quiet per-day cap
+    # (never priced per explanation — cache hits returned above are free
+    # regardless, so a warm strategy costs nothing to re-read).
+    identity = user["id"] if user else f"ip:{_client_ip(request)}"
+    limit = (
+        auth.limits_for(user)["explain_per_day"] if user else EXPLAIN_PER_DAY_ANON
+    )
+    if not auth.check_and_count_run(f"explain:{identity}", limit):
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "fair_use_limit",
+                    "message": "You've hit today's limit on new AI explanations — "
+                    "explanations you've already generated stay readable."},
+        )
 
     prompt = (
         "Rewrite the trading strategy described by the JSON below as plain-English "
@@ -779,8 +778,6 @@ def explain_spec(
         )
     except Exception:
         logger.error("explain call failed", exc_info=True)
-        if charged:
-            credits.refund(user["id"], explain_cost, "explain_failed")
         raise HTTPException(status_code=502, detail="explanation generation failed")
 
     with _explain_lock:
@@ -821,7 +818,7 @@ def diff_runs(run_id: str, other_id: str):
     return diff
 
 
-CHAT_PER_DAY = int(os.getenv("CHAT_PER_DAY", "50"))
+# Signed-in chat caps are per-plan (auth.PLAN_LIMITS["chat_per_day"]) since §5.
 # P0-3: anonymous visitors get a taste of the strategist — enough to feel an
 # edit-and-rerun loop — before the account gate.
 ANON_CHAT_PER_DAY = int(os.getenv("ANON_CHAT_PER_DAY", "3"))
@@ -876,21 +873,14 @@ def chat(
             "create a free account for full-size AI context.",
         )
 
+    # ── §5: AI messages are a plan capability metered by a quiet per-day cap
+    # (the real COGS boundary — model tokens), never priced per message.
+    # Credits remain invisible overflow past the cap.
     chat_fee = 0
     charged = False
-    if user is not None and credits.enabled_for(user):
-        chat_fee = credits.chat_cost(estimated_tokens)
-        allowed, bal = credits.spend(user["id"], chat_fee, "chat")
-        if not allowed:
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "out_of_credits", "balance": bal, "needed": chat_fee,
-                        "message": _usage_limit_message(user, "chat")},
-            )
-        charged = bal is not None  # (True, None) = fail-open, nothing was debited
     if user is None:
-        # Anonymous taste (P0-3): N messages/day/IP, no credits involved
-        # (enabled_for is user-only). Dev-open (auth unconfigured) stays unmetered.
+        # Anonymous taste (P0-3): N messages/day/IP, no credits involved.
+        # Dev-open (auth unconfigured) stays unmetered.
         if auth.auth_configured() and not auth.check_and_count_run(
             f"chat:ip:{_client_ip(request)}", ANON_CHAT_PER_DAY
         ):
@@ -903,12 +893,25 @@ def chat(
                     "No card required.",
                 },
             )
-    elif not charged:
-        # Credits dormant or unreachable — a per-day cap still meters model spend.
-        if not auth.check_and_count_run(f"chat:{user['id']}", CHAT_PER_DAY):
-            raise HTTPException(
-                status_code=429, detail=f"daily chat limit reached ({CHAT_PER_DAY}/day)"
-            )
+    else:
+        chat_cap = auth.limits_for(user)["chat_per_day"]
+        if not auth.check_and_count_run(f"chat:{user['id']}", chat_cap):
+            if credits.enabled_for(user):
+                chat_fee = credits.chat_cost(estimated_tokens)
+                allowed, bal = credits.spend(user["id"], chat_fee, "chat_overflow")
+                charged = allowed and bal is not None
+                if not allowed:
+                    raise HTTPException(
+                        status_code=429,
+                        detail={"error": "fair_use_limit",
+                                "message": _fair_use_message(user, "chat")},
+                    )
+            else:
+                raise HTTPException(
+                    status_code=429,
+                    detail={"error": "fair_use_limit",
+                            "message": _fair_use_message(user, "chat")},
+                )
 
     try:
         raw = chat_brain.call_claude(messages, system_prompt)
@@ -987,11 +990,10 @@ def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(
     if limits["deployments"] == 0:
         raise HTTPException(status_code=403, detail="your plan has no forward-test slots")
     if req.visibility == "private" and not limits["private"]:
-        raise HTTPException(
-            status_code=403, detail="private deployments are a Pro feature — public is free"
-        )
+        raise _capability_403("Private deployments", "pro")
     owner = user["id"] if user else "house"
-    if user is not None:
+    # None = unlimited slots (Max) — skip the count entirely.
+    if user is not None and limits["deployments"] is not None:
         active = [d for d in forward.list_deployments("active") if d["owner"] == owner]
         if len(active) >= limits["deployments"]:
             raise HTTPException(
@@ -1010,12 +1012,9 @@ def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(
 
     # Intraday deployments (granularity parity: a 15m strategy forward-tests
     # on 15m closed candles, evaluated after the fact by the daily worker).
-    # EOD (1d) deploys stay free within plan slots; intraday needs pro/max +
-    # a one-time credit fee. All gates fire BEFORE any spend.
+    # §5: intraday is a PLAN CAPABILITY (Pro+) with no per-deploy fee — the
+    # old one-time 100/250-credit charge is retired with the credits model.
     timeframe = str(spec.get("backtest_timeframe") or "1d").strip() or "1d"
-    deploy_fee = 0
-    fee_charged = False
-    slug_ref = None
     if timeframe != "1d":
         if timeframe not in credits.INTRADAY_DEPLOY_TIMEFRAMES:
             raise HTTPException(
@@ -1024,27 +1023,9 @@ def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(
                 "volume is too high for the daily worker right now; allowed intraday "
                 f"timeframes: {', '.join(credits.INTRADAY_DEPLOY_TIMEFRAMES)}",
             )
-        if (user or {}).get("plan") not in ("pro", "max"):
-            raise HTTPException(
-                status_code=403,
-                detail="intraday forward testing is a Pro feature — upgrade to deploy "
-                "intraday strategies to the ledger",
-            )
-        if credits.enabled_for(user):
-            deploy_fee = credits.intraday_deploy_cost(timeframe)
-            # ref = the deployment slug → the ledger RPC makes retries idempotent.
-            slug_ref = forward.slug_for(req.name, spec)
-            allowed, bal = credits.spend(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
-            if not allowed:
-                raise HTTPException(
-                    status_code=402,
-                    detail={"error": "out_of_credits", "balance": bal, "needed": deploy_fee,
-                            "message": _usage_limit_message(user, "deploy")},
-                )
-            fee_charged = bal is not None  # (True, None) = fail-open, nothing debited
+        if not limits["intraday"]:
+            raise _capability_403("Intraday forward testing", "pro")
 
-    # Everything after the fee refunds on failure — a failed deploy must
-    # never eat the intraday fee.
     try:
         deployment = forward.create_deployment(
             spec=spec,
@@ -1057,28 +1038,20 @@ def deploy(req: DeployRequest, request: Request, user: Optional[dict] = Depends(
             backtest_stats=run.get("stats"),
         )
     except HTTPException:
-        if fee_charged:
-            credits.refund(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
         raise
     except Exception:
         logger.error("deploy failed", exc_info=True)
-        if fee_charged:
-            credits.refund(user["id"], deploy_fee, "deploy_intraday", ref=slug_ref)
-        raise HTTPException(
-            status_code=500,
-            detail="deploy failed — credits refunded" if fee_charged
-            else "deploy failed — nothing was charged",
-        )
+        raise HTTPException(status_code=500, detail="deploy failed — nothing was charged")
     analytics.capture("deploy_completed", _analytics_id(request, user), {
         "timeframe": timeframe,
         "visibility": req.visibility,
-        "credits_charged": deploy_fee if fee_charged else 0,
+        "credits_charged": 0,
         "house": user is None,
     })
     return {
         "deployment": _public_deployment(deployment),
-        "credits_charged": deploy_fee if fee_charged else 0,
-        "credits_remaining": credits.balance(user["id"]) if (user and fee_charged) else None,
+        "credits_charged": 0,  # §5: deploys are plan capabilities, never priced
+        "credits_remaining": None,
         "disclaimer": DISCLAIMER,
     }
 

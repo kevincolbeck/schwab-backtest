@@ -1,6 +1,6 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-05**, tree clean at commit `49b3a54` on `master`.
+> Last updated: **2026-08-05**, §5 pricing restructure shipped on `master`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -28,6 +28,19 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   2026-08-05; 15 rows incl. one user strategy; new ones show "warming up"
   until their 20-trading-day windows fill — by design).
 
+- **§5 PRICING RESTRUCTURE: SHIPPED.** Per-action credits retired for flat
+  capability tiers — Free $0 / **Pro $39/mo · $390/yr** / **Max $99/mo ·
+  $990/yr** (annual = 2 months free). Capabilities gate what you may run
+  (intraday = Pro+, ALL_US + crypto = Max, symbol caps, deployment slots);
+  quiet per-day fair-use caps meter it; credits survive ONLY as invisible
+  overflow past a cap. Lab usage meter **deleted**. Intraday deploy fees
+  **retired**. New crypto plan gate (previously advertised but unenforced).
+  Truth: `service/auth.py::PLAN_LIMITS` + `web/src/lib/pricing.ts`.
+  Checkout verifies each Stripe price's `unit_amount` against
+  `lib/pricing.ts` before charging, and there is deliberately **no fallback**
+  to the retired $29/$79 prices — checkout 503s until the new env vars are
+  set rather than silently mischarging.
+
 ## NEXT UP (in spec order)
 
 1. **P1-2 per-page SEO** (`docs/CHATBACKTEST-BUILD.md` §3): unique
@@ -39,8 +52,10 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
 4. **P1-5 comparison pages** (6 competitors, factual tone).
 5. Section 4 programmatic template pages `/backtest/[slug]` — when built,
    re-point blog article template-links and add per-template backlinks.
-6. §5 pricing restructure — BLOCKED on owner: Stripe $39/$99 + annual
-   prices (§10 blocker #3).
+6. ~~§5 pricing restructure~~ — **SHIPPED** (see above). Follow-ups it left:
+   build the Max features §5 advertises but we refused to sell unbuilt
+   (priority engine queue, verified-record badge, public profile page, early
+   access), then add them to the pricing card in the same commit.
 
 ## The per-item loop (unchanged — follow it exactly)
 
@@ -65,9 +80,13 @@ file via `git commit -F`, end with the Claude co-author line) →
   is truly static except sitemap.xml; "it'll fail at build" reasoning is wrong.
 - Anonymous analytics ids are ALWAYS `anon:`-prefixed (user-UUID collision =
   forgeable funnels). Client may only emit view events via `/api/t`.
-- Free tier truth: daily runs ≤10 symbols or inside any template universe are
-  credit-free on EVERY plan (quiet 50/day fair-use on free); intraday,
-  multi-block custom, ALL_US still bill. Copy must never say "out of credits".
+- Pricing truth (§5): NOTHING is priced per action. Plans sell capabilities;
+  quiet per-day caps meter usage; credits are invisible overflow only. Never
+  reintroduce a usage counter into the lab, and never advertise a capability
+  that isn't built (Max's "priority engine", "verified-record badge",
+  "public profile", "early access" are in the §5 spec but NOT built — do not
+  put them on the pricing page until they ship). Exports are free on every
+  plan; only SHARE LINKS carry the free-tier watermark.
 
 ## Parked follow-ups (real, reviewed, deliberately deferred)
 
@@ -86,12 +105,22 @@ file via `git commit -F`, end with the Claude co-author line) →
 
 ## Owed by Kevin (owner clicks)
 
-- **Submit `https://schwab-backtest.vercel.app/sitemap.xml` in Google Search
-  Console** (P1-1's last acceptance bullet).
+- **Set the four §5 Stripe price IDs in Vercel (Production)** — printed by
+  `python scripts/setup_stripe_v2.py` and already in local `.env` /
+  `web/.env.local`: `STRIPE_PRICE_PRO_V2`, `STRIPE_PRICE_PRO_ANNUAL`,
+  `STRIPE_PRICE_MAX_V2`, `STRIPE_PRICE_MAX_ANNUAL`. **Until these are set,
+  prod checkout returns 503 by design** (no silent fallback to $29/$79).
+- Decide `FREE_CHAT_PER_DAY` (ships at 5; the case for 10 is in
+  docs/pricing-model.md §5 — it's the one growth-vs-COGS dial).
+
+- **Google Search Console**: verify `chatbacktest.com` (the new canonical
+  domain, purchased 2026-08-05) and submit
+  `https://chatbacktest.com/sitemap.xml`. Do this on the CUSTOM domain, not
+  the vercel.app one, so the index isn't split.
 - Archive prod duplicate `golden-cross-ddb5a4-5186` (SQL on Railway; status
   column is mutable).
 - §10 blockers: #1 email provider (Resend/Loops) + key → unblocks P1-4;
-  #3 Stripe $39/$99 + annual prices → unblocks §5. (#2 PostHog: DONE.)
+  (#2 PostHog: DONE. #3 Stripe §5 prices: DONE — created in test mode; just set them in Vercel, see above.)
 - Stripe is still test-mode (live-mode switch pending).
 
 ## Run / verify commands
@@ -99,9 +128,11 @@ file via `git commit -F`, end with the Claude co-author line) →
 - Service: port 8787, `BACKTEST_CACHE_DB=engine/backtest_data.db`,
   `SERVICE_DATA_DIR=service_data`. Web: `npm run dev` in `/web`
   (proxies via `BACKTEST_API_URL`).
-- Tests: `python -m pytest` from repo root (240 green);
+- Tests: `python -m pytest` from repo root (237 green);
   `cd web && npm test -- --run` (43 green); `npm run build` green;
   `npm run lint` has exactly 3 pre-existing errors + 1 warning.
-- Prod: web `schwab-backtest.vercel.app`, service
+- Prod: web `chatbacktest.com` (canonical; `schwab-backtest.vercel.app` still
+  resolves and should 308-redirect once the domain is primary in Vercel),
+  service
   `schwab-backtest-production.up.railway.app` (`/healthz`). Admin ops need
   `x-admin-token` (value in gitignored `.env`).

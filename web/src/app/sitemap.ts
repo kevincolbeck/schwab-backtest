@@ -11,7 +11,7 @@ import { STOCK_UNIVERSE } from "@/lib/server/stocks";
  * cached ticker via ISR + dynamicParams). */
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://schwab-backtest.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com";
 
 const STATIC_ROUTES: { path: string; changeFrequency: "daily" | "weekly"; priority: number }[] = [
   { path: "", changeFrequency: "weekly", priority: 1 },

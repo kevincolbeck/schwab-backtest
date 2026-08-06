@@ -2,7 +2,7 @@ import { fmtSignedPct } from "@/lib/format";
 
 /** Public site origin for share links (env-driven; production domain fallback). */
 const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://schwab-backtest.vercel.app"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com"
 ).replace(/\/+$/, "");
 
 function XLogo({ size = 14 }: { size?: number }) {
