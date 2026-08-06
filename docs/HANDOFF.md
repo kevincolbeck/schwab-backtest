@@ -235,9 +235,33 @@ it against a simulated pre-existing DB. That also closed a real divergence:
   pass recommended not shipping it at all yet (2 signups); built because it
   sends nothing and does nothing until used.
 
-**Owner actions:** apply `supabase/migrations/0003_section9_groundwork.sql` and
-`0004_referrals.sql`; set `REFERRAL_SECRET` on Railway only when you want
-referrals live.
+**Owner actions — DONE 2026-08-06:** 0003 + 0004 applied and verified (tables
+exist, §9 columns present, the Postgres append-only trigger genuinely blocks
+UPDATE and DELETE). `REFERRAL_SECRET` set on Railway, so referrals are LIVE.
+
+**Referral was broken on first ship and is fixed (`9ad166d`)** — worth knowing
+because both defects were the same mistake, shipping pieces without walking
+the flow end to end:
+- the client called `/referral`, but every service call goes through a
+  `/api/*` proxy route. It 404'd, ReferralCard swallowed it, and the feature
+  rendered as *nothing at all* with no error anywhere.
+- `?ref=CODE` was read by nobody, so "Copy invite link" produced a dead URL.
+  `ReferralCapture` now stashes it (validated shape, first-code-wins, 30-day
+  expiry) and ReferralCard auto-redeems it once signed in.
+
+**Known and accepted:** someone can farm bonus slots with throwaway emails.
+Ceiling is 5 deployment slots on a free account (1 base + 3 cap + 1 for being
+referred), costing 4 extra daily worker replays of daily-timeframe strategies
+— intraday deploy is Pro-gated. The cap is the defence; the prize isn't worth
+farming. Revisit if `REFERRAL_MAX_BONUS` rises or a slot ever gets expensive.
+
+**OUTSTANDING (small, owner):**
+1. Run `supabase/CLEANUP_probe_row.sql` — I left a `spec_hash='probe'` row in
+   production `forward_returns` while testing the append-only trigger. Needs a
+   one-off trigger disable, which is deliberately awkward.
+2. **Rotate `RESEND_API_KEY`** — pasted in chat days ago, still not rotated.
+3. Keyboard-only pass through the run-a-backtest flow (last open Section 7
+   item; see docs/A11Y.md).
 
 ## NEXT UP (in spec order)
 
