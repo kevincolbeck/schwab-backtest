@@ -54,6 +54,8 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
    | `POSTHOG_KEY` | P0-5 analytics — service events (backtest_run, ai_message_sent, deploy_completed, share_link_created) stay dormant no-ops until set |
    | `POSTHOG_HOST` | optional, defaults to `https://us.i.posthog.com` |
    | `ANALYTICS_SALT` | optional — salts the anonymous IP-hash distinct ids; falls back to `PROXY_SHARED_SECRET` (already set), so only needed if you want a dedicated salt |
+   | `REFERRAL_SECRET` | optional — **the referral feature is OFF until this is set.** Any long random string (`openssl rand -hex 32`). Codes are derived from it, so **changing it invalidates every code already in circulation** — already-redeemed bonuses survive, because redemptions are stored by user id, but a link someone is holding stops working. Set once, don't rotate casually. Service only; the web app never sees it. |
+   | `REFERRAL_MAX_BONUS` | optional, default `3` — most bonus deployment slots one referrer can earn. This grants free capacity that costs money to serve, so keep it low. |
 
 5. Warm the cache after first deploy (Railway shell):
    `python engine/import_market_data.py --source polygon` for the template symbols,
