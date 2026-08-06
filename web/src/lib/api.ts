@@ -157,11 +157,11 @@ export function fetchReferral(): Promise<{
   bonus_deployments: number;
   max_bonus?: number;
 }> {
-  return request("/referral");
+  return request("/api/referral");
 }
 
 export function redeemReferral(code: string): Promise<{ bonus_deployments: number }> {
-  return request("/referral/redeem", {
+  return request("/api/referral/redeem", {
     method: "POST",
     body: JSON.stringify({ code }),
   });

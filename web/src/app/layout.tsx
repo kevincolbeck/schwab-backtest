@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import AuthModalProvider from "@/components/AuthModal";
+import ReferralCapture from "@/components/ReferralCapture";
 import CommandPalette from "@/components/CommandPalette";
 import SiteNav from "@/components/SiteNav";
 import { DISCLAIMER } from "@/lib/constants";
@@ -64,6 +65,9 @@ export default function RootLayout({
           >
             Skip to main content
           </a>
+          {/* Captures ?ref= from an invite link so it survives until there is
+              an account to credit (§8). Renders nothing. */}
+          <ReferralCapture />
           <SiteNav />
           <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
             {children}

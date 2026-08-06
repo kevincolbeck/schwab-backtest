@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchReferral, redeemReferral } from "@/lib/api";
+import { clearPendingRef, readPendingRef } from "@/components/ReferralCapture";
 
 interface Status {
   enabled: boolean;
@@ -24,9 +25,36 @@ export default function ReferralCard() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetchReferral()
-      .then(setStatus)
-      .catch(() => setStatus(null));
+    let cancelled = false;
+    (async () => {
+      let s: Status | null = null;
+      try {
+        s = await fetchReferral();
+      } catch {
+        if (!cancelled) setStatus(null);
+        return;
+      }
+      // An invite link stashed a code before this person had an account.
+      // Redeem it now, silently: they clicked the link, that IS the intent,
+      // and making them re-type a code they never saw would be absurd.
+      const pending = readPendingRef();
+      if (pending && s?.enabled) {
+        try {
+          const out = await redeemReferral(pending);
+          s = { ...s, bonus_deployments: out.bonus_deployments };
+          if (!cancelled) setMsg("Invite applied — you've got an extra deployment slot.");
+        } catch {
+          /* already redeemed, self-referral, or a bad code — nothing to say. */
+        }
+        // Clear either way: a code that failed once will fail again, and
+        // retrying it on every page load helps nobody.
+        clearPendingRef();
+      }
+      if (!cancelled) setStatus(s);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!status?.enabled || !status.code) return null;
