@@ -19,6 +19,7 @@ import {
   fetchBars,
   fetchExplanation,
   fetchRun,
+  fetchStrategy,
   fetchTemplates,
   runBacktest,
   sendChat,
@@ -234,6 +235,28 @@ function PlaygroundInner() {
               setEndDate(range.end);
             }
             setTemplateId("");
+            return;
+          } catch {
+            /* fall through to ?from, then to a template */
+          }
+        }
+        // Fork straight off the ledger. `?run=` is richer when it exists — it
+        // restores the original results and date window — but house-seeded
+        // records have no source run (their specs came from JSON files, not a
+        // run), which was every record on the board. Loading the FROZEN SPEC
+        // by slug works for all of them, so the fork path no longer depends on
+        // how a deployment happened to be created.
+        const fromParam = searchParams.get("from");
+        if (fromParam) {
+          try {
+            const record = await fetchStrategy(fromParam);
+            if (cancelled || genRef.current !== gen) return;
+            setSpec(record.spec);
+            setTemplateId("");
+            // Deliberately no setRun(): the forward record is NOT a backtest
+            // of this spec over the lab's window, and showing it as one would
+            // merge two things this product refuses to merge. The user hits
+            // Run to get their own numbers.
             return;
           } catch {
             /* fall through to template */

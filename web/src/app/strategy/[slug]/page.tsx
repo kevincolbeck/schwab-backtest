@@ -153,13 +153,21 @@ export default async function StrategyPage({
                 forwardReturnPct={summary.forward_return_pct}
                 daysLive={summary.days_live}
               />
-              {data.source_run_id && (
-                <ButtonLink
-                  href={`/playground?run=${encodeURIComponent(data.source_run_id)}`}
-                >
-                  Fork this strategy
-                </ButtonLink>
-              )}
+              {/* Always offered. This used to be gated on source_run_id, which
+                  house-seeded records don't have — so the button rendered on
+                  ZERO records, and the leaderboard had no route back into the
+                  product at all. Prefer ?run= when a source run exists (it
+                  restores the original results and date window); otherwise
+                  fork the frozen spec by slug, which every record has. */}
+              <ButtonLink
+                href={
+                  data.source_run_id
+                    ? `/playground?run=${encodeURIComponent(data.source_run_id)}`
+                    : `/playground?from=${encodeURIComponent(deployment.slug)}`
+                }
+              >
+                Fork this strategy
+              </ButtonLink>
             </div>
           </div>
         </Reveal>

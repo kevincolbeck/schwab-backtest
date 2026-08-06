@@ -4,6 +4,7 @@ import type {
   IndicatorSeries,
   RunResult,
   Spec,
+  StrategyPagePayload,
   Template,
 } from "./types";
 
@@ -148,6 +149,12 @@ export function fetchMe(): Promise<{
   limits: Record<string, unknown>;
 }> {
   return request("/api/me");
+}
+
+/** A deployed record's public payload — used by the lab to fork a strategy
+ *  straight off the ledger. */
+export function fetchStrategy(slug: string): Promise<StrategyPagePayload> {
+  return request(`/api/strategy/${encodeURIComponent(slug)}`);
 }
 
 /** §8 referral status: this user's code and the bonus slots it has earned. */
