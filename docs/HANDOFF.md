@@ -2,7 +2,7 @@
 
 > Last updated: **2026-08-06**, P1-3 + a Google-docs SEO pass shipped. Live on chatbacktest.com with
 > Stripe LIVE mode, Resend verified, analytics flowing, SEO complete.
-> Tree clean at `1ad99da`.
+> Tree clean at `f7462b5`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -59,10 +59,12 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   openGraph block + canonical. Worst case was `/stocks/[ticker]` in its
   "unavailable" state: a LIVE INDEXABLE page canonicalising to "/". Fixed in
   `4f08fee`. Deliberately NOT noIndexed that branch (a reviewer suggested it):
-  those URLs are in the sitemap, so noindexing them on a transient backend
-  failure would manufacture the exact "Submitted URL marked noindex" error the
-  checker guards against — a correct canonical plus Google's own soft-404
-  detection is the right handling. The `not_found` branches call `notFound()`
+  those URLs are in the sitemap. **REVERSED on 2026-08-06 by the Google-docs
+  pass**: `getStockBundle` degrades to "unavailable" on ANY non-ok response,
+  so one blip during a crawl could publish up to 112 near-identical thin 200s
+  and let Google pick its own canonical. That risk beats the sitemap-mismatch
+  concern, and a noindex Google can READ is handled as "skip for now" rather
+  than a permanent exclusion, so the sitemap entry stays honest. The `not_found` branches call `notFound()`
   and return real 404s, so their metadata never renders (fixed anyway,
   defensively).
 
