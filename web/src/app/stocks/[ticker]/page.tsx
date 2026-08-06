@@ -76,17 +76,25 @@ export async function generateMetadata({
   const { ticker } = await params;
   const result = await getStockBundle(ticker);
 
+  // Every branch must go through pageMetadata(): a bare return inherits the
+  // ROOT's openGraph block (homepage og:title) and the root canonical, which
+  // would tell Google this page is a duplicate of the homepage.
   if (result.status === "not_found") {
-    return {
+    return pageMetadata({
       title: `${result.symbol || "Ticker"} — not found · Chat·Backtest`,
-      robots: { index: false },
-    };
+      description:
+        "We don't have settled price history cached for that ticker. Try another US-listed symbol.",
+      path: `/stocks/${result.symbol || ""}`,
+      noIndex: true,
+    });
   }
   if (result.status === "unavailable") {
-    return {
+    return pageMetadata({
       title: `${result.symbol} stock: settled-close chart & stats`,
       description: `Settled end-of-day price history and company stats for ${result.symbol}. Research and education only — not financial advice.`,
-    };
+      path: `/stocks/${result.symbol}`,
+      ogImage: null, // this segment has its own opengraph-image.tsx
+    });
   }
 
   const { bundle } = result;

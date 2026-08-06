@@ -34,7 +34,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const data = await getStrategy(slug);
-  if (!data) return { title: "Strategy not found — Chat·Backtest" };
+  if (!data)
+    // Bare returns inherit the root's openGraph/canonical — always use the helper.
+    return pageMetadata({
+      title: "Strategy not found — Chat·Backtest",
+      description:
+        "That strategy isn't on the public forward-test ledger. Browse the leaderboard for the records that are.",
+      path: `/strategy/${slug}`,
+      noIndex: true,
+    });
   const title = `${data.deployment.name} — forward-test record`;
   const description = `${fmtSignedPct(data.summary.forward_return_pct, 2)} over ${data.summary.days_live} trading days on the public, append-only forward ledger. Simulated performance for research/education. Not financial advice.`;
   return pageMetadata({

@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import DocsSidebar from "@/components/docs/DocsSidebar";
 import { DISCLAIMER } from "@/lib/constants";
+import { pageMetadata } from "@/lib/seo";
 
 /* No title.template here any more: every docs page sets its FULL title via
    pageMetadata() so <title> and og:title are the same string (P1-2). A
-   template would append the suffix a second time. The default below only
-   covers a docs route that forgets its own metadata. */
-export const metadata: Metadata = {
+   template would append the suffix a second time. This is only the fallback
+   for a docs route that forgets its own metadata — it still goes through the
+   helper so that fallback carries correct OG tags rather than the homepage's. */
+export const metadata: Metadata = pageMetadata({
   title: "Docs — Chat·Backtest",
   description:
     "How the lab, the ledger, and the exports work. Research and education — no live trading, no advice.",
-};
+  path: "/docs",
+});
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (

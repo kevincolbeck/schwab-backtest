@@ -74,6 +74,32 @@ const seenTitle = new Map();
 const seenDesc = new Map();
 const rows = [];
 
+/**
+ * Dynamic routes can't be listed by hand, so sample real ones from the
+ * sitemap. Without this the checker only proves the routes it already knew
+ * about — which is how a bare `return { title }` in a /stocks or /strategy
+ * branch slipped past it once already.
+ */
+async function sampleDynamicRoutes() {
+  try {
+    const res = await fetch(`${BASE}/sitemap.xml`);
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+      (m) => new URL(m[1]).pathname,
+    );
+    const picks = [];
+    for (const prefix of ["/strategy/", "/stocks/", "/blog/"]) {
+      const first = paths.find((p) => p.startsWith(prefix) && !ROUTES.includes(p));
+      if (first) picks.push(first);
+    }
+    return picks;
+  } catch {
+    return [];
+  }
+}
+ROUTES.push(...(await sampleDynamicRoutes()));
+
 for (const route of ROUTES) {
   const url = `${BASE}${route}`;
   let res;
