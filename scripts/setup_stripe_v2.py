@@ -14,9 +14,18 @@ new price object, which is why the old ctb_pro/ctb_max ($29/$79) are left
 alone rather than edited. Existing subscribers keep billing on the old price
 until they're migrated deliberately (see docs/pricing-model.md §5).
 
-Usage (repo root): python scripts/setup_stripe_v2.py
-Reads STRIPE_SECRET_KEY from .env; appends any missing STRIPE_PRICE_* to .env
-and web/.env.local.
+TEST vs LIVE: Stripe keeps entirely separate objects per mode, so price IDs
+created in test DO NOT exist in live. Run this once per mode.
+
+    # test mode (default) — reads STRIPE_SECRET_KEY, writes IDs into .env
+    python scripts/setup_stripe_v2.py
+
+    # live mode — reads STRIPE_SECRET_KEY_LIVE, PRINTS IDs and writes nothing
+    python scripts/setup_stripe_v2.py --live
+
+Live IDs are deliberately never written to local env files: local dev and the
+test suite must never point at real money. Paste the printed values into
+Vercel (Production) instead.
 """
 
 import json
@@ -26,6 +35,7 @@ import urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+LIVE = "--live" in sys.argv
 
 
 def load_env(path: Path) -> dict:
@@ -39,12 +49,29 @@ def load_env(path: Path) -> dict:
 
 
 ENV = load_env(REPO / ".env")
-KEY = ENV.get("STRIPE_SECRET_KEY")
-if not KEY:
-    sys.exit("STRIPE_SECRET_KEY missing from .env")
-if not KEY.startswith("sk_test_"):
-    # Live-mode price creation should be a deliberate, separate act.
-    print(f"WARNING: key prefix {KEY[:8]}… is not sk_test_ — creating LIVE prices.")
+if LIVE:
+    KEY = ENV.get("STRIPE_SECRET_KEY_LIVE")
+    if not KEY:
+        sys.exit(
+            "STRIPE_SECRET_KEY_LIVE missing from .env.\n"
+            "Add your live secret key there (it stays gitignored), then re-run "
+            "with --live. Keep STRIPE_SECRET_KEY as the TEST key so local dev "
+            "and pytest never touch real money."
+        )
+    if not KEY.startswith("sk_live_"):
+        sys.exit("--live requires a key starting with sk_live_")
+    print("MODE: LIVE — creating real, chargeable prices.\n")
+else:
+    KEY = ENV.get("STRIPE_SECRET_KEY")
+    if not KEY:
+        sys.exit("STRIPE_SECRET_KEY missing from .env")
+    if not KEY.startswith("sk_test_"):
+        sys.exit(
+            "STRIPE_SECRET_KEY is not a test key. Live prices must be created "
+            "explicitly: put the live key in STRIPE_SECRET_KEY_LIVE and run "
+            "with --live."
+        )
+    print("MODE: TEST\n")
 
 
 def stripe(method: str, path: str, data: dict | None = None) -> dict:
@@ -69,6 +96,12 @@ PRICES = [
      "product": "Chat-to-Backtest Max", "amount": 9900, "interval": "month"},
     {"env": "STRIPE_PRICE_MAX_ANNUAL", "lookup": "cb_max_annual_v2",
      "product": "Chat-to-Backtest Max", "amount": 99000, "interval": "year"},
+    # Top-up packs (overflow rail, footer-level on /pricing). One-time, so no
+    # `interval` — they also need recreating per mode.
+    {"env": "STRIPE_PRICE_PACK_SMALL", "lookup": "ctb_pack_small",
+     "product": "Credit Pack — 500", "amount": 1000, "interval": None},
+    {"env": "STRIPE_PRICE_PACK_LARGE", "lookup": "ctb_pack_large",
+     "product": "Credit Pack — 1500", "amount": 2500, "interval": None},
 ]
 
 lookup_qs = "&".join(f"lookup_keys[]={p['lookup']}" for p in PRICES)
@@ -92,24 +125,41 @@ for p in PRICES:
         resolved[p["env"]] = by_lookup[p["lookup"]]
         print(f"exists  {p['lookup']}: {by_lookup[p['lookup']]}")
         continue
-    price = stripe("POST", "prices", {
+    params = {
         "product": products[p["product"]],
         "unit_amount": p["amount"],
         "currency": "usd",
         "lookup_key": p["lookup"],
-        "recurring[interval]": p["interval"],
-    })
+    }
+    if p["interval"]:
+        params["recurring[interval]"] = p["interval"]
+    price = stripe("POST", "prices", params)
     resolved[p["env"]] = price["id"]
-    print(f"created {p['lookup']}: {price['id']}  (${p['amount'] / 100:.0f}/{p['interval']})")
+    cadence = f"/{p['interval']}" if p["interval"] else " one-time"
+    print(f"created {p['lookup']}: {price['id']}  (${p['amount'] / 100:.0f}{cadence})")
 
-for env_path in (REPO / ".env", REPO / "web" / ".env.local"):
-    env = load_env(env_path)
-    lines = [f"{k}={v}" for k, v in resolved.items() if k not in env]
-    if lines:
-        with env_path.open("a", encoding="utf-8") as fp:
-            fp.write("\n" + "\n".join(lines) + "\n")
-        print(f"appended {len(lines)} price ids to {env_path}")
+if LIVE:
+    # Never write live IDs locally — local dev and pytest must stay on test.
+    print("\n(local env files deliberately NOT modified in live mode)")
+else:
+    for env_path in (REPO / ".env", REPO / "web" / ".env.local"):
+        env = load_env(env_path)
+        lines = [f"{k}={v}" for k, v in resolved.items() if k not in env]
+        if lines:
+            with env_path.open("a", encoding="utf-8") as fp:
+                fp.write("\n" + "\n".join(lines) + "\n")
+            print(f"appended {len(lines)} price ids to {env_path}")
 
-print("\n=== Set these in Vercel (Production) ===")
+banner = "LIVE" if LIVE else "TEST"
+print(f"\n=== {banner} price IDs — set these in Vercel (Production) ===")
 for k, v in resolved.items():
     print(f"{k}={v}")
+if LIVE:
+    print(
+        "\nAlso set in Vercel Production:\n"
+        "  STRIPE_SECRET_KEY=sk_live_...        (the live secret key)\n"
+        "  STRIPE_WEBHOOK_SECRET=whsec_...      (from the LIVE webhook endpoint)\n"
+        "Then redeploy. Checkout verifies every price's amount against\n"
+        "web/src/lib/pricing.ts, so a test/live mix-up fails closed (503),\n"
+        "never a wrong charge."
+    )

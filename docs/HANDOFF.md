@@ -105,11 +105,19 @@ file via `git commit -F`, end with the Claude co-author line) →
 
 ## Owed by Kevin (owner clicks)
 
-- **Set the four §5 Stripe price IDs in Vercel (Production)** — printed by
-  `python scripts/setup_stripe_v2.py` and already in local `.env` /
-  `web/.env.local`: `STRIPE_PRICE_PRO_V2`, `STRIPE_PRICE_PRO_ANNUAL`,
-  `STRIPE_PRICE_MAX_V2`, `STRIPE_PRICE_MAX_ANNUAL`. **Until these are set,
-  prod checkout returns 503 by design** (no silent fallback to $29/$79).
+- **Stripe LIVE-mode switch (in progress 2026-08-05).** Kevin created a live
+  Stripe account. Test and live are separate object graphs: the six test price
+  IDs in local `.env` DO NOT exist in live. Sequence in docs/deploy.md §4
+  "TEST vs LIVE": put the live key in `.env` as `STRIPE_SECRET_KEY_LIVE`
+  (leave `STRIPE_SECRET_KEY` on TEST so pytest/dev never touch real money),
+  run `python scripts/setup_stripe_v2.py --live` (prints six live IDs, writes
+  nothing locally), create the LIVE webhook, then set in Vercel Production:
+  live `STRIPE_SECRET_KEY`, the six live `STRIPE_PRICE_*`, and
+  `STRIPE_WEBHOOK_SECRET`. **Until those are set, prod checkout returns 503 by
+  design** (no fallback to $29/$79; the route verifies each price's
+  `unit_amount` against `web/src/lib/pricing.ts`, so a test/live mix-up fails
+  closed rather than mischarging). NOTE: the test-mode webhook still exists
+  and is enabled — nothing was lost; webhooks are per-mode.
 - Decide `FREE_CHAT_PER_DAY` (ships at 5; the case for 10 is in
   docs/pricing-model.md §5 — it's the one growth-vs-COGS dial).
 

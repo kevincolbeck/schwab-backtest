@@ -71,9 +71,34 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
 
 Two products (Pro $39/mo · $390/yr, Max $99/mo · $990/yr — §5 flat tiers, created by
 `scripts/setup_stripe_v2.py`; the retired $29/$79 prices still exist because Stripe
-prices are immutable) → Checkout links; webhook → a Vercel route
-updates `profiles.plan`. Use the Stripe customer portal for cancel/upgrade — build
+prices are immutable) → Checkout links; a webhook → Vercel route updates
+`profiles.plan`. Use the Stripe customer portal for cancel/upgrade — build
 nothing custom.
+
+### TEST vs LIVE mode (read before switching)
+
+Stripe keeps **entirely separate** products, prices, customers, webhooks and API
+keys per mode. Test-mode price IDs **do not exist in live mode** — a live key
+with test price IDs makes checkout fail closed (503, by design: the route
+verifies each price's `unit_amount` against `web/src/lib/pricing.ts`).
+
+Going live is a per-mode repeat of the same setup:
+
+1. Activate the Stripe account (business details + bank) — live charges fail
+   until it is.
+2. Put the live secret key in `.env` as `STRIPE_SECRET_KEY_LIVE` (keep
+   `STRIPE_SECRET_KEY` on the **test** key so local dev and pytest never touch
+   real money), then run `python scripts/setup_stripe_v2.py --live`. It creates
+   the six live prices and PRINTS them without writing to local env files.
+3. Create a **live** webhook endpoint at `<site>/api/stripe/webhook` with
+   events `checkout.session.completed`, `invoice.payment_succeeded`,
+   `customer.subscription.updated`, `customer.subscription.deleted`. Copy its
+   signing secret. (Editing an existing endpoint's URL later **preserves** its
+   signing secret — handy during a domain migration.)
+4. In Vercel (Production): `STRIPE_SECRET_KEY` = the live key, the six live
+   `STRIPE_PRICE_*` IDs, and `STRIPE_WEBHOOK_SECRET` = the live signing secret.
+   Redeploy. **Without the webhook secret, production webhooks 503 and paid
+   upgrades never reach `profiles.plan`.**
 
 ## Local development
 
