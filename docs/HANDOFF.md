@@ -1,6 +1,7 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-05**, §5 pricing restructure shipped on `master`.
+> Last updated: **2026-08-05**, §5 shipped + live on chatbacktest.com with
+> Stripe live mode, Resend, and analytics all configured.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -119,7 +120,14 @@ file via `git commit -F`, end with the Claude co-author line) →
   Local `.env` keeps `STRIPE_SECRET_KEY` on TEST and holds the live key only
   as `STRIPE_SECRET_KEY_LIVE` (read solely by `setup_stripe_v2.py --live`), so
   pytest and `npm run dev` can never touch real money. REMAINING: paste the
-  six IDs into Vercel Production + redeploy.
+  six IDs into Vercel Production + redeploy. **DONE 2026-08-05** — verified
+  from outside: apex serves 200 with no redirect, www 308s to it, the Stripe
+  webhook answers 400 (signature check reached, no redirect), and checkout
+  returns 401 "sign in first" (env loaded). The legacy $29/$79 env vars were
+  deleted from Vercel and `scripts/setup_stripe.py` removed from the repo.
+  Supabase Auth is repointed at the new domain (callback route verified live).
+  Sitemap: 200 at the apex, 139 URLs, all apex-hosted; submitted to GSC (a
+  "couldn't fetch" right after submission is normal queueing).
 - ~~**Stripe LIVE-mode switch (in progress 2026-08-05).**~~ Kevin created a live
   Stripe account. Test and live are separate object graphs: the six test price
   IDs in local `.env` DO NOT exist in live. Sequence in docs/deploy.md §4

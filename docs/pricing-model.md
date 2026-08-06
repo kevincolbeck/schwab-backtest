@@ -11,7 +11,7 @@ Owner directive: **every credit-priced action must carry a large gross margin ov
 its worst-case marginal cost — extremely profitable no matter what.** This doc is
 the math that proves it and the map of where each constant lives. Tune numbers
 here first, then change the constants in `service/credits.py` (and the Stripe
-prices created by `scripts/setup_stripe.py`).
+prices created by `scripts/setup_stripe_v2.py`).
 
 All margins below are computed at the **Max rate — the cheapest price a credit is
 ever sold at**. If an action clears its cost at the Max rate, it clears it at
@@ -183,7 +183,7 @@ COGS ~90% on cache hits.)
 | Model + token prices | `claude-sonnet-4-6` · $3/$15 per MTok | `service/chat.py` (`CHAT_MODEL` env) — re-run the (c) invariants on any change |
 | Grants (`SIGNUP_GRANT`, `MONTHLY_GRANTS`) | 250 signup · Pro 2,500 · Max 10,000 | `service/credits.py` |
 | Free-plan quiet run cap | `FREE_RUNS_PER_DAY` env, default 50/day (1d runs, credit-exempt) | `service/auth.py` `PLAN_LIMITS` |
-| Packs (`PACKS`) | 500/$10 · 1,500/$25 | `service/credits.py` + `scripts/setup_stripe.py` |
+| Packs (`PACKS`) | 500/$10 · 1,500/$25 | `service/credits.py` + `scripts/setup_stripe_v2.py` |
 
 ## Mechanics (unchanged)
 
