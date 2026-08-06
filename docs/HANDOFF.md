@@ -105,7 +105,22 @@ file via `git commit -F`, end with the Claude co-author line) →
 
 ## Owed by Kevin (owner clicks)
 
-- **Stripe LIVE-mode switch (in progress 2026-08-05).** Kevin created a live
+- **Stripe LIVE mode is CONFIGURED (2026-08-05).** Account verified:
+  `charges_enabled`/`payouts_enabled` true, no outstanding requirements.
+  Live webhook live at `https://chatbacktest.com/api/stripe/webhook` with the
+  4 required events. Live prices created + amount-verified against
+  `web/src/lib/pricing.ts` (price IDs are not secret):
+  `STRIPE_PRICE_PRO_V2=price_1U1HiaEBdF4ChpMQ9ptKStTU`,
+  `STRIPE_PRICE_PRO_ANNUAL=price_1U1HiaEBdF4ChpMQ4joh07E3`,
+  `STRIPE_PRICE_MAX_V2=price_1U1HiaEBdF4ChpMQJ3VA2QkH`,
+  `STRIPE_PRICE_MAX_ANNUAL=price_1U1HiaEBdF4ChpMQEzSQyqRb`,
+  `STRIPE_PRICE_PACK_SMALL=price_1U1HibEBdF4ChpMQYt11miVH`,
+  `STRIPE_PRICE_PACK_LARGE=price_1U1HibEBdF4ChpMQplt5jT8Q`.
+  Local `.env` keeps `STRIPE_SECRET_KEY` on TEST and holds the live key only
+  as `STRIPE_SECRET_KEY_LIVE` (read solely by `setup_stripe_v2.py --live`), so
+  pytest and `npm run dev` can never touch real money. REMAINING: paste the
+  six IDs into Vercel Production + redeploy.
+- ~~**Stripe LIVE-mode switch (in progress 2026-08-05).**~~ Kevin created a live
   Stripe account. Test and live are separate object graphs: the six test price
   IDs in local `.env` DO NOT exist in live. Sequence in docs/deploy.md §4
   "TEST vs LIVE": put the live key in `.env` as `STRIPE_SECRET_KEY_LIVE`
