@@ -70,16 +70,30 @@ export type StockBundleResult =
 
 export async function getStockBundle(ticker: string): Promise<StockBundleResult> {
   const symbol = decodeURIComponent(ticker ?? "").trim().toUpperCase();
+  const url = `${BACKTEST_API_URL}/stocks/${encodeURIComponent(symbol)}`;
+  type Body = Partial<StockBundle> & { found?: boolean; retryable?: boolean };
   try {
-    const res = await fetch(
-      `${BACKTEST_API_URL}/stocks/${encodeURIComponent(symbol)}`,
-      { next: { revalidate: STOCKS_REVALIDATE } },
-    );
+    const res = await fetch(url, { next: { revalidate: STOCKS_REVALIDATE } });
     if (!res.ok) return { status: "unavailable", symbol };
-    const body = (await res.json()) as Partial<StockBundle> & {
-      found?: boolean;
-      retryable?: boolean;
-    };
+    let body = (await res.json()) as Body;
+
+    // NEVER 404 off a CACHED negative. A found:false answer is cheap and can
+    // be wrong for six hours: the Data Cache keeps it for STOCKS_REVALIDATE
+    // and survives redeploys, so one bad minute upstream outlives the fix for
+    // it — which is exactly what happened, and why /stocks/T stayed dead after
+    // the service stopped emitting that answer. Re-ask the origin before
+    // taking a URL out of the index. Costs one extra request on the negative
+    // path only; the happy path is untouched.
+    if (!body.found) {
+      try {
+        const fresh = await fetch(url, { cache: "no-store" });
+        if (!fresh.ok) return { status: "unavailable", symbol };
+        body = (await fresh.json()) as Body;
+      } catch {
+        return { status: "unavailable", symbol };
+      }
+    }
+
     // `retryable` separates "this ticker does not exist" from "we couldn't
     // look it up just now" (spent Finnhub rate budget, upstream error). Both
     // arrive as found:false, and treating the second as a 404 deindexes a live
