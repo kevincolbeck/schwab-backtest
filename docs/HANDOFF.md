@@ -167,11 +167,38 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
    backtest — …" needs Section 4's `/backtest/[slug]` routes, which don't
    exist yet.
 2. ~~**P1-3 shareable record cards**~~ — **SHIPPED** (see above).
-3. **P1-4 email sequences** — **UNBLOCKED.** Resend account is live, domain
-   `chatbacktest.com` VERIFIED (DKIM+SPF+MX green), key in gitignored `.env`
-   as `RESEND_API_KEY`. Nine emails + triggers specified in spec §6; branch
-   off the P0-5 `backtest_run` / `deploy_completed` events. Kevin should
-   rotate the key (it was pasted in chat) before/after building.
+3. ~~**P1-4 email sequences**~~ — **DEFERRED 2026-08-06 by Kevin.** Not a
+   blocker; a sequencing call. `/admin/metrics` on prod reports **2 total
+   signups, both activated and both deployed** — so the branching onboarding
+   funnel (Email 2 = "day 1, no backtest"; Email 3 = "backtest but no deploy")
+   has ZERO eligible recipients. Building nine emails, a scheduler, a
+   suppression list, a consent flow and a postal-address registration to mail
+   two already-converted users is the wrong order; acquisition comes first.
+
+   **The audit is preserved in `docs/P1-4-EMAIL-PLAN.md`** (10 agents, 15
+   steps, risks, and 15 owner decisions) so P1-4 is a build rather than a
+   re-investigation. Three findings worth knowing NOW:
+
+   - **The spec's stated trigger source does not exist.** §P1-4 says to branch
+     off `backtest_run` / `deploy_completed`; those are fire-and-forget
+     PostHog captures (`service/analytics.py:64`), no-ops without
+     `POSTHOG_KEY`, never persisted. Triggers must derive from
+     `backtest_runs.jsonl` + `forward.db` instead.
+   - **Shipping §6's copy verbatim would be a compliance breach.** Four of the
+     nine emails state things the codebase cannot produce ("the 3 most popular
+     templates" — the event stores `template` as a BOOLEAN; "[strategy] moved
+     to [rank]" — no rank history is stored anywhere; "you've tested [N]" —
+     `/me/runs` caps at 50) or use banned vocabulary. The "4-second win"
+     subject is also just wrong: golden-cross takes ~18s and nothing auto-runs.
+   - **No unsubscribe mechanism, postal address, consent record, suppression
+     list, /privacy or /terms exists in any form.** CAN-SPAM requires the
+     first two in every commercial message.
+
+   **Do early regardless:** marketing-consent capture at signup +
+   `marketing_consent` / `unsubscribed_at` on `profiles`. Cheap now; every
+   signup added before it exists is a user with no lawful basis to email.
+   Kevin should also still rotate `RESEND_API_KEY` (pasted in chat), and note
+   it is in NEITHER deploy.md env table — it may not be set on Railway at all.
 4. **P1-5 comparison pages** (6 competitors, factual tone).
 5. Section 4 programmatic template pages `/backtest/[slug]` — when built,
    re-point blog article template-links, add per-template backlinks, add them
