@@ -2,7 +2,7 @@
 
 > Last updated: **2026-08-06**, /about + two production defects fixed. Live on
 > chatbacktest.com with Stripe LIVE mode, Resend verified, analytics flowing.
-> Tree clean at `1418c4b`.
+> Tree clean at `91ae561`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -129,8 +129,23 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   hardcoding 112 sector symbols. Pinned by
   `service/tests/test_stock_bundle_retryable.py`.
 
-  **Standing lesson: `npm run seo` checks metadata, not liveness. Crawl the
-  sitemap and assert 2xx before trusting it.**
+  Follow-on (`91ae561`): a symbol in SECTORS is a real listed company by
+  construction, so an empty Finnhub profile for one is never grounds for a
+  404 either — that was keeping /stocks/T, /MCD, /PG dead after the first
+  fix. And **`npm run seo` now fetches every sitemap URL** and fails on any
+  non-2xx or noindex; it had stayed green through all of this because it only
+  audits the routes in its own ROUTES list, and all 80 dead URLs were
+  /stocks/{sym} it had never heard of. Prod run after the fix: 66 sitemap
+  URLs, 66 live, 29 unique titles, 0 problems.
+
+  **Open observation:** /stocks/T, /MCD, /NKE, /PG, /XOM were still 404ing at
+  the end of the session. The fix is deployed and unit-pinned; those specific
+  pages are served through Next's Data Cache (`STOCKS_REVALIDATE = 21600`),
+  which holds the PRE-fix `{found:false}` response — no `retryable` field, so
+  the web layer reads it as definitive. Those entries were written by the
+  diagnostic crawl around 13:05–13:20 on 2026-08-06 and expire ~6 h later.
+  **Confirm they return 200 before assuming anything else is wrong**; they are
+  no longer in the sitemap either way, so Search Console is unaffected.
 
 ## NEXT UP (in spec order)
 
