@@ -52,7 +52,19 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   Sitemap gained /playground + 16 live strategy-record pages (fetched from
   /leaderboard, revalidate 3600) and honest `lastModified` dates — 156 URLs
   on prod. **Acceptance is executable: `cd web && npm run seo -- <url>`.**
-  Prod run: 29 routes, 28 unique titles, 28 unique descriptions, 0 problems.
+  Prod run: 31 routes, 30 unique titles, 30 unique descriptions, 0 problems.
+  Adversarial review (14 agents, 4 lenses): 12 candidates -> 9 verified -> 3
+  confirmed, all one defect — early-return branches in `generateMetadata`
+  built bare `{ title, description }` objects and so inherited the ROOT's
+  openGraph block + canonical. Worst case was `/stocks/[ticker]` in its
+  "unavailable" state: a LIVE INDEXABLE page canonicalising to "/". Fixed in
+  `4f08fee`. Deliberately NOT noIndexed that branch (a reviewer suggested it):
+  those URLs are in the sitemap, so noindexing them on a transient backend
+  failure would manufacture the exact "Submitted URL marked noindex" error the
+  checker guards against — a correct canonical plus Google's own soft-404
+  detection is the right handling. The `not_found` branches call `notFound()`
+  and return real 404s, so their metadata never renders (fixed anyway,
+  defensively).
 
 ## NEXT UP (in spec order)
 
@@ -115,6 +127,10 @@ file via `git commit -F`, end with the Claude co-author line) →
   is truly static except sitemap.xml; "it'll fail at build" reasoning is wrong.
 - Anonymous analytics ids are ALWAYS `anon:`-prefixed (user-UUID collision =
   forgeable funnels). Client may only emit view events via `/api/t`.
+- SEO (P1-2): `web/src/lib/seo.test.ts` STATICALLY forbids hand-rolled
+  metadata objects — a crawler cannot catch this, because degraded branches
+  only run when the backend fails. If that test starts failing, the fix is to
+  route the offending branch through `pageMetadata()`, never to relax the test.
 - SEO (P1-2): Next merges metadata SHALLOWLY — setting `openGraph` in a page
   REPLACES the root's block. Never hand-write page metadata; always use
   `pageMetadata()` from `web/src/lib/seo.ts`, or og:title silently becomes the
