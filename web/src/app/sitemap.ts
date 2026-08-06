@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { BLOG_CATEGORIES, BLOG_POSTS } from "@/lib/blog";
+import { BLOG_CATEGORIES, BLOG_POSTS, postsInCategory } from "@/lib/blog";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { STOCK_UNIVERSE } from "@/lib/server/stocks";
 import { SITE_URL } from "@/lib/seo";
@@ -104,7 +104,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     },
-    ...BLOG_CATEGORIES.map((c) => ({
+    // Don't submit a hub with nothing in it (market-data-deep-dives has no
+    // articles yet) — an empty page invites a thin-content assessment on a
+    // domain that has no authority to spend.
+    ...BLOG_CATEGORIES.filter((c) => postsInCategory(c.slug).length > 0).map((c) => ({
       url: `${SITE_URL}/blog/category/${c.slug}`,
       lastModified: COPY_LAST_CHANGED,
       changeFrequency: "weekly" as const,

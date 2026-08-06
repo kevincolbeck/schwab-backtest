@@ -89,11 +89,21 @@ export async function generateMetadata({
     });
   }
   if (result.status === "unavailable") {
+    // A transient data outage must not mint an indexable page. getStockBundle
+    // returns "unavailable" on ANY non-ok response, so one blip during a crawl
+    // could otherwise publish up to 112 near-identical thin 200s and invite
+    // Google to cluster them and pick its own canonical.
+    //
+    // noIndex rather than removal from the sitemap: the URL is legitimate and
+    // will serve real content again shortly. Google treats a noindex it can
+    // read as "skip for now", and re-crawls; the sitemap entry stays honest
+    // because the page is genuinely meant to be indexed once data returns.
     return pageMetadata({
       title: `${result.symbol} stock: settled-close chart & stats`,
       description: `Settled end-of-day price history and company stats for ${result.symbol}. Research and education only — not financial advice.`,
       path: `/stocks/${result.symbol}`,
       ogImage: null, // this segment has its own opengraph-image.tsx
+      noIndex: true,
     });
   }
 

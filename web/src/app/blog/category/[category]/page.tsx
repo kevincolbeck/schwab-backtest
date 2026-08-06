@@ -22,10 +22,16 @@ export async function generateMetadata({
   const { category } = await params;
   const hub = categoryBySlug(category);
   if (!hub) return {};
+  // A hub with no articles is a thin page. It stays reachable for humans but
+  // is kept out of the index AND out of the sitemap (see sitemap.ts) until it
+  // has something to show — the two must agree or Search Console reports a
+  // "submitted URL marked noindex" contradiction.
+  const empty = postsInCategory(hub.slug).length === 0;
   return pageMetadata({
     title: `${hub.name} — Chat·Backtest blog`,
     description: hub.tagline,
     path: `/blog/category/${hub.slug}`,
+    noIndex: empty,
   });
 }
 

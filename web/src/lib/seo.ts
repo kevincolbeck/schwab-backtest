@@ -69,7 +69,21 @@ export function pageMetadata({
     title,
     description,
     ...(keywords?.length ? { keywords } : {}),
-    ...(noIndex ? { robots: { index: false, follow: false } } : {}),
+    // Indexable pages opt into large image previews and untruncated snippets.
+    // Without this Google defaults to a small thumbnail, and the OG cards this
+    // site generates (1200x630, well over Discover's threshold) are the main
+    // thing a linkless domain has going for it in feeds and rich results.
+    robots: noIndex
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
     alternates: { canonical: url },
     openGraph: {
       title,

@@ -44,24 +44,35 @@ type LeaderboardPayload = {
   entries: LeaderboardRow[];
   qualifying: LeaderboardRow[];
   minDays: number;
+  /** False when the service could not be reached. An empty board and a
+   *  BROKEN board must never look the same — to a reader or to Googlebot.
+   *  The strategy pages are this site's differentiator and the leaderboard is
+   *  their main internal link source; silently rendering zero links on a 200
+   *  tells a crawler the records are gone. */
+  ok: boolean;
 };
 
 async function getLeaderboard(): Promise<LeaderboardPayload> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/leaderboard`, { cache: "no-store" });
-    if (!res.ok) return { entries: [], qualifying: [], minDays: 20 };
+    if (!res.ok) {
+      console.error(`leaderboard fetch failed: HTTP ${res.status}`);
+      return { entries: [], qualifying: [], minDays: 20, ok: false };
+    }
     const body = (await res.json()) as {
       entries: LeaderboardRow[];
       qualifying?: LeaderboardRow[];
       min_days?: number;
     };
     return {
+      ok: true,
       entries: body.entries ?? [],
       qualifying: body.qualifying ?? [],
       minDays: body.min_days ?? 20,
     };
-  } catch {
-    return { entries: [], qualifying: [], minDays: 20 };
+  } catch (e) {
+    console.error("leaderboard unreachable", e);
+    return { entries: [], qualifying: [], minDays: 20, ok: false };
   }
 }
 
@@ -175,7 +186,7 @@ export default async function LeaderboardPage({
 }: {
   searchParams: Promise<{ sort?: string | string[] }>;
 }) {
-  const [{ entries, qualifying, minDays }, params] = await Promise.all([
+  const [{ entries, qualifying, minDays, ok }, params] = await Promise.all([
     getLeaderboard(),
     searchParams,
   ]);
@@ -210,7 +221,18 @@ export default async function LeaderboardPage({
           </>
         }
       >
-        {all.length === 0 ? (
+        {!ok ? (
+          /* A broken board must not look like an empty one. Saying "no
+             strategies" when the service is simply unreachable is a lie to
+             the reader and, worse, tells a crawler our records are gone. */
+          <Card pad="sm" className="text-sm text-muted" role="alert">
+            <span className="font-medium text-ink">
+              The ledger is temporarily unreachable.
+            </span>{" "}
+            The records themselves are intact and append-only — this page just
+            can&rsquo;t read them right now. Please refresh in a moment.
+          </Card>
+        ) : all.length === 0 ? (
           <Card pad="sm" className="border-dashed text-sm text-muted">
             The ledger is live. Strategies deploy with frozen specs and start
             accruing verified out-of-sample records the same day. Deploy one from
