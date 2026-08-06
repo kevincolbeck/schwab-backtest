@@ -21,14 +21,12 @@ import {
   NewsThumb,
   PriceRangeChart,
 } from "./StockPageParts";
+import { pageMetadata } from "@/lib/seo";
 
 /* ── ISR: every ticker renders on demand, then caches for 6h. Must stay a
    literal (statically analyzable) — mirrors STOCKS_REVALIDATE. ── */
 export const revalidate = 21600;
 export const dynamicParams = true;
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com";
 
 const HOUR_LABELS: Record<string, string> = {
   bmo: "before open",
@@ -105,16 +103,13 @@ export async function generateMetadata({
   const description = `${name ? `${name} (${bundle.symbol})` : bundle.symbol}: ${priceBit} Daily chart up to 5 years, 52-week range, volume, market cap${
     bundle.profile?.industry ? `, ${bundle.profile.industry.toLowerCase()} industry` : ""
   } and recent company news. Informational only — no ratings, no recommendations. Not financial advice.`;
-  const canonical = `${SITE_URL}/stocks/${bundle.symbol}`;
 
-  return {
+  return pageMetadata({
     title,
     description,
-    metadataBase: new URL(SITE_URL),
-    alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: "website" },
-    twitter: { card: "summary_large_image", title, description },
-  };
+    path: `/stocks/${bundle.symbol}`,
+    ogImage: null, // this segment has its own opengraph-image.tsx
+  });
 }
 
 /* ── Evidence stat tile (SYSTEM.md §3: value hero, label whispers). Tiles are

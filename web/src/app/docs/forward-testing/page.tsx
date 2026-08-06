@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Forward testing",
+export const metadata = pageMetadata({
+  title: "Forward testing — Docs — Chat·Backtest",
   description:
     "How the ledger works: frozen specs, the same engine replaying closed candles, append-only records, and the 20-day verification window.",
-};
+  path: "/docs/forward-testing",
+});
 
 export default function ForwardTestingPage() {
   return (

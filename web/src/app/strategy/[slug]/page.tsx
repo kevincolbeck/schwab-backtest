@@ -12,6 +12,7 @@ import Card from "@/components/ui/Card";
 import { fmtDate, fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { EquityPoint, StrategyPagePayload } from "@/lib/types";
+import { pageMetadata } from "@/lib/seo";
 
 async function getStrategy(slug: string): Promise<StrategyPagePayload | null> {
   try {
@@ -36,12 +37,12 @@ export async function generateMetadata({
   if (!data) return { title: "Strategy not found — Chat·Backtest" };
   const title = `${data.deployment.name} — forward-test record`;
   const description = `${fmtSignedPct(data.summary.forward_return_pct, 2)} over ${data.summary.days_live} trading days on the public, append-only forward ledger. Simulated performance for research/education. Not financial advice.`;
-  return {
-    title,
+  return pageMetadata({
+    title: `${title} — Chat·Backtest`,
     description,
-    openGraph: { title, description },
-    twitter: { card: "summary_large_image", title, description },
-  };
+    path: `/strategy/${slug}`,
+    ogImage: null, // this segment has its own opengraph-image.tsx
+  });
 }
 
 const ACTION_LABEL: Record<string, string> = {

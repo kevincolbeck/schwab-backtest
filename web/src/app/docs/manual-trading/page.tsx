@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Manual trading",
+export const metadata = pageMetadata({
+  title: "Manual trading — Docs — Chat·Backtest",
   description:
     "Trading the plain-English rules by hand: an end-of-day routine, a pre-trade checklist, honest sizing, and journaling against the forward ledger.",
-};
+  path: "/docs/manual-trading",
+});
 
 export default function ManualTradingPage() {
   return (

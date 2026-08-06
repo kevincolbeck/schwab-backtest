@@ -22,6 +22,7 @@ import {
 } from "@/lib/leaderboard";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { LeaderboardEntry } from "@/lib/types";
+import { pageMetadata } from "@/lib/seo";
 
 /** Social identity fields ship with the Phase G service deploy, and `timeframe`
  *  with the intraday-deploy update — typed optional so the page renders
@@ -32,11 +33,12 @@ type LeaderboardRow = LeaderboardEntry & {
   timeframe?: string | null;
 };
 
-export const metadata = {
-  title: "Forward-Test Leaderboard — Chat to Backtest",
+export const metadata = pageMetadata({
+  title: "Forward-Test Leaderboard — verified live strategy track records",
   description:
-    "Every deployed strategy's backtested (hypothetical) stats beside its live verified forward record — timestamped, append-only, no backfilled track records.",
-};
+    "Every deployed strategy's hypothetical backtest beside its live verified forward record — timestamped, append-only, and losers stay listed.",
+  path: "/leaderboard",
+});
 
 type LeaderboardPayload = {
   entries: LeaderboardRow[];

@@ -7,12 +7,14 @@ import { postForTemplate } from "@/lib/blog";
 import { DISCLAIMER } from "@/lib/constants";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import type { Template } from "@/lib/types";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Strategy Library — Chat to Backtest",
+export const metadata = pageMetadata({
+  title: "Strategy Library — 14 famous strategies, actually backtested",
   description:
-    "Every strategy in the library ships with a real backtest attached. Fork any of them in one click and deploy to the public forward ledger.",
-};
+    "Golden Cross, MACD, Donchian, RSI-2 and ten more — each with a real backtest attached, forkable in one click, winners and failures alike.",
+  path: "/library",
+});
 
 /** Canonical section order; categories the API sends beyond these append after. */
 const CATEGORY_ORDER = ["Trend", "Momentum", "Breakout", "Mean Reversion", "Seasonal"];

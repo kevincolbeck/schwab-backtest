@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Your first backtest",
+export const metadata = pageMetadata({
+  title: "Your first backtest — Docs — Chat·Backtest",
   description:
-    "From your first free template run to a finished results report — no account until you want to keep it: templates, the scratch builder, editing by chat, and the four tabs of the lab.",
-};
+    "Your first backtest end to end, no account needed: pick a template or describe an idea, edit it by chat, run it, and read the four result tabs.",
+  path: "/docs/first-backtest",
+});
 
 export default function FirstBacktestPage() {
   return (
@@ -23,11 +25,10 @@ export default function FirstBacktestPage() {
             has three zones: a left rail with strategy templates and a
             &ldquo;New from scratch&rdquo; button, a center workspace with four
             tabs, and the AI chat docked on the right. The toolbar on top holds
-            the date range, the bar-timeframe selector, and the Run button
-            (after your first session, signed-in members also see their usage
-            meter, the ◈ number).
-            Daily-bar templates run free without an account — up to 10 a day
-            per visitor — with 3 free AI messages to edit them.
+            the date range, the bar-timeframe selector, and the Run button —
+            no usage counter anywhere, by design. Daily-bar templates run free
+            without an account — up to 10 a day per visitor — with 3 free AI
+            messages to edit them.
           </p>
         </Step>
 

@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Export to Python",
+export const metadata = pageMetadata({
+  title: "Export to Python — Docs — Chat·Backtest",
   description:
     "What the Python export contains, how to run it against the open engine, and how the embedded spec keeps your results reproducible.",
-};
+  path: "/docs/export-python",
+});
 
 export default function ExportPythonPage() {
   return (

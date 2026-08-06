@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import EquityChart from "@/components/EquityChart";
 import Reveal from "@/components/Reveal";
@@ -8,9 +10,12 @@ import { ButtonLink } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
+import { pageMetadata } from "@/lib/seo";
 import type { RunResult } from "@/lib/types";
 
-async function getRun(runId: string): Promise<RunResult | null> {
+// cache() so generateMetadata and the page share ONE backend fetch
+// (no-store opts out of Next's fetch memoization).
+const getRun = cache(async function getRun(runId: string): Promise<RunResult | null> {
   try {
     const res = await fetch(
       `${BACKTEST_API_URL}/runs/${encodeURIComponent(runId)}`,
@@ -21,6 +26,29 @@ async function getRun(runId: string): Promise<RunResult | null> {
   } catch {
     return null;
   }
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ runId: string }>;
+}): Promise<Metadata> {
+  const { runId } = await params;
+  const run = await getRun(runId);
+  const name = run?.spec?.name;
+  // noIndex: a single run is an ephemeral, user-specific result — indexing
+  // them would flood the index with near-duplicate thin pages. OG tags still
+  // render, so pasting the link in Slack or Discord previews properly.
+  return pageMetadata({
+    title: name
+      ? `${name} — backtest result — Chat·Backtest`
+      : "Backtest result — Chat·Backtest",
+    description: name
+      ? `Full simulated results for ${name}: equity curve, drawdown, and every trade. Historical simulation for research and education — not financial advice.`
+      : "Full simulated results for a single backtest run — equity curve, drawdown, and every trade. Research and education only.",
+    path: `/runs/${runId}`,
+    noIndex: true,
+  });
 }
 
 export default async function RunPage({

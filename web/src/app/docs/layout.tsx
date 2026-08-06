@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import DocsSidebar from "@/components/docs/DocsSidebar";
 import { DISCLAIMER } from "@/lib/constants";
 
+/* No title.template here any more: every docs page sets its FULL title via
+   pageMetadata() so <title> and og:title are the same string (P1-2). A
+   template would append the suffix a second time. The default below only
+   covers a docs route that forgets its own metadata. */
 export const metadata: Metadata = {
-  title: {
-    template: "%s — Docs — Chat·Backtest",
-    default: "Docs — Chat·Backtest",
-  },
+  title: "Docs — Chat·Backtest",
   description:
     "How the lab, the ledger, and the exports work. Research and education — no live trading, no advice.",
 };

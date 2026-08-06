@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Markets & timeframes",
+export const metadata = pageMetadata({
+  title: "Markets & timeframes — Docs — Chat·Backtest",
   description:
-    "What you can test on: US stocks and ETFs, crypto tickers, timeframes from 1-minute to daily, the honest 60-day intraday cap, and why everything runs on settled candles.",
-};
+    "What you can test on: US stocks and ETFs, crypto tickers, 1-minute to daily bars, the honest 60-day intraday cap, and why we only use settled candles.",
+  path: "/docs/markets-timeframes",
+});
 
 export default function DocsMarketsTimeframesPage() {
   return (

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Plans & limits",
+export const metadata = pageMetadata({
+  title: "Plans & limits — Docs — Chat·Backtest",
   description:
     "What each plan can do, how the quiet fair-use limits work, and why there is no usage counter to watch while you work.",
-};
+  path: "/docs/credits",
+});
 
 export default function PlansPage() {
   return (

@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Reading the results",
+export const metadata = pageMetadata({
+  title: "Reading the results — Docs — Chat·Backtest",
   description:
     "Every backtest metric in plain English, how run-to-run comparison works, and — most important — what a backtest can't tell you.",
-};
+  path: "/docs/reading-results",
+});
 
 export default function ReadingResultsPage() {
   return (

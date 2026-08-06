@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Introduction",
+export const metadata = pageMetadata({
+  title: "Introduction — Docs — Chat·Backtest",
   description:
     "What Chat·Backtest is, how the docs are organized, and where to start: the lab, the ledger, and how to take your strategies with you.",
-};
+  path: "/docs",
+});
 
 const SECTION_CARDS = [
   {

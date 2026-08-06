@@ -44,9 +44,22 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
 
 ## NEXT UP (in spec order)
 
-1. **P1-2 per-page SEO** (`docs/CHATBACKTEST-BUILD.md` §3): unique
-   title/description/H1 per page, OG site-wide. Known gaps: `/playground`
-   and `/pricing` inherit root metadata today; spec lists exact titles.
+1. ~~**P1-2 per-page SEO**~~ — **SHIPPED.** Every route sets its own
+   title/description/canonical/OG/twitter through `web/src/lib/seo.ts`
+   (`pageMetadata()`). That helper exists because Next merges metadata
+   SHALLOWLY: a page setting `title` but not `openGraph` inherits the ROOT's
+   whole openGraph block, so its social preview would show the homepage's
+   title. Client-component routes (playground/pricing/login) carry metadata
+   in a sibling `layout.tsx`. Docs pages now set FULL titles and the docs
+   `title.template` was removed (it would double-append). Site-wide social
+   card at `web/src/app/opengraph-image.tsx`; routes with their own
+   data-driven card (`strategy/[slug]`, `stocks/[ticker]`) pass
+   `ogImage: null` so the segment's file convention wins. Verify with
+   `cd web && npm run seo -- <base-url>` — it fails the build on duplicate
+   titles/descriptions, a missing/duplicated H1, og:title≠title, or a missing
+   og:image/canonical. Remaining §P1-2 bullet: "Template pages: [Strategy]
+   backtest — …" needs Section 4's `/backtest/[slug]` routes, which don't
+   exist yet.
 2. **P1-3 shareable record cards** (dynamic OG image per strategy + download).
 3. **P1-4 email sequences** — BLOCKED on owner: Resend-or-Loops decision +
    API key (spec §6 + §10 blocker #1).

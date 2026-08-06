@@ -4,8 +4,15 @@ import { ButtonLink } from "@/components/ui/Button";
 import { getCreditBalance, getProfile } from "@/lib/server/stripe";
 import { serverSession } from "@/lib/supabase/server";
 import PortalButton from "./portal";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Account — Chat to Backtest" };
+export const metadata = pageMetadata({
+  title: "Your account — Chat·Backtest",
+  description:
+    "Manage your Chat·Backtest plan, billing, and usage headroom.",
+  path: "/account",
+  noIndex: true,
+});
 
 export default async function AccountPage({
   searchParams,

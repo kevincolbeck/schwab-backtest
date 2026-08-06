@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Callout, DocsFooterNav } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "The strategy spec",
+export const metadata = pageMetadata({
+  title: "The strategy spec — Docs — Chat·Backtest",
   description:
-    "The anatomy of a strategy: indicators, the entry and exit rule grammar with real examples, stops and sizing, and where the plain-English rules and raw JSON live.",
-};
+    "The anatomy of a strategy: indicators, the entry and exit rule grammar with real examples, stops, sizing, and where the raw JSON spec lives.",
+  path: "/docs/strategy-spec",
+});
 
 const EXAMPLE_SPEC = `{
   "name": "Golden cross with RSI filter",

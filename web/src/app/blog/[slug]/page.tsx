@@ -6,6 +6,7 @@ import { ARTICLE_BODIES } from "@/components/blog/articles";
 import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { BLOG_POSTS, categoryBySlug, postBySlug } from "@/lib/blog";
+import { pageMetadata } from "@/lib/seo";
 
 /* Article pages (P1-1). dynamicParams:false makes the registry the slug
    allowlist. The whole app renders per-request (the root layout reads
@@ -28,17 +29,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = postBySlug(slug);
   if (!post) return {};
-  return {
+  return pageMetadata({
     title: `${post.title} — Chat·Backtest`,
     description: post.description,
+    path: `/blog/${post.slug}`,
+    type: "article",
+    publishedTime: post.publishedAt,
     keywords: [post.targetKeyword],
-    openGraph: {
-      title: post.title,
-      description: post.description,
-      type: "article",
-      publishedTime: post.publishedAt,
-    },
-  };
+  });
 }
 
 export default async function BlogArticlePage({

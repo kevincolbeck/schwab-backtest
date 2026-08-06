@@ -1,10 +1,12 @@
 import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Export to Pine Script",
+export const metadata = pageMetadata({
+  title: "Export to Pine Script — Docs — Chat·Backtest",
   description:
     "Turn a strategy spec into a Pine Script v6 strategy for TradingView: the download flow, alerts on your own rules, and why results will differ.",
-};
+  path: "/docs/export-pine",
+});
 
 export default function ExportPinePage() {
   return (

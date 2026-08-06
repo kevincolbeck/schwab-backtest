@@ -7,6 +7,7 @@ import { fmtPct, fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
 import { serverSession } from "@/lib/supabase/server";
 import SignOutButton from "./signout";
+import { pageMetadata } from "@/lib/seo";
 
 /** App-surface section label — SectionShell's eyebrow grammar (SYSTEM.md §7)
  *  applied to dashboard list headers: mono small-caps + the accent tick. */
@@ -19,7 +20,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const metadata = { title: "Dashboard — Chat to Backtest" };
+export const metadata = pageMetadata({
+  title: "Your dashboard — Chat·Backtest",
+  description:
+    "Your saved backtest runs and the strategies you've deployed to the public forward-test ledger.",
+  path: "/dashboard",
+  noIndex: true,
+});
 
 async function serviceGet(path: string, token: string) {
   try {

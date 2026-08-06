@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Callout, DocsFooterNav, Step, Steps } from "@/components/docs/DocsBits";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Building by chat",
+export const metadata = pageMetadata({
+  title: "Building by chat — Docs — Chat·Backtest",
   description:
     "How to talk to the AI strategist: prompts that work, the guided intake for blank strategies, the warnings it raises on purpose, and what it refuses to do.",
-};
+  path: "/docs/chat",
+});
 
 export default function DocsChatPage() {
   return (

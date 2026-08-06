@@ -17,12 +17,14 @@ import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Markets — Chat to Backtest",
+export const metadata = pageMetadata({
+  title: "Markets — sector heatmap, movers, earnings & IPO calendar",
   description:
-    "Sector heatmap, top movers, earnings and IPO calendars, and market headlines — settled end-of-day closes, refreshed once per trading day.",
-};
+    "Settled end-of-day sector performance, the day's biggest movers, upcoming earnings and IPOs — refreshed once per trading day from our own cache.",
+  path: "/markets",
+});
 
 type Tile = { symbol: string; close: number; pct_change: number };
 type Mover = Tile & { sector: string };

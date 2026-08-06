@@ -6,6 +6,7 @@ import AuthModalProvider from "@/components/AuthModal";
 import CommandPalette from "@/components/CommandPalette";
 import SiteNav from "@/components/SiteNav";
 import { DISCLAIMER } from "@/lib/constants";
+import { SITE_URL, pageMetadata } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,17 +18,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-/** Canonical origin for absolute metadata URLs (OG images, canonicals).
- *  Set NEXT_PUBLIC_SITE_URL in Vercel; the default is the production domain
- *  so previews and local builds still emit sane absolute URLs. */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatbacktest.com";
-
+/* Root metadata doubles as the HOMEPAGE's metadata (a page with no metadata
+   export inherits it), which is why the title here is the spec's homepage
+   title verbatim. Every other route sets its own via pageMetadata() — see
+   web/src/lib/seo.ts for why that matters (shallow merging would otherwise
+   give every page the homepage's og:title). Deliberately NO title.template:
+   §P1-2 fixes exact titles for the primary pages and a template would append
+   a suffix to them. */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: "/" },
-  title: "Chat·Backtest — AI backtesting for momentum & swing traders",
-  description:
-    "Describe any trading strategy in plain English. The AI writes the exact rules, backtests up to 20 years of data in seconds, and shows you where it breaks — then survivors prove themselves on a public, independently verifiable forward-test ledger. Research and education — no signals, no live trading.",
+  ...pageMetadata({
+    title: "Chat·Backtest — AI backtesting for momentum & swing traders",
+    description:
+      "Describe a trading strategy in plain English. The AI writes exact rules, backtests two decades in seconds, and shows you where it breaks — then survivors earn a public, verifiable forward-test record.",
+    path: "/",
+  }),
 };
 
 const THEME_INIT = `(function(){try{if(localStorage.getItem('ctb-theme')==='light'){document.documentElement.dataset.theme='light'}}catch(e){}})();`;

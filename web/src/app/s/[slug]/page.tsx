@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import EquityChart from "@/components/EquityChart";
 import Reveal from "@/components/Reveal";
@@ -8,11 +10,13 @@ import { ButtonLink } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { DISCLAIMER } from "@/lib/constants";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
+import { pageMetadata } from "@/lib/seo";
 import type { RunResult } from "@/lib/types";
 
 type SharePayload = RunResult & { watermarked?: boolean; share_slug?: string };
 
-async function getShare(slug: string): Promise<SharePayload | null> {
+// cache() so generateMetadata and the page share ONE backend fetch.
+const getShare = cache(async function getShare(slug: string): Promise<SharePayload | null> {
   try {
     const res = await fetch(`${BACKTEST_API_URL}/share/${encodeURIComponent(slug)}`, {
       cache: "no-store",
@@ -22,6 +26,29 @@ async function getShare(slug: string): Promise<SharePayload | null> {
   } catch {
     return null;
   }
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const shared = await getShare(slug);
+  const name = shared?.spec?.name;
+  // Shared links exist to be pasted into chats and timelines, so OG tags
+  // matter here — but they stay out of the search index: they are ephemeral
+  // user results, not content that should compete with the library or blog.
+  return pageMetadata({
+    title: name
+      ? `${name} — shared backtest — Chat·Backtest`
+      : "Shared backtest — Chat·Backtest",
+    description: name
+      ? `A shared simulation of ${name} — equity curve, drawdown, and the full trade list. Historical simulation for research and education, not financial advice.`
+      : "A shared backtest simulation — equity curve, drawdown, and the full trade list. Research and education only.",
+    path: `/s/${slug}`,
+    noIndex: true,
+  });
 }
 
 export default async function SharePage({

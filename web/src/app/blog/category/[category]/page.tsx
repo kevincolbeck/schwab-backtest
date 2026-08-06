@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import SectionShell from "@/components/SectionShell";
 import Card from "@/components/ui/Card";
 import { BLOG_CATEGORIES, categoryBySlug, postsInCategory } from "@/lib/blog";
+import { pageMetadata } from "@/lib/seo";
 
 /* Category hub pages (spec §P1-1: "/blog index → category hubs"). */
 
@@ -21,10 +22,11 @@ export async function generateMetadata({
   const { category } = await params;
   const hub = categoryBySlug(category);
   if (!hub) return {};
-  return {
+  return pageMetadata({
     title: `${hub.name} — Chat·Backtest blog`,
     description: hub.tagline,
-  };
+    path: `/blog/category/${hub.slug}`,
+  });
 }
 
 export default async function BlogCategoryPage({

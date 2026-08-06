@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import SectionShell from "@/components/SectionShell";
 import Card from "@/components/ui/Card";
 import { BLOG_CATEGORIES, postsInCategory } from "@/lib/blog";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Blog — strategies tested, receipts attached — Chat·Backtest",
+export const metadata = pageMetadata({
+  title: "Blog — trading strategies tested, receipts attached",
   description:
-    "Famous trading strategies run through a real backtesting engine, honest methodology guides, and lessons from a public forward-test ledger.",
-};
+    "Famous trading strategies run through a real backtesting engine, honest methodology guides, and lessons from a public forward-test ledger. Losers published too.",
+  path: "/blog",
+});
 
 export default function BlogIndexPage() {
   return (
