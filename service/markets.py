@@ -106,6 +106,10 @@ SECTORS: Dict[str, List[str]] = {
     "RE": ["PLD", "AMT", "EQIX", "SPG", "O"],
 }
 
+# Flattened SECTORS — the curated, known-real tickers. Membership here is proof
+# a symbol is a listed company, independent of what any data vendor says today.
+_SECTOR_SYMBOLS = frozenset(s for syms in SECTORS.values() for s in syms)
+
 _overview_cache: dict = {"expires": 0.0, "payload": None}
 _calendar_cache: dict = {"expires": 0.0, "payload": None}
 _month_cache: Dict[Tuple[str, int, int], dict] = {}
@@ -673,6 +677,12 @@ def company_bundle(ticker: str) -> dict:
         # doesn't exist; a starved rate budget or a failed call is a "come back
         # later", and answering 404 to that gets a real URL deindexed.
         retryable = bars_failed or status.get(symbol) in ("starved", "unavailable")
+        # A symbol in our own curated universe is a real, listed ticker by
+        # construction. Finnhub returning an empty profile for one says
+        # something about Finnhub's plan coverage, not about the company — so
+        # it can never be grounds for a 404 here.
+        if symbol in _SECTOR_SYMBOLS:
+            retryable = True
         return {"found": False, "retryable": retryable, "symbol": symbol,
                 "configured": configured}
     try:

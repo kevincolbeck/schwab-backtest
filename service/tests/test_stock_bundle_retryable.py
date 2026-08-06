@@ -139,3 +139,23 @@ def test_missing_cache_db_yields_no_stock_urls(monkeypatch, tmp_path):
     """Never advertise stock URLs we can't prove render."""
     monkeypatch.setenv("BACKTEST_CACHE_DB", str(tmp_path / "absent.db"))
     assert markets.bundle_ready_symbols() == []
+
+
+def test_curated_ticker_never_404s_on_an_empty_vendor_profile(monkeypatch):
+    """T, MCD, PG et al are in SECTORS — they are real companies by
+    construction. Finnhub answering {} for one says something about our plan's
+    coverage, never that the ticker stopped existing, so the page must degrade
+    rather than 404 a URL we link from the markets heatmap."""
+    monkeypatch.setattr(markets, "_rate_capacity", lambda: 50)
+    monkeypatch.setattr(markets, "_finnhub_get", lambda *a, **k: {})  # answered: nothing
+    assert "T" in markets._SECTOR_SYMBOLS
+    out = markets.company_bundle("T")
+    assert out["found"] is False
+    assert out["retryable"] is True
+
+
+def test_uncurated_unknown_ticker_still_404s(monkeypatch):
+    monkeypatch.setattr(markets, "_rate_capacity", lambda: 50)
+    monkeypatch.setattr(markets, "_finnhub_get", lambda *a, **k: {})
+    assert "ZZZZQQ" not in markets._SECTOR_SYMBOLS
+    assert markets.company_bundle("ZZZZQQ")["retryable"] is False

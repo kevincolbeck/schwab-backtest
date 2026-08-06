@@ -177,6 +177,7 @@ for (const route of ROUTES) {
 // Listing a noindex URL earns "Submitted URL marked 'noindex'" in Search
 // Console; omitting an indexable page means Google may never find it.
 let sitemapCount = 0;
+let liveChecked = 0;
 try {
   const res = await fetch(`${BASE}/sitemap.xml`);
   if (!res.ok) {
@@ -202,13 +203,55 @@ try {
       if (indexable && !inMap && route !== "/")
         problems.push(`${route} is indexable but missing from /sitemap.xml`);
     }
+
+    // LIVENESS. Everything above audits pages we already knew to crawl, which
+    // is why it stayed green while 80 of 155 submitted URLs served 404 to
+    // Google: they were all /stocks/{sym}, none of them in ROUTES. A URL you
+    // hand Search Console is a promise it resolves — so check the promise.
+    // Bounded concurrency because hammering these is what BROKE them (the
+    // stock bundles share a ~50/min upstream rate budget).
+    const CONCURRENCY = 6;
+    const queue = [...locs];
+    const dead = [];
+    const noindexed = [];
+    async function worker() {
+      for (let url = queue.shift(); url; url = queue.shift()) {
+        try {
+          const r = await fetch(url, { redirect: "follow" });
+          if (!r.ok) {
+            dead.push(`${new URL(url).pathname} → HTTP ${r.status}`);
+            continue;
+          }
+          const body = await r.text();
+          const robots = body.match(
+            /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i,
+          );
+          if (robots && /noindex/i.test(robots[1]))
+            noindexed.push(new URL(url).pathname);
+        } catch (e) {
+          dead.push(`${new URL(url).pathname} → ${e.message}`);
+        }
+      }
+    }
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, locs.length) }, worker),
+    );
+    liveChecked = locs.length;
+    for (const d of dead.slice(0, 12))
+      problems.push(`/sitemap.xml advertises a dead URL: ${d}`);
+    if (dead.length > 12)
+      problems.push(`…and ${dead.length - 12} more dead sitemap URLs`);
+    for (const n of noindexed.slice(0, 12))
+      problems.push(`/sitemap.xml lists ${n}, but it renders noindex`);
+    if (noindexed.length > 12)
+      problems.push(`…and ${noindexed.length - 12} more noindex sitemap URLs`);
   }
 } catch (e) {
   problems.push(`/sitemap.xml: fetch failed (${e.message})`);
 }
 
 console.log(`\nChecked ${rows.length}/${ROUTES.length} routes at ${BASE}`);
-console.log(`  sitemap URLs: ${sitemapCount}`);
+console.log(`  sitemap URLs: ${sitemapCount} (${liveChecked} fetched for liveness)`);
 console.log(`  indexable: ${rows.filter((r) => r.indexable).length}`);
 console.log(`  unique titles: ${seenTitle.size} · unique descriptions: ${seenDesc.size}`);
 

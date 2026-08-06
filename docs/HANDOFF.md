@@ -1,8 +1,8 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-06**, P1-3 + a Google-docs SEO pass shipped. Live on chatbacktest.com with
-> Stripe LIVE mode, Resend verified, analytics flowing, SEO complete.
-> Tree clean at `f7462b5`.
+> Last updated: **2026-08-06**, /about + two production defects fixed. Live on
+> chatbacktest.com with Stripe LIVE mode, Resend verified, analytics flowing.
+> Tree clean at `1418c4b`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -93,6 +93,44 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
   market-data-deep-dives hub is out of the sitemap AND noindex (they must
   agree). Two audit claims were WRONG and dropped after verification —
   notably "/playground has no H1"; it has exactly one.
+
+## Shipped since the last handoff (2026-08-06, late session)
+
+- **`/about` — SHIPPED (`56e0d5d`), prod-verified.** Founder story in Kevin's
+  voice at `web/src/app/about/page.tsx`; portrait is a background-removed
+  cutout (`web/public/kevin.png`, GrabCut) laid over a CSS accent disc, so the
+  asset stays reusable and the colour follows our tokens. It's in the sitemap
+  in its own right: it carries the expertise/accountability signal Google
+  looks for on YMYL topics, and every article byline points at it.
+- **Blog byline is the COMPANY, not a person** — `AUTHOR` in
+  `web/src/lib/blog.ts` is `{ name: "Chat·Backtest", url: "/about" }`. Kevin's
+  call: the company is what's accountable for the claims in the articles.
+
+- **JSX SPACING BUG — 125 sites, every article and every /docs page.**
+  Next 16's transform DROPS whitespace between a closing inline tag and the
+  text after it, so `<strong>Entry:</strong> buy when…` shipped as
+  "Entry:buy when…". Babel preserved that space, which is why the source
+  reads as correct and why it will keep getting reintroduced. Fixed with
+  explicit `{" "}`; **`web/src/lib/jsxSpacing.test.ts` fails the build on the
+  pattern.** Found by scanning RENDERED HTML — a 6-agent source proofread had
+  returned zero findings, because the source is not where the bug is.
+
+- **80 of 155 SITEMAP URLS WERE SERVING 404** (`1418c4b`). Finnhub's free tier
+  allows ~50 calls/min and each stock bundle spends up to three, so anything
+  walking the sitemap's stock section — Googlebot included — exhausts the
+  budget in seconds; after that `_get_profiles()` stops asking and every
+  uncached symbol returns None. `company_bundle()` read that as found:false,
+  the page called `notFound()`, and the route's 6h ISR froze the 404 in.
+  Fixes: profiles now report WHY they're None, `company_bundle()` returns
+  `retryable`, the web layer maps retryable misses to the existing
+  degraded+noindex render, and a failed call is no longer cached as a miss.
+  The sitemap now reads `GET /stocks` (symbols with cached bars — the one
+  path that makes no Finnhub call and therefore always renders) instead of
+  hardcoding 112 sector symbols. Pinned by
+  `service/tests/test_stock_bundle_retryable.py`.
+
+  **Standing lesson: `npm run seo` checks metadata, not liveness. Crawl the
+  sitemap and assert 2xx before trusting it.**
 
 ## NEXT UP (in spec order)
 
