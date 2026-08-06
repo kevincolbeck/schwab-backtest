@@ -5,6 +5,7 @@ import EquityChart from "@/components/EquityChart";
 import { FrozenBadge, HashMark, TimestampMark } from "@/components/EvidenceMarks";
 import Reveal from "@/components/Reveal";
 import SectionShell from "@/components/SectionShell";
+import ShareRecord from "@/components/ShareRecord";
 import ShareToX from "@/components/ShareToX";
 import { Accordion, AccordionItem } from "@/components/ui/Accordion";
 import { ButtonLink } from "@/components/ui/Button";
@@ -143,6 +144,7 @@ export default async function StrategyPage({
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <ShareRecord slug={deployment.slug} name={deployment.name} />
               <ShareToX
                 name={deployment.name}
                 path={`/strategy/${deployment.slug}`}

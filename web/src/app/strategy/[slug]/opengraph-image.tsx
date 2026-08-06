@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { fmtSignedPct } from "@/lib/format";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
+import { toCardData } from "@/lib/server/recordCard";
 import type { StrategyPagePayload } from "@/lib/types";
 
 export const alt =
@@ -131,13 +132,10 @@ export default async function Image({
     );
   }
 
-  const { deployment, summary } = data;
-  const fwd = summary.forward_return_pct;
+  const card = toCardData(data);
+  const fwd = card.forwardPct;
   const fwdColor = fwd > 0 ? GAIN : fwd < 0 ? LOSS : INK;
-  const name =
-    deployment.name.length > 70
-      ? `${deployment.name.slice(0, 69)}…`
-      : deployment.name;
+  const name = card.name;
 
   return new ImageResponse(
     (
@@ -172,11 +170,37 @@ export default async function Image({
               }}
             >
               <div style={{ fontSize: 24, color: MUTED }}>forward return</div>
-              <div style={{ fontSize: 30, marginTop: 8 }}>
-                {summary.days_live} trading days live
-              </div>
+              <div style={{ fontSize: 26, marginTop: 8 }}>{card.statusLabel}</div>
             </div>
           </div>
+          {(card.cagr !== null || card.sharpe !== null) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 30,
+                marginTop: 22,
+              }}
+            >
+              {/* Backtest figures, ALWAYS labelled hypothetical and kept
+                  visually subordinate to the verified forward number — the
+                  two are never merged (see design/SYSTEM.md + the ledger
+                  non-negotiables). */}
+              <div style={{ display: "flex", fontSize: 22, color: MUTED }}>
+                backtest (hypothetical)
+              </div>
+              {card.cagr !== null && (
+                <div style={{ display: "flex", fontSize: 26 }}>
+                  CAGR {fmtSignedPct(card.cagr, 1)}
+                </div>
+              )}
+              {card.sharpe !== null && (
+                <div style={{ display: "flex", fontSize: 26 }}>
+                  Sharpe {card.sharpe.toFixed(2)}
+                </div>
+              )}
+            </div>
+          )}
           <div
             style={{
               display: "flex",
@@ -198,8 +222,13 @@ export default async function Image({
             >
               Forward test · frozen spec · append-only ledger
             </div>
-            <div style={{ fontSize: 22, color: MUTED }}>
-              spec {deployment.spec_hash.slice(0, 12)}
+            {/* display:flex is REQUIRED by Satori on any element with more
+                than one child — "spec " plus the expression counts as two.
+                Without it the whole route 500s, which is exactly how this
+                card silently returned a broken preview in production from
+                Phase G until P1-3. */}
+            <div style={{ display: "flex", fontSize: 22, color: MUTED }}>
+              spec {card.specHash}
             </div>
           </div>
         </div>

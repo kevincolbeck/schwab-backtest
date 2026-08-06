@@ -141,6 +141,26 @@ for (const route of ROUTES) {
   if (!ogImage) problems.push(`${route}: no og:image (previews won't be rich)`);
   if (!canonical) problems.push(`${route}: no canonical link`);
 
+  // A present og:image tag proves nothing — FETCH it. The strategy card
+  // 500'd in production from Phase G until P1-3 while this checker happily
+  // reported the tag was there.
+  if (ogImage) {
+    const imgUrl = ogImage.startsWith("http") ? ogImage : `${BASE}${ogImage}`;
+    // Cards are rendered per-request off a backend fetch; give them room.
+    const local = new URL(imgUrl);
+    local.protocol = new URL(BASE).protocol;
+    local.host = new URL(BASE).host;
+    try {
+      const img = await fetch(local, { redirect: "follow" });
+      const type = img.headers.get("content-type") ?? "";
+      if (!img.ok) problems.push(`${route}: og:image returns HTTP ${img.status} (${local.pathname})`);
+      else if (!type.startsWith("image/"))
+        problems.push(`${route}: og:image is ${type}, not an image`);
+    } catch (e) {
+      problems.push(`${route}: og:image unreachable (${e.message})`);
+    }
+  }
+
   // Uniqueness is only required of pages we actually ask Google to index.
   if (indexable) {
     if (title && seenTitle.has(title))
