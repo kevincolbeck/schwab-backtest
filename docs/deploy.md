@@ -5,8 +5,35 @@ Three pieces: the Python service (Railway), the web app (Vercel), the database (
 
 ## 0. Supabase one-time setup (dashboard)
 
-1. SQL editor → run `supabase/APPLY_ME_IN_SQL_EDITOR.sql`, then `supabase/APPLY_ME_PART2.sql`
-   (part 2 is idempotent — safe to run even if part 1 fully applied).
+1. SQL editor → run these **in order**. Every one is idempotent, so re-running
+   a file that already applied is safe and is the fastest way to check.
+
+   | # | File | What it creates | Required? |
+   |---|---|---|---|
+   | 1 | `supabase/APPLY_ME_IN_SQL_EDITOR.sql` | `profiles`, `strategies`, `runs` (+ the ledger tables) | yes — auth breaks without `profiles` |
+   | 2 | `supabase/APPLY_ME_PART2.sql` | `deployments`, `forward_signals`, `forward_equity` | yes |
+   | 3 | `supabase/APPLY_ME_PART3.sql` | `credits_ledger` + the credit RPCs | yes — billing needs it |
+   | 4 | `supabase/APPLY_ME_PART4.sql` | **security fix**: revokes PUBLIC EXECUTE on the credit RPCs | **yes — without it the anon key can mint credits** |
+   | 5 | `supabase/migrations/0003_section9_groundwork.sql` | §9 groundwork columns + `forward_returns` | optional (see below) |
+   | 6 | `supabase/migrations/0004_referrals.sql` | `referral_redemptions` | only if you want referrals live |
+
+   To verify what's applied, query each table with the service key — a missing
+   one returns PGRST205. To verify #4 specifically, call `rpc/grant_credits`
+   with the ANON key: it must answer `42501 permission denied`. Anything
+   else means the lockdown is not in place.
+
+   **On #5:** the Postgres ledger tables are the mirror TARGET, not an active
+   mirror — the service writes SQLite (`SERVICE_DATA_DIR/forward.db`) and
+   nothing writes these. Applying it keeps the schemas in parity for Phase 2;
+   the tables will sit empty, exactly like `deployments` does today. No rush.
+
+   **On #6:** this one IS read and written at runtime (`service/referrals.py`,
+   over PostgREST). Without it the referral endpoints fail closed — zero bonus
+   slots, no crash — so skipping it is safe if you don't want the feature.
+
+   Files 1–4 use the `APPLY_ME_*` naming from before `migrations/` existed;
+   5–6 are the canonical migration files and paste into the SQL editor the
+   same way. Numbering is chronological across both.
 2. Authentication → URL Configuration: set **Site URL** to the Vercel domain and add
    `https://<vercel-domain>/auth/callback` to **Redirect URLs** (magic links break without this).
 
