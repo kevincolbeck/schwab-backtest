@@ -1,8 +1,8 @@
 # HANDOFF — resume point for the next build session
 
-> Last updated: **2026-08-06**, /about + two production defects fixed. Live on
+> Last updated: **2026-08-06**, /about + P1-5 shipped, two production defects fixed. Live on
 > chatbacktest.com with Stripe LIVE mode, Resend verified, analytics flowing.
-> Tree clean at `91ae561`.
+> Tree clean at `2cbee9e`.
 > To resume: read this file top to bottom, then start the next item with the
 > standard loop. Kevin's instruction to "resume where we left off" means:
 > pick up at **NEXT UP** below.
@@ -199,7 +199,29 @@ state: **pushing to the `backtest` remote IS the deploy** (Vercel builds
    signup added before it exists is a user with no lawful basis to email.
    Kevin should also still rotate `RESEND_API_KEY` (pasted in chat), and note
    it is in NEITHER deploy.md env table — it may not be set on Railway at all.
-4. **P1-5 comparison pages** (6 competitors, factual tone).
+4. ~~**P1-5 comparison pages**~~ — **SHIPPED (`2cbee9e`), prod-verified.**
+   Six pages at `/compare/[slug]` (Composer, TradingView, TrendSpider,
+   QuantConnect, Trade Ideas, NexusTrade) + a `/compare` index; spec wanted
+   ≥5. Registry is `web/src/lib/compare.ts`, invariants in `compare.test.ts`.
+
+   Sourcing discipline — REUSE THIS when refreshing: a research agent read
+   each vendor's OWN pages, then a second agent was told to REFUTE every
+   claim. That overturned **8 claims** the research had accepted (5 on
+   TradingView), mostly inferred prices the vendor never publishes. All 33
+   citation URLs were then fetched; **3 failed** (two reconstructed
+   TrendSpider paths, one TradingView link that resolved but didn't support
+   its claim) and were replaced with pages actually opened.
+
+   The test file is the honesty gate, because these pages rot toward
+   flattering us: identical axes on every page including **Markets & data,
+   which we lose to all six**; `theirAdvantages` required non-empty; a source
+   URL per row; no "audited/independently verified" claim about our ledger;
+   and no "only platform that freezes rules" phrasing — TrendSpider locks a
+   strategy when you create a bot, and the test requires that concession to
+   stay on their page.
+
+   **Refresh cadence:** every claim carries `checkedOn` (2026-08-06) and it
+   renders on the page. Vendor pricing moves; re-verify before it goes stale.
 5. Section 4 programmatic template pages `/backtest/[slug]` — when built,
    re-point blog article template-links, add per-template backlinks, add them
    to the sitemap, and satisfy §P1-2's last bullet ("Template pages:
