@@ -192,6 +192,53 @@ correctly left alone. Touch targets and the stat component were the two FAILs.
 browser and a real person; it has not been done. `docs/A11Y.md` lists what is
 structurally in place and leaves the check itself open.
 
+## Sections 8 & 9 — SHIPPED 2026-08-06 (`37a3374`, `a8852ec`, `544619a`)
+
+**§9 groundwork.** The blocker wasn't in the spec: `service/forward.py` had NO
+migration path — only `CREATE TABLE IF NOT EXISTS`, which is a no-op against an
+existing file. Every §9 column would have silently never appeared on the prod
+ledger, and the first read would have raised "no such column" on the deploy
+path. Built an idempotent `PRAGMA table_info` + `ALTER TABLE` path and verified
+it against a simulated pre-existing DB. That also closed a real divergence:
+`archived_reason`/`replaced_by` existed in Postgres since 0002, never in SQLite.
+
+- **`forward_returns`** (both stores) keyed by `(spec_hash, date)` — §9's second
+  bullet, which `forward_equity` did NOT satisfy (it is keyed by deployment_id
+  and stores an equity level). An outside auditor has neither our ids nor any
+  reason to trust them; they have the frozen spec and can hash it. Append-only
+  via triggers; `record_kind` is a CHECK that every row is a SIMULATED result.
+- **Boundary fix:** the API returned `execution_model` and the strategy page
+  rendered "Execution model ·". Nothing is executed here. Renamed to
+  `ledger_method` **with a one-release alias** — Railway and Vercel deploy
+  independently, so a same-commit rename breaks the page during skew.
+  **`service/tests/test_execution_boundary.py` is the ratchet** — it scans new
+  columns, route paths, response keys and SQL migrations.
+  **TODO: drop the `execution_model` alias**; a test fails to remind you.
+- NOT built: `visibility` (already exists, fully wired in both stores).
+
+**§8, all four features.**
+- **Embed** `/embed/[slug]` — a Route Handler, not a page (the root layout
+  would have put our nav in someone's iframe). Found the app had **no framing
+  protection at all**; added `frame-ancestors 'self'` site-wide with a narrow
+  carve-out for /embed. Verified on prod: embed `*`, leaderboard `'self'`.
+- **One-click deploy — "adopt, don't clone".** All 14 templates are ALREADY on
+  the ledger, so N users deploying golden-cross would mint N near-identical
+  rows and destroy the board's signal. Duplicate public spec hashes are refused
+  with a **409 carrying the existing record**; editing any rule changes the
+  hash and earns a real record. Private copies still allowed.
+- **Demand test** stores NOTHING — no email, no account. There is no consent
+  record, unsubscribe, suppression list or privacy policy in this codebase
+  (P1-4 audit), so collecting addresses we can't lawfully mail is a liability.
+- **Referral** — HMAC-derived codes (no code table), capped at
+  `REFERRAL_MAX_BONUS=3`, append-only redemptions, service-role writes only.
+  **Ships DARK: inert until `REFERRAL_SECRET` is set on Railway.** The design
+  pass recommended not shipping it at all yet (2 signups); built because it
+  sends nothing and does nothing until used.
+
+**Owner actions:** apply `supabase/migrations/0003_section9_groundwork.sql` and
+`0004_referrals.sql`; set `REFERRAL_SECRET` on Railway only when you want
+referrals live.
+
 ## NEXT UP (in spec order)
 
 1. ~~**P1-2 per-page SEO**~~ — **SHIPPED.** Every route sets its own
