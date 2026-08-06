@@ -384,14 +384,30 @@ def calendar_month(kind: str, year: int, month: int) -> dict:
 
 # ── Company profiles (on-demand, long cache, rate-budgeted) ──────────────────
 
-def _get_profiles(symbols: List[str]) -> Dict[str, Optional[dict]]:
+def _get_profiles(
+    symbols: List[str], status_out: Optional[Dict[str, str]] = None
+) -> Dict[str, Optional[dict]]:
     """symbol -> full profile dict (or None). Cache-first; fetches are bounded
     by the per-minute rate budget — over budget, uncached symbols stay None
-    (and stay uncached, so a later panel open retries)."""
+    (and stay uncached, so a later panel open retries).
+
+    `status_out`, when supplied, records WHY each symbol is None:
+
+      "ok"          we have a profile
+      "unknown"     Finnhub answered and does not know this ticker
+      "unavailable" the call failed
+      "starved"     we never asked — no API key, or the rate budget was spent
+
+    Callers that turn "no data" into an HTTP status MUST read this. A None
+    profile alone cannot tell a delisted ticker from a rate-limited minute, and
+    a crawler walking 100+ stock pages spends the whole budget in seconds —
+    which is how a transient starve became a hard 404 cached for six hours on
+    URLs the sitemap advertises."""
     unique = list(dict.fromkeys(
         str(s).strip().upper() for s in symbols if str(s).strip()
     ))
     out: Dict[str, Optional[dict]] = {s: None for s in unique}
+    status: Dict[str, str] = status_out if status_out is not None else {}
     key = _finnhub_key()
     now = time.time()
     to_fetch: List[str] = []
@@ -400,8 +416,12 @@ def _get_profiles(symbols: List[str]) -> Dict[str, Optional[dict]]:
             entry = _profile_cache.get(sym)
             if entry is not None and entry["expires"] > now:
                 out[sym] = entry["profile"]
+                # A cached None is a cached MISS — Finnhub answered "unknown"
+                # and we're honouring PROFILE_MISS_TTL rather than re-asking.
+                status[sym] = "ok" if entry["profile"] is not None else "unknown"
             else:
                 to_fetch.append(sym)
+                status[sym] = "starved"
     if not key or not to_fetch:
         return out
     budget = min(len(to_fetch), PROFILE_BATCH_MAX, max(0, _rate_capacity()))
@@ -422,14 +442,20 @@ def _get_profiles(symbols: List[str]) -> Dict[str, Optional[dict]]:
                             "website": data.get("weburl"),
                             "description": data.get("description"),
                         }
+                    status[sym] = "ok" if profile is not None else "unknown"
                 except Exception:
                     logger.warning("finnhub profile unavailable for %s", sym, exc_info=True)
-                ttl = PROFILE_TTL if profile is not None else PROFILE_MISS_TTL
-                with _lock:
-                    _profile_cache.pop(sym, None)
-                    _profile_cache[sym] = {"expires": time.time() + ttl, "profile": profile}
-                    while len(_profile_cache) > PROFILE_CACHE_MAX:
-                        _profile_cache.pop(next(iter(_profile_cache)))
+                    status[sym] = "unavailable"
+                if status[sym] != "unavailable":
+                    # Only cache an ANSWER. Caching a failed call as a miss
+                    # would launder "Finnhub was down" into "ticker unknown"
+                    # for the next hour, and callers key HTTP status off that.
+                    ttl = PROFILE_TTL if profile is not None else PROFILE_MISS_TTL
+                    with _lock:
+                        _profile_cache.pop(sym, None)
+                        _profile_cache[sym] = {"expires": time.time() + ttl, "profile": profile}
+                        while len(_profile_cache) > PROFILE_CACHE_MAX:
+                            _profile_cache.pop(next(iter(_profile_cache)))
                 out[sym] = profile
     except Exception:
         logger.warning("finnhub profile batch failed", exc_info=True)
@@ -492,6 +518,40 @@ def _read_bundle_bars(symbol: str) -> List[dict]:
             "volume": _num(row.volume),
         })
     return out
+
+
+def bundle_ready_symbols() -> List[str]:
+    """The SECTORS symbols whose stock page is guaranteed to render — i.e. we
+    hold cached daily bars for them inside the bundle window.
+
+    This is what the sitemap must advertise. Cached bars alone make
+    company_bundle() return found:true with no Finnhub call in the path, so
+    these pages survive an exhausted rate budget, an expired key, and a Finnhub
+    outage. Symbols we only ever had a *profile* for render fine when the
+    budget allows and go noindex-degraded when it doesn't — real pages, but not
+    ones to put in front of a crawler as permanent URLs.
+
+    One indexed query against the engine cache; no network."""
+    universe = list(dict.fromkeys(s for syms in SECTORS.values() for s in syms))
+    path = _cache_db_path()
+    if not universe or not Path(path).exists():
+        return []
+    floor = (date.today() - timedelta(days=365 * BUNDLE_BARS_YEARS)).isoformat()
+    placeholders = ",".join("?" for _ in universe)
+    conn = sqlite3.connect(path, timeout=30)
+    try:
+        rows = conn.execute(
+            f"SELECT DISTINCT symbol FROM daily_bars "
+            f"WHERE symbol IN ({placeholders}) AND date >= ? AND close IS NOT NULL",
+            (*universe, floor),
+        ).fetchall()
+    except Exception:
+        logger.warning("bundle-ready symbol scan failed", exc_info=True)
+        return []
+    finally:
+        conn.close()
+    ready = {str(r[0]).upper() for r in rows}
+    return [s for s in universe if s in ready]  # keep the curated sector order
 
 
 def _bundle_stats(bars: List[dict]) -> Optional[dict]:
@@ -590,19 +650,31 @@ def company_bundle(ticker: str) -> dict:
     symbol = str(ticker or "").strip().upper()
     configured = bool(_finnhub_key())
     if not symbol or not _TICKER_RE.match(symbol):
-        return {"found": False, "symbol": symbol, "configured": configured}
+        # Malformed ticker — nothing transient about it.
+        return {"found": False, "retryable": False, "symbol": symbol,
+                "configured": configured}
+    status: Dict[str, str] = {}
+    bars_failed = False
     try:
-        profile = _get_profiles([symbol]).get(symbol)
+        profile = _get_profiles([symbol], status_out=status).get(symbol)
     except Exception:
         logger.warning("profile lookup failed for %s", symbol, exc_info=True)
         profile = None
+        status[symbol] = "unavailable"
     try:
         bars = _read_bundle_bars(symbol)
     except Exception:
         logger.warning("cached bars unavailable for %s", symbol, exc_info=True)
         bars = []
+        bars_failed = True
     if profile is None and not bars:
-        return {"found": False, "symbol": symbol, "configured": configured}
+        # We have nothing to show — but WHY decides the caller's HTTP status.
+        # Only a completed lookup that came back empty is evidence the ticker
+        # doesn't exist; a starved rate budget or a failed call is a "come back
+        # later", and answering 404 to that gets a real URL deindexed.
+        retryable = bars_failed or status.get(symbol) in ("starved", "unavailable")
+        return {"found": False, "retryable": retryable, "symbol": symbol,
+                "configured": configured}
     try:
         next_earnings = _next_earnings_for(symbol)
     except Exception:

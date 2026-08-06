@@ -76,8 +76,21 @@ export async function getStockBundle(ticker: string): Promise<StockBundleResult>
       { next: { revalidate: STOCKS_REVALIDATE } },
     );
     if (!res.ok) return { status: "unavailable", symbol };
-    const body = (await res.json()) as Partial<StockBundle> & { found?: boolean };
-    if (!body.found) return { status: "not_found", symbol };
+    const body = (await res.json()) as Partial<StockBundle> & {
+      found?: boolean;
+      retryable?: boolean;
+    };
+    // `retryable` separates "this ticker does not exist" from "we couldn't
+    // look it up just now" (spent Finnhub rate budget, upstream error). Both
+    // arrive as found:false, and treating the second as a 404 deindexes a live
+    // URL — a crawler walking every /stocks page exhausts the budget within
+    // seconds, so this is the common case, not the edge case. Older service
+    // builds omit the field; absence means "definitive", the prior behaviour.
+    if (!body.found) {
+      return body.retryable
+        ? { status: "unavailable", symbol }
+        : { status: "not_found", symbol };
+    }
     return {
       status: "found",
       bundle: {

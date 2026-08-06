@@ -1256,6 +1256,18 @@ def markets_news():
     return {**markets.market_news(), "disclaimer": DISCLAIMER}
 
 
+@app.get("/stocks")
+def stocks_index():
+    """Symbols whose stock page is guaranteed to render (we hold cached bars).
+
+    The sitemap reads this instead of hardcoding the sector universe: a symbol
+    we can only describe via Finnhub degrades to a noindex page whenever the
+    rate budget is spent, and advertising those earns "Submitted URL marked
+    noindex" — or, before company_bundle learned to flag retryable misses, a
+    hard 404 — on URLs Google was told to crawl."""
+    return {"symbols": markets.bundle_ready_symbols()}
+
+
 @app.get("/stocks/{ticker}")
 def stock_bundle(ticker: str):
     """Informational company bundle for the stock page — research/education

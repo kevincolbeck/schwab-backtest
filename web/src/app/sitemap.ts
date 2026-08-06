@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { BLOG_CATEGORIES, BLOG_POSTS, postsInCategory } from "@/lib/blog";
 import { BACKTEST_API_URL } from "@/lib/server/backend";
-import { STOCK_UNIVERSE } from "@/lib/server/stocks";
 import { SITE_URL } from "@/lib/seo";
 
 /** Sitemap for the public, INDEXABLE surfaces.
@@ -16,11 +15,9 @@ import { SITE_URL } from "@/lib/seo";
  * everything with "now" on each request would be a freshness lie that Google
  * learns to ignore.
  *
- * /stocks/{symbol} entries come from STOCK_UNIVERSE — the same fixed liquid
- * universe the service's markets overview reads (service/markets.py SECTORS).
- * Follow-up: expand to the engine's full 5k+ cached symbols once the service
- * exposes a cheap symbol-list endpoint (the pages themselves already serve any
- * cached ticker via ISR + dynamicParams). */
+ * /stocks/{symbol} entries come from the service's /stocks index — the sector
+ * symbols it holds cached bars for, so every one is guaranteed to render. See
+ * stockEntries() for why hardcoding the universe was actively harmful. */
 
 /** Bump when site copy/metadata changes materially. Last: P1-2 rewrote every
  *  page title and meta description. */
@@ -55,6 +52,35 @@ const STATIC_ROUTES: { path: string; changeFrequency: "daily" | "weekly"; priori
   { path: "/docs/export-python", changeFrequency: "weekly", priority: 0.5 },
   { path: "/docs/export-pine", changeFrequency: "weekly", priority: 0.5 },
 ];
+
+/** Stock pages we can PROVE render: the service returns the sector symbols it
+ *  holds cached daily bars for, which is the one path through company_bundle()
+ *  that needs no Finnhub call.
+ *
+ *  This used to be STOCK_UNIVERSE verbatim, and 80 of the 110 URLs it
+ *  advertised were serving a hard 404: symbols with no cached bars depend on a
+ *  Finnhub profile, a crawl of this very sitemap spends the 50/min budget in
+ *  seconds, and the starved lookup came back as found:false → notFound() →
+ *  a 404 frozen into the 6h ISR cache. The service now flags those misses
+ *  retryable so they degrade instead of 404ing, and the sitemap no longer
+ *  submits URLs whose indexability depends on a rate budget.
+ *
+ *  Degrades to an empty list if the service is unreachable — dropping stock
+ *  URLs for one revalidation is cheap; submitting broken ones is not. */
+async function stockEntries(): Promise<MetadataRoute.Sitemap> {
+  try {
+    const res = await fetch(`${BACKTEST_API_URL}/stocks`, { next: { revalidate } });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { symbols?: string[] };
+    return (body.symbols ?? []).map((symbol) => ({
+      url: `${SITE_URL}/stocks/${symbol}`,
+      changeFrequency: "daily" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 /** Public strategy pages (the forward-test records). Fetched rather than
  *  hardcoded so a newly deployed strategy is discoverable within the hour.
@@ -125,10 +151,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...(await strategyEntries()),
     // Stock pages refresh once per trading day (settled closes, 6h ISR).
-    ...STOCK_UNIVERSE.map((symbol) => ({
-      url: `${SITE_URL}/stocks/${symbol}`,
-      changeFrequency: "daily" as const,
-      priority: 0.6,
-    })),
+    ...(await stockEntries()),
   ];
 }
