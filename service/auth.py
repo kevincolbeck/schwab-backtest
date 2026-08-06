@@ -110,6 +110,14 @@ def get_user(authorization: Optional[str]) -> Optional[dict]:
 
 
 def limits_for(user: Optional[dict]) -> dict:
+    """Capability set for a user, including any earned referral slots.
+
+    Referral bonuses are additive on top of the plan and NEVER change any
+    other capability — a referred free user gets a second deployment slot, not
+    intraday, not crypto, not a bigger symbol cap. §5's flat tiers stay the
+    thing you buy; the referral just widens one number.
+    """
+def _plan_limits_for(user: Optional[dict]) -> dict:
     if user is None:
         # Dev-open: with auth unconfigured there are no accounts, so there are
         # no plans to gate by — everything the rest of the code treats as
@@ -120,6 +128,24 @@ def limits_for(user: Optional[dict]) -> dict:
             return PLAN_LIMITS["max"]
         return PLAN_LIMITS["anon"]
     return PLAN_LIMITS.get(user.get("plan", "free"), PLAN_LIMITS["free"])
+
+
+def limits_for(user: Optional[dict]) -> dict:
+    limits = _plan_limits_for(user)
+    if user is None:
+        return limits
+    # Import here: referrals imports auth, and a module-level import would be
+    # circular.
+    from service import referrals
+
+    bonus = referrals.bonus_deployments(user.get("id"))
+    if not bonus:
+        return limits
+    slots = limits["deployments"]
+    if slots is None:
+        return limits  # max plan is already unlimited — nothing to add to
+    # Copy: PLAN_LIMITS entries are module-level dicts shared by every request.
+    return {**limits, "deployments": slots + bonus}
 
 
 # ── Simple per-day run counter (single-instance v1; move to Postgres later) ──

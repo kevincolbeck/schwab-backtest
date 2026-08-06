@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Card from "@/components/ui/Card";
+import ReferralCard from "@/components/ReferralCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { getCreditBalance, getProfile } from "@/lib/server/stripe";
 import { serverSession } from "@/lib/supabase/server";
@@ -79,6 +80,7 @@ export default async function AccountPage({
         </dl>
       </Card>
       <div className="mt-6 flex flex-wrap gap-3">
+        <ReferralCard />
         {plan === "free" ? (
           <ButtonLink href="/pricing">Upgrade</ButtonLink>
         ) : (

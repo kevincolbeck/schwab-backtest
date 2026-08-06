@@ -149,3 +149,20 @@ export function fetchMe(): Promise<{
 }> {
   return request("/api/me");
 }
+
+/** §8 referral status: this user's code and the bonus slots it has earned. */
+export function fetchReferral(): Promise<{
+  enabled: boolean;
+  code: string | null;
+  bonus_deployments: number;
+  max_bonus?: number;
+}> {
+  return request("/referral");
+}
+
+export function redeemReferral(code: string): Promise<{ bonus_deployments: number }> {
+  return request("/referral/redeem", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+}

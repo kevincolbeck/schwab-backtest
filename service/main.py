@@ -38,7 +38,7 @@ from pydantic import BaseModel, Field, model_validator
 from service import env  # noqa: F401  (loads .env before anything reads os.environ)
 from service import auth, credits
 from service import chat as chat_brain
-from service import analytics, backtest_runner, forward, identity, markets, metrics, runs_store
+from service import analytics, backtest_runner, forward, identity, markets, metrics, referrals, runs_store
 from ai.strategist import clamp_spec, ensure_indicators, validate_spec  # engine path set by backtest_runner
 from backtest.rule_based_engine import RuleBasedBacktestEngine, _sorted_indicators
 
@@ -1281,6 +1281,43 @@ def markets_day(date: str, kind: str = "earnings"):
 def markets_news():
     """General market headlines (10 min cache). Degrades to configured=false."""
     return {**markets.market_news(), "disclaimer": DISCLAIMER}
+
+
+class RedeemRequest(BaseModel):
+    code: str = Field(min_length=4, max_length=32)
+
+
+@app.get("/referral")
+def referral_status(user: Optional[dict] = Depends(current_user)):
+    """This user's referral code and how many bonus slots it has earned.
+
+    §8: "give a friend 1 extra deployment slot, get 1". The cap lives in
+    service/referrals.py — this grants free capacity, so it is deliberately
+    low rather than a growth lever."""
+    if user is None:
+        raise HTTPException(status_code=401, detail="sign in to see your referral code")
+    if not referrals.enabled():
+        return {"enabled": False, "code": None, "bonus_deployments": 0}
+    return {
+        "enabled": True,
+        "code": referrals.code_for(user["id"]),
+        "bonus_deployments": referrals.bonus_deployments(user["id"]),
+        "max_bonus": referrals.REFERRAL_MAX_BONUS,
+    }
+
+
+@app.post("/referral/redeem")
+def referral_redeem(
+    req: RedeemRequest, user: Optional[dict] = Depends(current_user)
+):
+    """Redeem someone's code. One per account, ever — enforced by the table's
+    primary key, not just by this check."""
+    if user is None:
+        raise HTTPException(status_code=401, detail="sign in to redeem a referral code")
+    out = referrals.redeem(req.code, user["id"])
+    if not out["ok"]:
+        raise HTTPException(status_code=400, detail=out["reason"])
+    return {"ok": True, "bonus_deployments": referrals.bonus_deployments(user["id"])}
 
 
 @app.get("/templates/{template_id}/curve")
