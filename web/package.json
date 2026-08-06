@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "seo": "node ../scripts/check_seo.mjs"
+    "seo": "node ../scripts/check_seo.mjs",
+    "a11y": "node ../scripts/check_a11y.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -28,6 +29,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

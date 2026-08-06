@@ -92,7 +92,9 @@ export default async function ComparePage({
           <table>
             <thead>
               <tr>
-                <th scope="col">&nbsp;</th>
+                <th scope="col">
+                  <span className="sr-only">Feature</span>
+                </th>
                 <th scope="col">{c.name}</th>
                 <th scope="col">Chat·Backtest</th>
               </tr>

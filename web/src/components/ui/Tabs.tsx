@@ -8,12 +8,22 @@ export interface TabDef {
   badge?: string | number;
 }
 
+/** The id a tabpanel MUST carry for its tab's aria-controls to resolve.
+ *  Exported because that reference was dangling on every tab in the app —
+ *  aria-controls pointed at panel ids no consumer ever rendered, which is an
+ *  invalid ARIA reference (axe: aria-valid-attr-value, critical), and it
+ *  meant a screen reader could not jump from a tab to its content. */
+export const tabPanelId = (baseId: string, tabId: string) => `${baseId}-panel-${tabId}`;
+/** The tab button's own id, for the panel's aria-labelledby. */
+export const tabButtonId = (baseId: string, tabId: string) => `${baseId}-${tabId}`;
+
 export default function Tabs({
   tabs,
   active,
   onChange,
   baseId: baseIdProp,
   ariaLabel = "Workspace views",
+  hasPanels = true,
   className = "",
 }: {
   tabs: TabDef[];
@@ -23,6 +33,9 @@ export default function Tabs({
   baseId?: string;
   /** Accessible tablist name — default keeps the playground's label. */
   ariaLabel?: string;
+  /** Set false when the consumer does NOT render tabpanels — omitting
+   *  aria-controls is correct; pointing it at nothing is not. */
+  hasPanels?: boolean;
   className?: string;
 }) {
   const autoId = useId();
@@ -43,10 +56,10 @@ export default function Tabs({
         return (
           <button
             key={tab.id}
-            id={`${baseId}-${tab.id}`}
+            id={tabButtonId(baseId, tab.id)}
             role="tab"
             aria-selected={selected}
-            aria-controls={`${baseId}-panel-${tab.id}`}
+            aria-controls={hasPanels ? tabPanelId(baseId, tab.id) : undefined}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.id)}
             onKeyDown={(e) => {

@@ -179,6 +179,10 @@ export default function CalendarSection({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs
           ariaLabel="Calendar type"
+          // These tabs swap the whole calendar body rather than toggling
+          // discrete panels, so there is no element for aria-controls to
+          // point at. Omitting it is correct; a dangling reference is not.
+          hasPanels={false}
           tabs={[
             { id: "earnings", label: "Earnings" },
             { id: "ipo", label: "IPOs" },

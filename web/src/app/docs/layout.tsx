@@ -24,13 +24,17 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         <DocsSidebar />
       </aside>
 
-      <div className="min-w-0 flex-1">
+      {/* <main> rather than a bare div: the docs pages are the only route
+          group with no landmark around their content, so axe reported every
+          block as outside a region — meaning a screen-reader user could not
+          jump to the article at all. */}
+      <main className="min-w-0 flex-1">
         {/* 70ch = named line-length cap for prose (AUDIT §7.2 — legit ch value). */}
         <article className="docs-prose max-w-[70ch]">{children}</article>
         <p className="mt-12 max-w-[70ch] border-t border-hairline pt-5 text-caption leading-relaxed text-faint">
           {DISCLAIMER}
         </p>
-      </div>
+      </main>
     </div>
   );
 }

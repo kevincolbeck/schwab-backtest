@@ -1000,6 +1000,11 @@ function PlaygroundInner() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Tabs
               baseId="lab-tabs"
+              // The four tabpanels only exist once a run does (the Rules panel
+              // also renders pre-run, but the other three don't). Before then,
+              // aria-controls pointed at ids that were not in the DOM — an
+              // invalid ARIA reference, and a dead end for a screen reader.
+              hasPanels={Boolean(run) || (activeTab === "rules" && Boolean(rulesPanel))}
               tabs={[
                 { id: "results", label: "Results" },
                 { id: "trades", label: "Trades", badge: run?.trades.length ?? undefined },
