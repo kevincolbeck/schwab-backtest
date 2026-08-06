@@ -46,3 +46,6 @@ Thumbs.db
 # ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+
+# Scratch files from research/verification passes — never committed.
+scratch_*
