@@ -9,6 +9,7 @@ import CommandPalette from "@/components/CommandPalette";
 import SiteNav from "@/components/SiteNav";
 import { DISCLAIMER } from "@/lib/constants";
 import { SITE_URL, pageMetadata } from "@/lib/seo";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -118,6 +119,7 @@ export default function RootLayout({
             </div>
           </footer>
         </AuthModalProvider>
+        <Analytics />
       </body>
     </html>
   );
