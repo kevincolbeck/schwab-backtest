@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import SectionShell from "@/components/SectionShell";
+import XProfileLink from "@/components/XProfileLink";
 import Card from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { DISCLAIMER } from "@/lib/constants";
@@ -165,6 +166,10 @@ export default function AboutPage() {
             misleading — especially if you think a number is misleading — I
             want to know. Email{" "}
             <a href="mailto:kevin@chatbacktest.com">kevin@chatbacktest.com</a>.
+          </p>
+          <p className="not-prose flex items-center gap-2 text-sm text-muted">
+            <span>We post new records and write-ups on X:</span>
+            <XProfileLink size={16} />
           </p>
         </div>
 

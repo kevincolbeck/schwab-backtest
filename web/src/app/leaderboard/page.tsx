@@ -11,6 +11,7 @@ import ShareToX from "@/components/ShareToX";
 import Sparkline from "@/components/Sparkline";
 import Card from "@/components/ui/Card";
 import FollowInterest from "@/components/FollowInterest";
+import XProfileLink from "@/components/XProfileLink";
 import { DISCLAIMER } from "@/lib/constants";
 import { fmtNum, fmtPct, fmtSignedPct } from "@/lib/format";
 import { METRICS } from "@/lib/metrics";
@@ -435,6 +436,10 @@ export default async function LeaderboardPage({
         {/* §8 demand test. Sits BELOW the board so it never competes with the
             records themselves — the page's job is the ledger, not a teaser. */}
         <FollowInterest />
+        <p className="mt-4 flex items-center gap-2 text-caption text-muted">
+          <span>New records get posted on X as they clear the window:</span>
+          <XProfileLink size={14} />
+        </p>
       </SectionShell>
 
       <div className="mx-auto w-full max-w-(--container-max) px-4 pb-12 sm:px-6">

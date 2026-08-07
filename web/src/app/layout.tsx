@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import AuthModalProvider from "@/components/AuthModal";
+import XProfileLink from "@/components/XProfileLink";
 import ReferralCapture from "@/components/ReferralCapture";
 import CommandPalette from "@/components/CommandPalette";
 import SiteNav from "@/components/SiteNav";
@@ -109,6 +110,7 @@ export default function RootLayout({
                 >
                   About
                 </Link>
+                <XProfileLink size={13} />
               </div>
               <p className="max-w-xl text-caption leading-relaxed text-faint">
                 {DISCLAIMER}
