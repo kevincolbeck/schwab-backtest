@@ -160,7 +160,7 @@ begin
   if new.spec_frozen is distinct from old.spec_frozen
      or new.spec_hash is distinct from old.spec_hash
      or new.deployed_at is distinct from old.deployed_at then
-    raise exception 'deployed specs are immutable â€” create a new deployment instead';
+    raise exception 'deployed specs are immutable — create a new deployment instead';
   end if;
   return new;
 end;

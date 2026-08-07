@@ -30,7 +30,7 @@ export default function MobileMenu() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
 
-  // A followed link changed the route â€” close the panel (state adjustment
+  // A followed link changed the route — close the panel (state adjustment
   // during render, per react.dev "adjusting state when props change").
   const [lastPath, setLastPath] = useState(pathname);
   if (lastPath !== pathname) {
